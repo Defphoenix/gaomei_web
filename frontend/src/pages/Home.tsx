@@ -15,9 +15,9 @@ const fallbackServices: ServiceItem[] = [
 ];
 
 const fallbackTeam: TeamMember[] = [
-  { id: 1, name: "张明远", position: "创始人 & CEO", bio: "北京大学生命科学博士，前华大基因高级研究员，专注基因组学研究15年。", expertise: "肿瘤基因组学，精准医学，临床转化", photo: "/assets/images/team_male_2.jpg" },
-  { id: 2, name: "李婷婷", position: "首席技术官", bio: "中科院生物信息学博士后，擅长NGS数据分析流程开发和甲基化算法设计。", expertise: "生物信息，甲基化算法，多组学", photo: "/assets/images/team_female.jpg" },
-  { id: 3, name: "王浩然", position: "研发总监", bio: "浙江大学生物医学工程硕士，负责检测平台技术优化和产品开发。", expertise: "检测平台，产品研发，工程转化", photo: "/assets/images/team_male_1.jpg" },
+  { id: 1, name: "孙德强", position: "创始人 & CEO", bio: "北京大学生命科学博士，前华大基因高级研究员，专注基因组学研究15年。", expertise: "肿瘤基因组学，精准医学，临床转化", photo: "/assets/images/team_male_2.jpg" },
+  { id: 2, name: "林芳赋", position: "首席技术官", bio: "中科院生物信息学博士后，擅长NGS数据分析流程开发和甲基化算法设计。", expertise: "生物信息，甲基化算法，多组学", photo: "/assets/images/team_female.jpg" },
+  { id: 3, name: "郭峰华", position: "研发总监", bio: "浙江大学生物医学工程硕士，负责检测平台技术优化和产品开发。", expertise: "检测平台，产品研发，工程转化", photo: "/assets/images/team_male_1.jpg" },
 ];
 
 const iconVariants = ["dna", "target", "microscope", "network"] as const;
