@@ -287,7 +287,7 @@ export const TechPage: React.FC = () => {
         <div className="site-container">
           <div className="section-heading motion-reveal"><span className="eyebrow">ONCOLOGY SERVICES</span><h2>从风险识别到持续随访</h2><p>选择不同阶段，查看适用场景、样本策略与主要分析内容。</p></div>
           <div className="service-explorer">
-            <div className="service-visual motion-reveal" style={{ backgroundImage: `linear-gradient(180deg,rgba(5,18,42,.08),rgba(5,18,42,.9)),url('${service.image}')` }}>
+            <div className="service-visual motion-reveal" style={{ backgroundImage: `linear-gradient(180deg,rgba(5,18,42,.42),rgba(5,18,42,.78) 48%,rgba(5,18,42,.94)),url('${service.image}')` }}>
               <span>{service.label}</span><MotionIcon variant={service.icon} /><h3>{service.name}</h3><p>{service.intro}</p>
               <div>{service.bullets.map((item) => <b key={item}>{item}</b>)}</div>
             </div>

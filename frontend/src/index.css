@@ -341,9 +341,9 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .laboratory-section { background:#fff; }
 .laboratory-grid { display:grid; grid-template-columns:1.7fr .9fr; gap:26px; align-items:stretch; }
 .laboratory-image { position:relative; min-height:590px; overflow:hidden; border-radius:24px; background:#0b1530; }
-.laboratory-image > img { position:absolute; inset:-8% 0; width:100%; height:116%; object-fit:cover; }
-.laboratory-image:after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,transparent 35%,rgba(5,10,24,.92)); }
-.lab-overlay { position:absolute; z-index:2; left:36px; bottom:34px; color:#fff; }
+.laboratory-image > img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; object-position:center; }
+.laboratory-image:after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg,rgba(5,10,24,.2) 0%,rgba(5,10,24,.45) 42%,rgba(5,10,24,.94) 100%); }
+.lab-overlay { position:absolute; z-index:2; left:36px; bottom:34px; color:#fff; text-shadow:0 2px 18px rgba(0,0,0,.45); }
 .lab-overlay span { color:#9dc0ff; font-size:9px; letter-spacing:.18em; }
 .lab-overlay h3 { margin:10px 0 6px; font-size:30px; }
 .lab-overlay p { margin:0; color:#aebbd1; }
@@ -390,10 +390,10 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .team-section { background:#fff; }
 .home-team-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
 .team-card { min-width:0; }
-.team-photo { position:relative; aspect-ratio:.82; overflow:hidden; border-radius:18px; background:#e9edf3; }
+.team-photo { position:relative; overflow:hidden; border-radius:18px; background:#eef2f7; }
 .team-photo:after { content:""; position:absolute; inset:50% 0 0; background:linear-gradient(transparent,rgba(5,10,24,.72)); opacity:0; transition:.35s; }
-.team-photo img { width:100%; height:100%; object-fit:cover; filter:saturate(.72); transition:transform .65s,filter .4s; }
-.team-card:hover img { transform:scale(1.06); filter:saturate(1); }
+.team-photo img { width:100%; height:100%; object-fit:contain; object-position:center top; filter:saturate(.88); transition:transform .65s,filter .4s; }
+.team-card:hover img { transform:scale(1.02); filter:saturate(1); }
 .team-card:hover .team-photo:after { opacity:1; }
 .team-index { position:absolute; z-index:2; top:15px; left:15px; padding:7px 9px; color:#fff; border-radius:8px; background:rgba(8,11,27,.55); backdrop-filter:blur(8px); font-size:9px; }
 .team-social { position:absolute; z-index:3; right:15px; bottom:15px; display:flex; gap:7px; opacity:0; transform:translateY(12px); transition:.35s; }
@@ -492,12 +492,12 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .team-flip-card { width:100%; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; perspective:1200px; min-height:455px; }
 .team-flip-inner { position:relative; display:block; width:100%; height:455px; transform-style:preserve-3d; transition:transform .75s cubic-bezier(.2,.8,.2,1); }
 .team-flip-card.is-flipped .team-flip-inner { transform:rotateY(180deg); }
-.team-face { position:absolute; inset:0; display:block; backface-visibility:hidden; border-radius:18px; overflow:hidden; }
-.team-front { background:#fff; }
-.team-front .team-photo { display:block; width:100%; aspect-ratio:.82; }
-.team-front strong,.team-front em { display:block; }
-.team-front strong { margin:17px 3px 5px; color:var(--ink); font:700 17px Manrope; }
-.team-front em { margin:0 3px; color:var(--blue-deep); font-size:11px; font-style:normal; font-weight:700; }
+.team-face { position:absolute; inset:0; display:flex; flex-direction:column; backface-visibility:hidden; border-radius:18px; overflow:hidden; }
+.team-front { background:#fff; padding:0 0 16px; }
+.team-front .team-photo { display:block; flex:1 1 auto; width:100%; min-height:0; aspect-ratio:auto; }
+.team-front strong,.team-front em { display:block; flex:0 0 auto; }
+.team-front strong { margin:14px 14px 5px; color:var(--ink); font:700 17px Manrope; }
+.team-front em { margin:0 14px; color:var(--blue-deep); font-size:11px; font-style:normal; font-weight:700; }
 .flip-hint { position:absolute; z-index:3; left:15px; bottom:15px; padding:7px 10px; color:#fff; border-radius:999px; background:rgba(8,11,27,.67); backdrop-filter:blur(8px); font-size:8px; opacity:0; transform:translateY(8px); transition:.3s; }
 .team-flip-card:hover .flip-hint { opacity:1; transform:none; }
 .team-back { padding:30px; color:#fff; background:radial-gradient(circle at 85% 15%,#26528e,transparent 35%),#0a1630; transform:rotateY(180deg); border:1px solid rgba(157,192,255,.25); }
@@ -659,8 +659,8 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
   .lab-overlay { max-width:90%; left:24px; right:24px; bottom:22px; }
   .lab-overlay h3 { font-size:24px; }
   .team-flip-card,.team-flip-inner { min-height:480px; height:480px; }
-  .team-front .team-photo { aspect-ratio:1.1; }
-  .team-photo { aspect-ratio:1.05; }
+  .team-front .team-photo { aspect-ratio:auto; }
+  .team-photo { aspect-ratio:auto; }
   .consultation-banner { gap:18px; }
   .inner-hero-orbit { width:250px; height:250px; right:-80px; }
   .article-paper { padding:28px 22px; }
@@ -819,7 +819,7 @@ html { scroll-behavior:smooth; }
 .quality-detail p { margin:0; color:var(--muted); }
 
 .service-explorer { display:grid; grid-template-columns:1.05fr .95fr; gap:26px; }
-.service-visual { min-height:580px; padding:45px; display:flex; flex-direction:column; justify-content:flex-end; color:#fff; border-radius:26px; background-position:center; background-size:cover; box-shadow:0 28px 65px rgba(13,32,62,.18); animation:lab-image-in .55s ease both; }
+.service-visual { min-height:580px; padding:45px; display:flex; flex-direction:column; justify-content:flex-end; color:#fff; border-radius:26px; background-color:#071428; background-position:center; background-size:cover; background-repeat:no-repeat; box-shadow:0 28px 65px rgba(13,32,62,.18); animation:lab-image-in .55s ease both; text-shadow:0 2px 18px rgba(0,0,0,.4); }
 .service-visual > span { color:#9bc1f6; font-size:9px; letter-spacing:.18em; }
 .service-visual > .motion-icon { width:68px; height:68px; margin:20px 0; color:#a7c9fa; }
 .service-visual h3 { margin:0 0 10px; font-size:36px; }
