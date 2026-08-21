@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ data.report.report_id }} - {{ page_name }}</title>
+  <style>{{ styles.common | safe }}</style>
+  <style>{{ styles.screen | safe }}</style>
+  <style>body{padding:10mm 0}.report-document{width:210mm}.design-page-note{width:210mm;margin:0 auto 5mm;padding:3mm 5mm;color:#49626d;background:#eef7fa;border-left:1mm solid #19a8b2;font:9pt/1.6 sans-serif}.report-document>section{margin-bottom:0}</style>
+</head>
+<body>
+  <div class="design-page-note">独立设计页：可导入其他 HTML 设计工具修改。正式报告仍以 Django/Jinja2 模板为准。</div>
+  <main class="report-document" style="--report-font-scale:{{ data.layout.font_scale }}">
+    {% if page_name == "cover" %}{% include "partials/cover.html" %}
+    {% elif page_name == "executive-message" %}{% include "partials/executive_message.html" %}
+    {% elif page_name == "divider" %}{% include "partials/detailed_divider.html" %}
+    {% elif page_name == "back-cover" %}{% include "partials/back_cover.html" %}
+    {% endif %}
+  </main>
+</body>
+</html>

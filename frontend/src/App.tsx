@@ -23,10 +23,11 @@ import PersonalReports from "./pages/PersonalReports";
 import ScrollManager from "./components/ScrollManager";
 import ResetPassword from "./pages/ResetPassword";
 import CloudJobs from "./pages/CloudJobs";
+import PatientReportsAdmin from "./pages/PatientReportsAdmin";
 
 const AppShell: React.FC = () => {
   const location = useLocation();
-  const isPortal = location.pathname === "/dashboard" || location.pathname === "/cloud-jobs";
+  const isPortal = location.pathname === "/dashboard" || location.pathname === "/cloud-jobs" || location.pathname === "/patient-reports";
   const isReportDetail = location.pathname.startsWith("/reports/");
   const isAuthPage = ["/login", "/register", "/reset-password"].includes(location.pathname);
   const hidePublicChrome = isPortal || isReportDetail || isAuthPage;
@@ -57,6 +58,7 @@ const AppShell: React.FC = () => {
             <Route path="/bioblog/:slug" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><BioBlogDetail /></ProtectedRoute>} />
             <Route path="/my-reports" element={<ProtectedRoute><PersonalReports /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><Dashboard /></ProtectedRoute>} />
+            <Route path="/patient-reports" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><PatientReportsAdmin /></ProtectedRoute>} />
             <Route path="/cloud-jobs" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><CloudJobs /></ProtectedRoute>} />
             <Route path="/reports/:id" element={<ProtectedRoute><ReportDetail /></ProtectedRoute>} />
             <Route path="/browser" element={<ProtectedRoute><GenomeBrowser /></ProtectedRoute>} />

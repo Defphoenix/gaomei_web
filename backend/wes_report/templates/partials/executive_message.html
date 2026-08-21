@@ -1,0 +1,21 @@
+{% if data.executive_message and data.executive_message.enabled %}
+<section id="executive-message" class="executive-message-page">
+  <div class="message-brand">
+    <img class="brand-logo brand-logo-dark" src="{{ assets.logo }}" alt="高美基因 G-GOMICS">
+  </div>
+  <div class="message-rule"></div>
+  <article class="message-content">
+    <div class="message-kicker">A MESSAGE FROM GAOMEI GENETICS</div>
+    <h1>{{ data.executive_message.page_title }}</h1>
+    <p class="message-salutation">{{ data.executive_message.salutation }}</p>
+    {% for paragraph in data.executive_message.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    <p class="message-closing">{{ data.executive_message.closing }}</p>
+    <div class="message-signature">
+      <strong>{{ data.executive_message.signer_name }}</strong>
+      <span>{{ data.executive_message.signer_title }}</span>
+      <time>{{ data.executive_message.date }}</time>
+    </div>
+  </article>
+  <div class="message-decoration" aria-hidden="true"></div>
+</section>
+{% endif %}

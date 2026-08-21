@@ -96,6 +96,7 @@ const Dashboard: React.FC = () => {
         <nav>
           <a className="active" href="#overview"><i className="fas fa-th-large" />工作台</a>
           <a href="#projects"><i className="fas fa-vials" />项目中心</a>
+          {canOperate && <Link to="/patient-reports"><i className="fas fa-file-medical" />患者正式报告</Link>}
           {canOperate && <Link to="/cloud-jobs"><i className="fas fa-code-branch" />云端任务</Link>}
           {canOperate && <a href="#review"><i className="fas fa-clipboard-check" />审核发布</a>}
           <Link to="/browser"><i className="fas fa-dna" />IGV 证据</Link>

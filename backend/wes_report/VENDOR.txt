@@ -1,0 +1,3 @@
+# Vendored from https://github.com/Defphoenix/gaomei_wes_report (wes_report app)
+# Update intentionally: copy wes_report/ + examples into backend/wes_report_examples/
+# and re-run tests. Do not run this package as a separate public server.

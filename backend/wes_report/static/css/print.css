@@ -1,0 +1,87 @@
+@page {
+  size: A4;
+  margin: 18mm 16mm 18mm;
+}
+
+@page cover {
+  size: A4;
+  margin: 0;
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center { content: none; }
+}
+
+@page frontmatter {
+  size: A4;
+  margin: 0 0 12mm;
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center {
+    content: "第 " counter(page) " 页";
+    color: #60747d;
+    font-size: 7.5pt;
+  }
+}
+
+@page chapter {
+  size: A4;
+  margin: 0 0 12mm;
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center {
+    content: "第 " counter(page) " 页";
+    color: #60747d;
+    font-size: 7.5pt;
+  }
+}
+
+@page body {
+  size: A4;
+  margin: 18mm 16mm 18mm;
+  @top-left {
+    content: "高美基因 · 全外显子组测序检测报告";
+    color: #60747d;
+    font-size: 7.5pt;
+  }
+  @top-right {
+    content: "样本编号：" string(sample-id);
+    color: #60747d;
+    font-size: 7.5pt;
+  }
+  @bottom-left {
+    content: "GAOMEI GENETICS";
+    color: #8ba0a9;
+    font: 6.8pt Arial, sans-serif;
+    letter-spacing: .12em;
+  }
+  @bottom-center {
+    content: "第 " counter(page) " 页";
+    color: #60747d;
+    font-size: 7.5pt;
+  }
+  @bottom-right {
+    content: "模板版本 V1.0";
+    color: #8ba0a9;
+    font-size: 6.8pt;
+  }
+}
+
+@media print {
+  html, body { margin: 0; padding: 0; background: #fff; }
+  .report-toolbar { display: none !important; }
+  .report-document { width: auto; margin: 0; box-shadow: none; }
+  .cover-page, .back-cover { width: 210mm; height: 297mm; min-height: 297mm; margin: 0; }
+  .executive-message-page, .toc-page, .chapter-cover { width: 210mm; height: 285mm; min-height: 285mm; margin: 0; }
+  .cover-page, .executive-message-page, .toc-page, .chapter-cover, .back-cover { break-after: page; }
+  .content-section { width: auto; min-height: 0; margin: 0; padding: 0 0 5mm; box-shadow: none; }
+  .chart-report-page { height: 256mm; min-height: 256mm; max-height: 256mm; break-after: page; }
+  a { text-decoration: none; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  table { break-inside: auto; }
+  .extended-table-block { break-inside: auto; }
+  .extended-table-block > h3 { break-after: avoid; }
+  tr, .metric-card, .quality-figure, .summary-panel, .interpretation-card, .two-column article, .report-chart-card { break-inside: avoid; }
+  h2, h3, h4 { break-after: avoid; }
+  p, li { orphans: 3; widows: 3; }
+}

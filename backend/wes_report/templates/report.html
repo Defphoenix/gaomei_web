@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="{{ data.report.laboratory }}">
+  <meta name="generator" content="Gaomei WES Report 0.1.0">
+  <meta name="dcterms.created" content="{{ data.report.generated_at }}">
+  <meta name="description" content="{{ data.report.title }} - {{ data.sample.sample_id }}">
+  <title>{{ data.report.title }} - {{ data.sample.sample_id }}</title>
+  <style>{{ styles.common | safe }}</style>
+  <style>{{ styles.screen | safe }}</style>
+  <style>{{ styles.print | safe }}</style>
+</head>
+<body>
+  <span class="string-setter">{{ data.sample.sample_id }}</span>
+
+  {% if (data.charts and data.charts.enabled) or data.quality_control %}
+  <script>{{ chart_scripts.echarts | safe }}</script>
+  <script>{{ chart_scripts.d3 | safe }}</script>
+  {% endif %}
+
+  {% if not pdf_mode and not embedded %}
+  <nav class="report-toolbar" aria-label="报告操作">
+    <div>
+      <strong>高美 WES 报告预览</strong>
+      <span>{{ data.report.report_id }}</span>
+    </div>
+    <div class="toolbar-actions">
+      {% if edit_url %}<a href="{{ edit_url }}">修改报告数据</a>{% endif %}
+      <button type="button" onclick="window.print()">打印当前页面</button>
+      {% if pdf_url %}<a class="primary-button" href="{{ pdf_url }}">下载正式 PDF</a>{% endif %}
+    </div>
+  </nav>
+  {% if template_preview %}
+  <div class="template-preview-banner">模板样式预览 · 当前内容为占位数据 · <a href="/template-source/raw/">查看 Jinja2 源码</a></div>
+  {% endif %}
+  {% endif %}
+
+  <main class="report-document" style="--report-font-scale: {{ data.layout.font_scale }}; --report-body-font: {{ 11.25 * data.layout.font_scale }}pt; --report-section-font: {{ 16 * data.layout.font_scale }}pt; --report-paragraph-font: {{ 9.5 * data.layout.font_scale }}pt; --report-subheading-font: {{ 12.5 * data.layout.font_scale }}pt; --report-table-title-font: {{ 10.5 * data.layout.font_scale }}pt; --report-table-font: {{ 8 * data.layout.font_scale }}pt; --report-compact-font: {{ 6.9 * data.layout.font_scale }}pt; --report-table-note-font: {{ 7.6 * data.layout.font_scale }}pt; --report-annotation-font: {{ 9 * data.layout.font_scale }}pt; --report-somatic-font: {{ 6.35 * data.layout.font_scale }}pt; --report-matrix-font: {{ 6.3 * data.layout.font_scale }}pt; --report-treatment-font: {{ 6.6 * data.layout.font_scale }}pt; --report-pgx-font: {{ 6.5 * data.layout.font_scale }}pt">
+    {% include "partials/cover.html" %}
+    {% if data.layout.document_type == "clinical_v2" %}
+    {% include "partials/executive_message.html" %}
+    {% if data.layout.show_toc %}{% include "partials/toc.html" %}{% endif %}
+    {% include "partials/clinical_v2.html" %}
+    {% include "partials/back_cover.html" %}
+    {% else %}
+    {% include "partials/toc.html" %}
+
+    <section id="overview" class="chapter-cover overview-cover">
+      <div class="chapter-index">01</div>
+      <h1>检测概览</h1>
+      <p>REPORT OVERVIEW</p>
+      <div class="molecule-pattern" aria-hidden="true"></div>
+    </section>
+
+    {% include "partials/overview.html" %}
+    {% include "partials/results.html" %}
+    {% include "partials/charts.html" %}
+
+    <section id="interpretation" class="chapter-cover interpretation-cover">
+      <div class="chapter-index">02</div>
+      <h1>检测结果详细解读</h1>
+      <p>DETAILED INTERPRETATION</p>
+      <div class="molecule-pattern" aria-hidden="true"></div>
+    </section>
+
+    {% include "partials/interpretation.html" %}
+    {% include "partials/methods.html" %}
+
+    {% include "partials/extended_chapters.html" %}
+
+    <section id="appendix" class="chapter-cover appendix-cover">
+      <div class="chapter-index">10</div>
+      <h1>报告声明与参考文献</h1>
+      <p>STATEMENTS AND REFERENCES</p>
+      <div class="molecule-pattern" aria-hidden="true"></div>
+    </section>
+
+    {% include "partials/references.html" %}
+    {% include "partials/back_cover.html" %}
+    {% endif %}
+  </main>
+</body>
+</html>

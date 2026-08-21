@@ -1,0 +1,48 @@
+{% for chapter in data.chapters %}
+<section id="chapter-{{ chapter.chapter_id }}" class="chapter-cover extended-chapter-cover">
+  <div class="chapter-index">{{ chapter.number }}</div>
+  <h1>{{ chapter.title }}</h1>
+  <p>{{ chapter.subtitle or "GAOMEI GENETICS REPORT" }}</p>
+  <div class="molecule-pattern" aria-hidden="true"></div>
+</section>
+
+{% for section in chapter.sections %}
+<section id="section-{{ section.section_id }}" class="content-section extended-section{% if section.page_break_before or loop.first %} section-start{% endif %}">
+  <header class="section-heading">
+    <span>{{ section.number }}</span>
+    <div><h2>{{ section.title }}</h2>{% if section.subtitle %}<small>{{ section.subtitle }}</small>{% endif %}</div>
+  </header>
+
+  {% for paragraph in section.paragraphs %}<p class="section-paragraph">{{ paragraph }}</p>{% endfor %}
+
+  {% if section.metrics %}
+  <div class="extended-metric-grid">
+    {% for metric in section.metrics %}
+    <article class="extended-metric-card">
+      <div class="extended-metric-label">{{ metric.label }}</div>
+      <strong>{{ metric.value }}</strong>
+      {% if metric.status %}<span class="extended-metric-status">{{ metric.status }}</span>{% endif %}
+      {% if metric.detail %}<p>{{ metric.detail }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% for table in section.tables %}
+  <div class="extended-table-block">
+    {% if table.title %}<h3>{{ table.title }}</h3>{% endif %}
+    <table class="data-table flexible-table{% if table.compact %} compact-table{% endif %}">
+      {% if table.columns %}<thead><tr>{% for column in table.columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>{% endif %}
+      <tbody>
+        {% for row in table.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}
+      </tbody>
+    </table>
+    {% if table.note %}<p class="extended-table-note">{{ table.note }}</p>{% endif %}
+  </div>
+  {% endfor %}
+
+  {% if section.bullets %}<div class="extended-list"><h3>说明与解读</h3><ul>{% for item in section.bullets %}<li>{{ item }}</li>{% endfor %}</ul></div>{% endif %}
+  {% if section.notes %}<aside class="extended-notes"><strong>重要提示</strong><ol>{% for item in section.notes %}<li>{{ item }}</li>{% endfor %}</ol></aside>{% endif %}
+</section>
+{% endfor %}
+{% endfor %}

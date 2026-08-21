@@ -306,7 +306,8 @@ node9 WES Agent/Worker
   |
   | 主动访问腾讯云 Bridge API
   v
-项目同步、任务领取、状态、日志、报告和PDF上传
+项目同步、任务领取、状态、日志；正式报告改为上传 JSON/附属文件包，由云端生成 PDF
+（见 `NODE9_REPORT_PACKAGE_zh.md`）。旧的 PDF 上传接口将废弃。
 ```
 
 腾讯云不能主动 SSH 进入 node9，也不能直接读取 node9 的 FASTQ、完整 BAM、参考基因组

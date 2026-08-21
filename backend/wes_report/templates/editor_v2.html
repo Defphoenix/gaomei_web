@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>编辑临床报告 - {{ report_id }}</title><style>{{ editor_style | safe }}</style></head>
+<body>
+  <header class="editor-header">
+    <div><h1>编辑临床报告数据</h1><p>{{ report_id }} · 精简JSON · 左侧A4预览，右侧按章节修改</p></div>
+    <nav class="header-links">
+      <details class="design-menu"><summary>独立页面 HTML</summary><div class="design-menu-panel">
+        <a target="_blank" href="{{ urls.design_cover }}">封面</a>
+        <a target="_blank" href="{{ urls.design_message }}">老板致辞</a>
+        <a target="_blank" href="{{ urls.design_divider }}">间隔扉页</a>
+        <a target="_blank" href="{{ urls.design_back }}">末页</a>
+      </div></details>
+      <a href="{{ urls.preview }}">返回报告</a><a href="{{ urls.pdf }}">下载 PDF</a>
+    </nav>
+  </header>
+  <main class="editor-layout">
+    <section class="preview-pane"><iframe id="previewFrame" class="preview-frame" title="临床报告HTML预览"></iframe></section>
+    <aside class="data-pane"><div class="data-scroll">
+      <details class="editor-section" open><summary>报告与受检者信息</summary><div class="section-body field-grid" id="basicFields"></div></details>
+      <details class="editor-section"><summary>送检样本列表</summary><div class="section-body" id="specimenFields"></div></details>
+      <details class="editor-section" open><summary>第2页 · 老板致辞草案</summary><div class="section-body field-grid" id="messageFields"></div></details>
+      <details class="editor-section" open><summary>版式与字体大小</summary><div class="section-body">
+        <div class="font-scale-control">
+          <label for="fontScaleRange"><span>报告正文与表格字体缩放</span><strong id="fontScaleLabel">130%</strong></label>
+          <input id="fontScaleRange" type="range" min="90" max="130" step="5" value="130">
+          <div class="font-scale-number"><input id="fontScaleNumber" type="number" min="90" max="130" step="5" value="130"><span>%</span></div>
+        </div>
+        <p class="editor-help">当前默认130%。正文、表格、表注和结果说明会同步缩放，并用于HTML预览与保存后生成的PDF。</p>
+      </div></details>
+      <div id="moduleEditors"></div>
+      <details class="editor-section"><summary>高级 · 完整报告JSON</summary><div class="section-body"><textarea id="jsonEditor" class="json-editor" spellcheck="false"></textarea><button type="button" id="applyJson" class="minor-button">应用完整JSON</button></div></details>
+    </div></aside>
+  </main>
+  <footer class="editor-actions"><div class="action-row"><button id="renderButton" class="render-button">重新生成 HTML</button><button id="saveButton" class="save-button">保存 JSON</button><button id="exportButton" class="export-button">导出 JSON</button></div><div id="statusLine" class="status-line">尚未修改</div></footer>
+  <script>
+    const csrfToken={{ csrf_token | tojson }};
+    const endpointUrls={{ urls | tojson }};
+    let reportState={{ data | tojson }};
+    const previewFrame=document.getElementById("previewFrame");
+    const statusLine=document.getElementById("statusLine");
+    const fontScaleRange=document.getElementById("fontScaleRange");
+    const fontScaleNumber=document.getElementById("fontScaleNumber");
+    const fontScaleLabel=document.getElementById("fontScaleLabel");
+    previewFrame.srcdoc={{ preview_html | tojson }};
+    const modules=[
+      ["overview","检测概览"],["targeted_therapy","重要变异及靶向用药"],["quality_control","检测质控与图表"],
+      ["somatic_variants","体细胞变异"],["immunotherapy","免疫治疗标志物"],["neoantigens","HLA与新抗原"],
+      ["pharmacogenomics","化疗药物与药物基因组学"],["hereditary_risk","遗传性肿瘤风险"],["appendices","附录与声明"],["provenance","数据来源与警告"]
+    ];
+    const basic=[
+      ["report.report_id","报告编号"],["report.title","报告标题"],["report.subtitle","英文副标题"],["report.generated_at","报告日期"],
+      ["report.laboratory","实验室"],["report.reviewer","审核人"],["sample.sample_id","主样本编号"],["sample.name","姓名"],
+      ["sample.sex","性别"],["sample.age","年龄"],["sample.specimen_type","样本类型"],["sample.clinical_diagnosis","临床诊断"]
+    ];
+    const message=[
+      ["executive_message.page_title","页面标题","input"],["executive_message.salutation","称呼","input"],
+      ["executive_message.paragraphs","正文（每行一段）","lines"],["executive_message.closing","结束语","input"],
+      ["executive_message.signer_name","署名","input"],["executive_message.signer_title","职务","input"],["executive_message.date","日期","input"]
+    ];
+    function esc(v){return String(v??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+    function get(path){return path.split(".").reduce((v,k)=>v[k],reportState);}
+    function set(path,value){const keys=path.split(".");const last=keys.pop();const parent=keys.reduce((v,k)=>v[k],reportState);parent[last]=value;changed();}
+    function changed(text="数据已修改，尚未保存"){statusLine.className="status-line";statusLine.textContent=text;refreshJson();}
+    const fontVariableBases={
+      "--report-body-font":11.25,"--report-section-font":16,"--report-paragraph-font":9.5,
+      "--report-subheading-font":12.5,"--report-table-title-font":10.5,"--report-table-font":8,
+      "--report-compact-font":6.9,"--report-table-note-font":7.6,"--report-annotation-font":9,
+      "--report-somatic-font":6.35,"--report-matrix-font":6.3,"--report-treatment-font":6.6,"--report-pgx-font":6.5
+    };
+    function normalizedFontPercent(value){return Math.min(130,Math.max(90,Math.round(Number(value||100)/5)*5));}
+    function applyFontScaleToPreview(scale){
+      const root=previewFrame.contentDocument?.querySelector(".report-document");
+      if(!root)return;
+      root.style.setProperty("--report-font-scale",String(scale));
+      Object.entries(fontVariableBases).forEach(([name,base])=>root.style.setProperty(name,`${(base*scale).toFixed(3)}pt`));
+    }
+    function syncFontControls(markChanged=false,value=null){
+      reportState.layout=reportState.layout||{};
+      const percent=normalizedFontPercent(value??Number(reportState.layout.font_scale||1)*100);
+      reportState.layout.font_scale=percent/100;
+      fontScaleRange.value=String(percent);fontScaleNumber.value=String(percent);fontScaleLabel.textContent=`${percent}%`;
+      applyFontScaleToPreview(reportState.layout.font_scale);
+      if(markChanged)changed(`字体大小已调整为 ${percent}%，请重新生成HTML确认分页`);
+    }
+    function fieldHtml(path,label,value,{kind="text",full=false,rows=3}={}){
+      const klass=`field${full?" full":""}`;
+      if(kind==="lines")return `<label class="${klass}"><span>${label}</span><textarea rows="${rows}" data-path="${path}" data-kind="lines">${esc((value||[]).join("\n"))}</textarea></label>`;
+      if(kind==="textarea")return `<label class="${klass}"><span>${label}</span><textarea rows="${rows}" data-path="${path}">${esc(value||"")}</textarea></label>`;
+      if(kind==="number-list")return `<label class="${klass}"><span>${label}</span><input data-path="${path}" data-kind="number-list" value="${esc((value||[]).join(", "))}"></label>`;
+      if(kind==="checkbox")return `<label class="checkbox-field ${full?"full":""}"><input type="checkbox" data-path="${path}" data-kind="checkbox" ${value?"checked":""}><span>${label}</span></label>`;
+      return `<label class="${klass}"><span>${label}</span><input type="${kind==="number"?"number":"text"}" data-path="${path}" data-kind="${kind}" value="${esc(value)}"></label>`;
+    }
+    function bindStructuredInputs(root){
+      root.querySelectorAll("[data-path]").forEach(input=>input.addEventListener("input",()=>{
+        const kind=input.dataset.kind;
+        let value=input.value;
+        if(kind==="lines")value=input.value.split(/\r?\n/).filter(x=>x.trim());
+        if(kind==="number-list")value=input.value.split(/[，,\s]+/).filter(Boolean).map(Number).filter(Number.isFinite);
+        if(kind==="number")value=Number(input.value);
+        if(kind==="checkbox")value=input.checked;
+        set(input.dataset.path,value);
+      }));
+    }
+    function tableEditorHtml(table,path,index){
+      if(!table)return "";
+      const header=(table.columns||[]).map((column,columnIndex)=>`<th><input data-path="${path}.columns.${columnIndex}" value="${esc(column)}"></th>`).join("");
+      const rows=(table.rows||[]).map((row,rowIndex)=>`<tr>${row.map((cell,columnIndex)=>`<td><textarea rows="2" data-path="${path}.rows.${rowIndex}.${columnIndex}">${esc(cell)}</textarea></td>`).join("")}<td class="row-actions"><button type="button" class="icon-button" data-remove-row="${path}.rows" data-row-index="${rowIndex}">删</button></td></tr>`).join("");
+      return `<div class="flex-table-editor"><div class="flex-table-editor-title">表格 ${index+1}</div><div class="field-grid">${fieldHtml(`${path}.title`,"表格标题",table.title||"")}${fieldHtml(`${path}.css_class`,"样式标识",table.css_class||"")}${fieldHtml(`${path}.note`,"表下注释",table.note||"",{full:true,kind:"textarea",rows:3})}${fieldHtml(`${path}.compact`,"紧凑表格",table.compact,{full:true,kind:"checkbox"})}</div><div class="structured-table-wrap"><table class="structured-data-table"><thead><tr>${header}<th>操作</th></tr></thead><tbody>${rows}</tbody></table></div><button type="button" class="add-button" data-add-row="${path}.rows" data-columns-path="${path}.columns">添加一行</button></div>`;
+    }
+    function metricsHtml(metrics,path){
+      if(!metrics?.length)return "";
+      return `<div class="structured-block"><h4>指标卡</h4><div class="structured-table-wrap"><table class="structured-data-table"><thead><tr><th>名称</th><th>数值</th><th>详情</th><th>状态</th></tr></thead><tbody>${metrics.map((item,i)=>`<tr><td><input data-path="${path}.${i}.label" value="${esc(item.label)}"></td><td><input data-path="${path}.${i}.value" value="${esc(item.value)}"></td><td><textarea rows="2" data-path="${path}.${i}.detail">${esc(item.detail)}</textarea></td><td><input data-path="${path}.${i}.status" value="${esc(item.status)}"></td></tr>`).join("")}</tbody></table></div></div>`;
+    }
+    function sectionEditorHtml(section,path,index){
+      return `<details class="nested-editor-section"><summary>${esc(section.number||"续页")} · ${esc(section.title)}</summary><div class="nested-editor-body"><div class="field-grid">${fieldHtml(`${path}.number`,"小节编号",section.number||"")}${fieldHtml(`${path}.title`,"小节标题",section.title||"")}${fieldHtml(`${path}.subtitle`,"英文副标题",section.subtitle||"")}${fieldHtml(`${path}.page_group`,"页面分组",section.page_group||"")}${fieldHtml(`${path}.show_heading`,"显示小节标题",section.show_heading,{kind:"checkbox"})}${fieldHtml(`${path}.page_break_before`,"本小节前插入分页符（取消勾选即可与上一节连续排版）",section.page_break_before,{kind:"checkbox",full:true})}${fieldHtml(`${path}.paragraphs`,"正文段落（每行一段）",section.paragraphs,{kind:"lines",full:true,rows:4})}${fieldHtml(`${path}.bullets`,"说明条目（每行一条）",section.bullets,{kind:"lines",full:true,rows:4})}${fieldHtml(`${path}.notes`,"结果说明与参考依据（每行一条）",section.notes,{kind:"lines",full:true,rows:5})}</div>${metricsHtml(section.metrics,`${path}.metrics`)}${(section.tables||[]).map((table,tableIndex)=>tableEditorHtml(table,`${path}.tables.${tableIndex}`,tableIndex)).join("")}</div></details>`;
+    }
+    function qcExtrasHtml(module,path){
+      const sampleFields=["sample_id","role","mean_target_coverage","pct_target_bases_20x","pct_target_bases_100x","pct_unique_reads_aligned","duplication_rate"];
+      const sampleLabels=["样本编号","角色","平均深度","20×覆盖率","100×覆盖率","唯一比对率","重复比例"];
+      const sampleRows=(module.samples||[]).map((item,i)=>`<tr>${sampleFields.map(field=>`<td><input data-path="${path}.samples.${i}.${field}" data-kind="${field.includes("coverage")||field.includes("pct_")||field==="duplication_rate"?"number":"text"}" value="${esc(item[field])}"></td>`).join("")}</tr>`).join("");
+      const seriesRows=(module.coverage_series||[]).map((item,i)=>`<tr><td><input data-path="${path}.coverage_series.${i}.sample_id" value="${esc(item.sample_id)}"></td><td><input data-path="${path}.coverage_series.${i}.role" value="${esc(item.role)}"></td><td><input data-path="${path}.coverage_series.${i}.values" data-kind="number-list" value="${esc((item.values||[]).join(", "))}"></td></tr>`).join("");
+      return `<div class="structured-block"><h4>质控样本指标</h4><div class="structured-table-wrap"><table class="structured-data-table"><thead><tr>${sampleLabels.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${sampleRows}</tbody></table></div></div><div class="field-grid">${fieldHtml(`${path}.coverage_thresholds`,"覆盖深度阈值（逗号分隔）",module.coverage_thresholds,{kind:"number-list",full:true})}${fieldHtml(`${path}.notes`,"质控说明（每行一条）",module.notes,{kind:"lines",full:true,rows:5})}</div><div class="structured-block"><h4>覆盖率曲线数据</h4><div class="structured-table-wrap"><table class="structured-data-table"><thead><tr><th>样本编号</th><th>角色</th><th>覆盖率数值（逗号分隔）</th></tr></thead><tbody>${seriesRows}</tbody></table></div></div>${tableEditorHtml(module.table,`${path}.table`,0)}${tableEditorHtml(module.guidance_table,`${path}.guidance_table`,1)}`;
+    }
+    function moduleEditorHtml(key,label,module,index){
+      if(key==="provenance")return `<details class="editor-section"><summary>${label}</summary><div class="section-body field-grid">${fieldHtml("provenance.coordinate_system","坐标系统",module.coordinate_system)}${fieldHtml("provenance.source_schema","来源Schema",module.source_schema)}${fieldHtml("provenance.source_generated_at","来源生成时间",module.source_generated_at)}${fieldHtml("provenance.source_sha256","来源SHA256",module.source_sha256,{full:true})}${fieldHtml("provenance.warnings","数据警告（每行一条）",module.warnings,{kind:"lines",full:true,rows:5})}</div></details>`;
+      return `<details class="editor-section" ${index<3?"open":""}><summary>${label}</summary><div class="section-body"><div class="field-grid">${fieldHtml(`${key}.number`,"章节编号",module.number||"")}${fieldHtml(`${key}.title`,"章节标题",module.title||"")}${fieldHtml(`${key}.subtitle`,"英文副标题",module.subtitle||"",{full:true})}</div>${key==="quality_control"?qcExtrasHtml(module,key):(module.sections||[]).map((section,sectionIndex)=>sectionEditorHtml(section,`${key}.sections.${sectionIndex}`,sectionIndex)).join("")}</div></details>`;
+    }
+    function renderFields(){
+      const basicRoot=document.getElementById("basicFields");
+      basicRoot.innerHTML=basic.map(([path,label])=>fieldHtml(path,label,get(path))).join("");
+      const messageRoot=document.getElementById("messageFields");
+      messageRoot.innerHTML=message.map(([path,label,kind])=>fieldHtml(path,label,get(path),{kind:kind||"text",full:kind==="lines",rows:5})).join("");
+      const specimenRoot=document.getElementById("specimenFields");
+      specimenRoot.innerHTML=`<div class="structured-table-wrap"><table class="structured-data-table"><thead><tr><th>样本编号</th><th>样本角色</th><th>样本类型</th></tr></thead><tbody>${(reportState.samples||[]).map((item,i)=>`<tr><td><input data-path="samples.${i}.sample_id" value="${esc(item.sample_id)}"></td><td><input data-path="samples.${i}.role" value="${esc(item.role)}"></td><td><input data-path="samples.${i}.specimen_type" value="${esc(item.specimen_type)}"></td></tr>`).join("")}</tbody></table></div>`;
+      bindStructuredInputs(basicRoot);bindStructuredInputs(messageRoot);bindStructuredInputs(specimenRoot);
+    }
+    function renderModules(){
+      const root=document.getElementById("moduleEditors");
+      root.innerHTML=modules.map(([key,label],i)=>moduleEditorHtml(key,label,reportState[key]||{},i)).join("");
+      bindStructuredInputs(root);
+      root.querySelectorAll("[data-add-row]").forEach(button=>button.addEventListener("click",()=>{const rows=get(button.dataset.addRow);const columns=get(button.dataset.columnsPath);rows.push(columns.map(()=>"--"));renderModules();changed("已添加表格行");}));
+      root.querySelectorAll("[data-remove-row]").forEach(button=>button.addEventListener("click",()=>{get(button.dataset.removeRow).splice(Number(button.dataset.rowIndex),1);renderModules();changed("已删除表格行");}));
+    }
+    function refreshJson(){document.getElementById("jsonEditor").value=JSON.stringify(reportState,null,2);}
+    async function postJson(url){const response=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","X-CSRFToken":csrfToken},body:JSON.stringify(reportState)});const result=await response.json();if(!response.ok||!result.ok)throw new Error((result.errors||[]).map(x=>x.msg||JSON.stringify(x)).join("；")||"请求失败");return result;}
+    async function run(action){document.querySelectorAll(".action-row button").forEach(x=>x.disabled=true);statusLine.textContent="正在处理…";try{await action();}catch(error){statusLine.className="status-line error";statusLine.textContent=error.message;}finally{document.querySelectorAll(".action-row button").forEach(x=>x.disabled=false);}}
+    document.getElementById("renderButton").addEventListener("click",()=>run(async()=>{const result=await postJson(endpointUrls.render);previewFrame.srcdoc=result.html;statusLine.className="status-line success";statusLine.textContent="左侧HTML已按当前数据重新生成，尚未保存。";}));
+    document.getElementById("saveButton").addEventListener("click",()=>run(async()=>{const result=await postJson(endpointUrls.save);reportState=result.data;renderFields();renderModules();syncFontControls(false);refreshJson();previewFrame.srcdoc=(await postJson(endpointUrls.render)).html;statusLine.className="status-line success";statusLine.textContent=result.message;}));
+    document.getElementById("exportButton").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(reportState,null,2)],{type:"application/json;charset=utf-8"});const link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download="{{ report_id }}.json";link.click();URL.revokeObjectURL(link.href);});
+    document.getElementById("applyJson").addEventListener("click",()=>{try{reportState=JSON.parse(document.getElementById("jsonEditor").value);renderFields();renderModules();syncFontControls(false);refreshJson();changed("完整JSON已应用，尚未保存");}catch(error){statusLine.className="status-line error";statusLine.textContent=`JSON格式错误：${error.message}`;}});
+    fontScaleRange.addEventListener("input",()=>syncFontControls(true,fontScaleRange.value));
+    fontScaleNumber.addEventListener("change",()=>syncFontControls(true,fontScaleNumber.value));
+    previewFrame.addEventListener("load",()=>applyFontScaleToPreview(Number(reportState.layout?.font_scale||1)));
+    renderFields();renderModules();syncFontControls(false);refreshJson();
+  </script>
+</body></html>

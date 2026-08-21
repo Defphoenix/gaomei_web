@@ -1,0 +1,46 @@
+<section id="quality-control" class="content-section clinical-v2-section section-start qc-v2-page">
+  <header class="section-heading clinical-module-heading">
+    <span>{{ data.quality_control.number }}</span>
+    <div><h2>{{ data.quality_control.title }}</h2><small>{{ data.quality_control.subtitle }}</small></div>
+  </header>
+  <div class="clinical-subheading"><b>3.1</b><h3>肿瘤与正常样本测序质量</h3></div>
+  {% set table = data.quality_control.table %}
+  <table class="flexible-table compact-table qc-comparison-table qc-data-table">
+    <thead><tr>{% for column in table.columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in table.rows %}<tr>{% for cell in row %}<td>{{ cell if cell not in [none, ""] else "--" }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table>
+  <div class="qc-chart-grid">
+    <article class="report-chart-card qc-chart-card"><header><div><b>ECharts · QC</b><h3>平均测序深度与覆盖率</h3></div><span>SVG</span></header><div id="qcMetricChart" class="report-chart qc-metric-chart"></div></article>
+    <article class="report-chart-card qc-chart-card"><header><div><b>ECharts · QC</b><h3>目标区域累计覆盖率</h3></div><span>SVG</span></header><div id="qcCoverageChart" class="report-chart qc-coverage-chart"></div></article>
+  </div>
+</section>
+
+<section id="quality-control-guidance" class="content-section clinical-v2-section section-start qc-v2-guidance-page">
+  <div class="clinical-subheading"><b>3.2</b><h3>质控指标说明与判读口径</h3></div>
+  {% set guidance = data.quality_control.guidance_table %}
+  {% if guidance %}
+  <div class="extended-table-block qc-guidance-table-block">
+    {% if guidance.title %}<h3>{{ guidance.title }}</h3>{% endif %}
+    <table class="flexible-table compact-table qc-guidance-table">
+      <thead><tr>{% for column in guidance.columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in guidance.rows %}<tr>{% for cell in row %}<td>{{ cell if cell not in [none, ""] else "--" }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+    {% if guidance.note %}<p class="extended-table-note">{{ guidance.note }}</p>{% endif %}
+  </div>
+  {% endif %}
+  {% if data.quality_control.notes %}<aside class="extended-notes qc-interpretation-notes"><strong>结果说明与参考依据</strong><ul>{% for note in data.quality_control.notes %}<li>{{ note }}</li>{% endfor %}</ul></aside>{% endif %}
+</section>
+
+<script>
+(() => {
+  const qc = {{ data.quality_control | tojson }};
+  const sampleLabels = qc.samples.map(item => `${item.sample_id}（${item.role}）`);
+  const metricChart = echarts.init(document.getElementById("qcMetricChart"), null, {renderer:"svg"});
+  metricChart.setOption({animation:false,tooltip:{trigger:"axis"},legend:{bottom:0},grid:{left:58,right:20,top:25,bottom:42},xAxis:{type:"category",data:sampleLabels,axisLabel:{fontSize:10}},yAxis:[{type:"value",name:"深度（×）"},{type:"value",name:"覆盖率（%）",max:100}],series:[{name:"平均深度",type:"bar",data:qc.samples.map(x=>Number(x.mean_target_coverage.toFixed(1))),itemStyle:{color:"#087ca7"}},{name:"20×覆盖率",type:"line",yAxisIndex:1,data:qc.samples.map(x=>Number((x.pct_target_bases_20x*100).toFixed(1))),itemStyle:{color:"#19a8b2"},lineStyle:{width:3}},{name:"100×覆盖率",type:"line",yAxisIndex:1,data:qc.samples.map(x=>Number((x.pct_target_bases_100x*100).toFixed(1))),itemStyle:{color:"#f08b46"},lineStyle:{width:3}}]});
+  document.getElementById("qcMetricChart").dataset.rendered="true";
+  const coverageChart = echarts.init(document.getElementById("qcCoverageChart"), null, {renderer:"svg"});
+  coverageChart.setOption({animation:false,tooltip:{trigger:"axis"},legend:{bottom:0},grid:{left:52,right:20,top:20,bottom:42},xAxis:{type:"category",name:"覆盖深度",data:qc.coverage_thresholds.map(x=>`${x}×`)},yAxis:{type:"value",name:"覆盖率（%）",min:0,max:100},series:qc.coverage_series.map((series,index)=>({name:`${series.sample_id}（${series.role}）`,type:"line",smooth:true,data:series.values.map(x=>Number((x*100).toFixed(2))),symbol:"circle",symbolSize:6,lineStyle:{width:3},itemStyle:{color:index===0?"#087ca7":"#f08b46"}}))});
+  document.getElementById("qcCoverageChart").dataset.rendered="true";
+  window.__REPORT_CHARTS_READY__=true;
+})();
+</script>

@@ -916,3 +916,72 @@ class ReportPdfUploadView(APIView):
             "pdf_sha256": report.report_pdf_sha256,
             "download_url": report.report_pdf_url,
         })
+
+
+class ReportPackageUploadView(APIView):
+    """node9 上传正式报告包：JSON + 附属文件；云端落盘、建关联、生成 PDF。"""
+
+    permission_classes = [HasBridgeToken]
+
+    def post(self, request):
+        from reports.wes_storage import ingest_report_package
+
+        upload_id = valid_id(request.data.get("upload_id"))
+        node_id = valid_id(request.data.get("node_id"))
+        patient_no = normalize_patient_no(request.data.get("patient_no"))
+        sample_id = str(request.data.get("sample_id") or "").strip()
+        patient_name = str(request.data.get("patient_name") or "").strip()
+        raw_manifest = request.data.get("manifest") or "{}"
+        if isinstance(raw_manifest, (bytes, bytearray)):
+            raw_manifest = raw_manifest.decode("utf-8")
+        if isinstance(raw_manifest, str):
+            try:
+                manifest = json.loads(raw_manifest)
+            except json.JSONDecodeError:
+                return Response({"detail": "manifest must be valid JSON"}, status=400)
+        elif isinstance(raw_manifest, dict):
+            manifest = raw_manifest
+        else:
+            return Response({"detail": "manifest must be a JSON object"}, status=400)
+
+        if not upload_id or not node_id or not patient_no or not sample_id:
+            return Response(
+                {"detail": "upload_id, node_id, patient_no, and sample_id are required"},
+                status=400,
+            )
+        if not BridgeNode.objects.filter(node_id=node_id).exists():
+            # Auto-register lightweight node row so upload-only agents need not call /register/.
+            BridgeNode.objects.create(
+                node_id=node_id,
+                display_name=node_id,
+                last_seen_at=timezone.now(),
+            )
+        else:
+            BridgeNode.objects.filter(node_id=node_id).update(last_seen_at=timezone.now())
+
+        uploaded_files = {}
+        for key, uploaded in request.FILES.items():
+            uploaded_files[uploaded.name or key] = uploaded
+        for uploaded in request.FILES.getlist("files"):
+            uploaded_files[uploaded.name] = uploaded
+
+        if not uploaded_files:
+            return Response({"detail": "at least one file is required"}, status=400)
+
+        try:
+            result = ingest_report_package(
+                upload_id=upload_id,
+                node_id=node_id,
+                patient_no=patient_no,
+                sample_id=sample_id,
+                manifest=manifest,
+                uploaded_files=uploaded_files,
+                patient_name=patient_name,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        except Exception as exc:  # noqa: BLE001
+            return Response({"detail": f"package ingest failed: {exc}"}, status=500)
+
+        code = status.HTTP_200_OK if result.get("idempotent") or not result.get("created") else status.HTTP_201_CREATED
+        return Response(result, status=code)

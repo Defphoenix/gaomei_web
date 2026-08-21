@@ -1,0 +1,38 @@
+{% macro render_section(section) %}
+  {% if section.show_heading %}
+  <div id="section-{{ section.section_id }}" class="clinical-subheading"><b>{{ section.number }}</b><h3>{{ section.title }}</h3></div>
+  {% if section.subtitle %}<div class="clinical-subtitle">{{ section.subtitle }}</div>{% endif %}
+  {% endif %}
+  {% for paragraph in section.paragraphs %}<p class="section-paragraph">{{ paragraph }}</p>{% endfor %}
+  {% if section.metrics %}
+  <div class="extended-metric-grid">
+    {% for metric in section.metrics %}<article class="extended-metric-card"><div class="extended-metric-label">{{ metric.label }}</div><strong>{{ metric.value }}</strong>{% if metric.status %}<span class="extended-metric-status">{{ metric.status }}</span>{% endif %}{% if metric.detail %}<p>{{ metric.detail }}</p>{% endif %}</article>{% endfor %}
+  </div>
+  {% endif %}
+  {% for table in section.tables %}
+  <div class="extended-table-block{% if table.css_class %} {{ table.css_class }}-block{% endif %}">
+    {% if table.title %}<h3>{{ table.title }}</h3>{% endif %}
+    <table class="flexible-table{% if table.compact %} compact-table{% endif %}{% if table.css_class %} {{ table.css_class }}{% endif %}">
+      <thead><tr>{% for column in table.columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in table.rows %}<tr>{% for cell in row %}<td>{{ cell if cell not in [none, ""] else "--" }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+    {% if table.note %}<p class="extended-table-note">{{ table.note }}</p>{% endif %}
+  </div>
+  {% endfor %}
+  {% if section.bullets %}<div class="extended-list"><h3>说明与解读</h3><ul>{% for item in section.bullets %}<li>{{ item }}</li>{% endfor %}</ul></div>{% endif %}
+  {% if section.notes %}<aside class="extended-notes"><strong>结果说明与参考依据</strong><ul>{% for item in section.notes %}<li>{{ item }}</li>{% endfor %}</ul></aside>{% endif %}
+{% endmacro %}
+
+{% macro render_module(module, anchor) %}
+  <section id="{{ anchor }}" class="content-section clinical-v2-section section-start">
+    <header class="section-heading clinical-module-heading">
+      <span>{{ module.number }}</span>
+      <div><h2>{{ module.title }}</h2>{% if module.subtitle %}<small>{{ module.subtitle }}</small>{% endif %}</div>
+    </header>
+    {% for section in module.sections %}
+    <div class="clinical-section-flow{% if section.page_break_before and not loop.first %} manual-page-break{% endif %}" data-section-id="{{ section.section_id }}">
+      {{ render_section(section) }}
+    </div>
+    {% endfor %}
+  </section>
+{% endmacro %}

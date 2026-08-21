@@ -1,0 +1,14 @@
+{% from "partials/clinical_module_macros.html" import render_module with context %}
+{{ render_module(data.overview, "clinical-overview") }}
+{{ render_module(data.targeted_therapy, "targeted-therapy") }}
+{% include "partials/quality_control_v2.html" %}
+
+{% include "partials/detailed_divider.html" %}
+
+{{ render_module(data.somatic_variants, "somatic-variants") }}
+{{ render_module(data.immunotherapy, "immunotherapy") }}
+{{ render_module(data.neoantigens, "neoantigens") }}
+{{ render_module(data.pharmacogenomics, "pharmacogenomics") }}
+{{ render_module(data.hereditary_risk, "hereditary-risk") }}
+{{ render_module(data.appendices, "clinical-appendices") }}
+{% include "partials/approval_page.html" %}

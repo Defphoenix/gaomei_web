@@ -1,0 +1,17 @@
+<section id="methods" class="content-section section-start">
+  <header class="section-heading">
+    <span>2.2</span><h2>检测方法与局限性</h2>
+  </header>
+
+  <div class="two-column">
+    <article>
+      <h3>检测方法</h3>
+      <ol>{% for item in data.methods %}<li>{{ item }}</li>{% endfor %}</ol>
+    </article>
+    <article>
+      <h3>检测局限性</h3>
+      <ol>{% for item in data.limitations %}<li>{{ item }}</li>{% endfor %}</ol>
+    </article>
+  </div>
+</section>
+

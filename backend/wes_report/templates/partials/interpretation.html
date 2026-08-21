@@ -1,0 +1,29 @@
+<section id="interpretation-detail" class="content-section section-start">
+  <header class="section-heading">
+    <span>2.1</span><h2>临床相关变异解读</h2>
+  </header>
+
+  {% for item in data.interpretations %}
+  <article class="interpretation-card">
+    <header>
+      <div class="gene-badge">{{ item.gene }}</div>
+      <div>
+        <h3>{{ item.title }}</h3>
+        <span class="classification">{{ item.classification }}</span>
+      </div>
+    </header>
+    <h4>证据概述</h4>
+    <ol>
+      {% for evidence in item.evidence %}<li>{{ evidence }}</li>{% endfor %}
+    </ol>
+    <h4>临床意义</h4>
+    <p>{{ item.clinical_significance }}</p>
+    {% if item.recommendation %}
+    <div class="recommendation"><strong>建议：</strong>{{ item.recommendation }}</div>
+    {% endif %}
+  </article>
+  {% else %}
+  <div class="empty-state">本次检测无需要进一步解读的重点变异。</div>
+  {% endfor %}
+</section>
+

@@ -4,8 +4,9 @@ from .views import (
     ClaimJobView, HeartbeatView, InternalJobCancelView, InternalJobDetailView,
     InternalJobListCreateView, InternalJobLogsView, NodeJobControlView,
     NodeJobLogsView, NodeJobStatusView, RegisterNodeView, ReportImportView,
-    ReportPdfUploadView, InternalProjectListCreateView, InternalProjectTemplateView,
-    InternalProjectImportView, InternalProjectRunView, NodeProjectSyncView,
+    ReportPackageUploadView, ReportPdfUploadView, InternalProjectListCreateView,
+    InternalProjectTemplateView, InternalProjectImportView, InternalProjectRunView,
+    NodeProjectSyncView,
 )
 
 
@@ -18,6 +19,7 @@ urlpatterns = [
     path("projects/<uuid:project_id>/run/", InternalProjectRunView.as_view(), name="bridge_project_run"),
     path("node/projects/sync/", NodeProjectSyncView.as_view(), name="bridge_project_sync"),
     path("reports/import/", ReportImportView.as_view(), name="bridge_report_import"),
+    path("reports/package/", ReportPackageUploadView.as_view(), name="bridge_report_package"),
     path("reports/<str:upload_id>/pdf/", ReportPdfUploadView.as_view(), name="bridge_report_pdf"),
     path("jobs/", InternalJobListCreateView.as_view(), name="bridge_jobs"),
     path("jobs/<uuid:job_id>/", InternalJobDetailView.as_view(), name="bridge_job_detail"),

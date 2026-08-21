@@ -1,0 +1,85 @@
+{% if data.charts and data.charts.enabled %}
+<section id="interactive-charts" class="content-section section-start chart-section chart-report-page chart-page-primary">
+  <header class="section-heading">
+    <span>1.5</span><h2>动态数据可视化验证</h2>
+  </header>
+  <p class="chart-introduction">以下图形直接读取报告 JSON，并在浏览器中由 ECharts 6.1.0 与 D3 7.9.0 生成 SVG。修改数据后重新生成 HTML，图形和颜色会同步变化；PDF 导出时保留矢量路径与文字。</p>
+
+  <article class="report-chart-card">
+    <header><div><b>ECharts · Heatmap</b><h3>{{ data.charts.heatmap.title }}</h3></div><span>SVG</span></header>
+    <div id="echartsHeatmap" class="report-chart" role="img" aria-label="{{ data.charts.heatmap.title }}"></div>
+    <p class="chart-caption">数值由低到高按照“绿色 - 黄色 - 红色”渐变。示例中 0 对应绿色，接近上限时对应红色。</p>
+  </article>
+
+  <article class="report-chart-card">
+    <header><div><b>D3 · Forest Plot</b><h3>{{ data.charts.forest.title }}</h3></div><span>SVG</span></header>
+    <div id="d3ForestPlot" class="report-chart forest-chart" role="img" aria-label="{{ data.charts.forest.title }}"></div>
+    <p class="chart-caption">圆点表示效应量，横线表示置信区间，虚线为 JSON 中配置的参考值。</p>
+  </article>
+</section>
+
+<section class="content-section chart-section chart-report-page chart-page-sunburst" aria-label="动态数据可视化验证续页">
+  <header class="section-heading chart-continuation-heading">
+    <span>1.5</span><h2>动态数据可视化验证（续）</h2>
+  </header>
+  <article class="report-chart-card sunburst-card">
+    <header><div><b>ECharts · Sunburst</b><h3>{{ data.charts.sunburst.title }}</h3></div><span>SVG</span></header>
+    <div id="echartsSunburst" class="report-chart sunburst-chart" role="img" aria-label="{{ data.charts.sunburst.title }}"></div>
+    <p class="chart-caption">层级与扇区大小全部来自 JSON 树结构，适合展示变异分类、通路构成或证据层级。</p>
+  </article>
+  <noscript><p class="chart-error">当前环境未执行 JavaScript，动态图表无法生成。</p></noscript>
+</section>
+
+<script>
+(() => {
+  const chartData = {{ data.charts | tojson }};
+  const heatmap = chartData.heatmap;
+  const heatmapValues = [];
+  heatmap.values.forEach((row, y) => row.forEach((value, x) => heatmapValues.push([x, y, Number(value)])));
+  const heatmapChart = echarts.init(document.getElementById("echartsHeatmap"), null, {renderer: "svg"});
+  heatmapChart.setOption({
+    animation: false,
+    tooltip: {position: "top"},
+    grid: {top: 18, left: 88, right: 30, bottom: 70},
+    xAxis: {type: "category", data: heatmap.x_labels, splitArea: {show: true}, axisLabel: {interval: 0}},
+    yAxis: {type: "category", data: heatmap.y_labels, splitArea: {show: true}, axisLabel: {interval: 0}},
+    visualMap: {min: heatmap.min_value, max: heatmap.max_value, calculable: false, orient: "horizontal", left: "center", bottom: 8, text: ["高", "低"], inRange: {color: [heatmap.low_color, heatmap.mid_color, heatmap.high_color]}},
+    series: [{type: "heatmap", data: heatmapValues, label: {show: true, color: "#17313c", fontWeight: 700}, emphasis: {disabled: true}, itemStyle: {borderColor: "#fff", borderWidth: 2}}]
+  });
+  document.getElementById("echartsHeatmap").dataset.rendered = "true";
+
+  const sunburstChart = echarts.init(document.getElementById("echartsSunburst"), null, {renderer: "svg"});
+  sunburstChart.setOption({
+    animation: false,
+    tooltip: {trigger: "item"},
+    color: ["#087ca7", "#19a8b2", "#f08b46", "#7ac7c4", "#8aa6b3", "#e4b363"],
+    series: [{type: "sunburst", data: [chartData.sunburst.root], radius: ["8%", "88%"], sort: null, nodeClick: false, label: {rotate: "radial", fontSize: 11}, itemStyle: {borderColor: "#fff", borderWidth: 2}, emphasis: {focus: "ancestor"}}]
+  });
+  document.getElementById("echartsSunburst").dataset.rendered = "true";
+
+  const forest = chartData.forest;
+  const host = document.getElementById("d3ForestPlot");
+  const width = Math.max(host.clientWidth || 720, 640);
+  const height = Math.max(250, 72 + forest.items.length * 40);
+  const margin = {top: 24, right: 60, bottom: 48, left: 190};
+  const positive = forest.items.flatMap(item => [item.lower, item.effect, item.upper]).filter(value => value > 0);
+  const xMin = Math.max(d3.min(positive) * 0.72, 0.05);
+  const xMax = d3.max(positive) * 1.28;
+  const x = d3.scaleLog().domain([xMin, xMax]).range([margin.left, width - margin.right]).nice();
+  const y = d3.scaleBand().domain(forest.items.map(item => item.label)).range([margin.top, height - margin.bottom]).padding(0.45);
+  const svg = d3.select(host).append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "100%");
+  svg.append("g").attr("transform", `translate(0,${height - margin.bottom})`).call(d3.axisBottom(x).ticks(6, ".2~g")).call(group => group.selectAll("text").attr("font-size", 11));
+  svg.append("text").attr("x", (margin.left + width - margin.right) / 2).attr("y", height - 8).attr("text-anchor", "middle").attr("fill", "#52666f").attr("font-size", 12).text(forest.x_label);
+  svg.append("line").attr("x1", x(forest.reference)).attr("x2", x(forest.reference)).attr("y1", margin.top - 8).attr("y2", height - margin.bottom).attr("stroke", "#df704d").attr("stroke-width", 1.5).attr("stroke-dasharray", "5 4");
+  const rows = svg.selectAll("g.forest-row").data(forest.items).enter().append("g").attr("class", "forest-row").attr("transform", item => `translate(0,${y(item.label) + y.bandwidth()/2})`);
+  rows.append("text").attr("x", margin.left - 14).attr("text-anchor", "end").attr("dominant-baseline", "middle").attr("fill", "#29404a").attr("font-size", 12).text(item => item.label);
+  rows.append("line").attr("x1", item => x(item.lower)).attr("x2", item => x(item.upper)).attr("stroke", "#087ca7").attr("stroke-width", 3);
+  rows.append("line").attr("x1", item => x(item.lower)).attr("x2", item => x(item.lower)).attr("y1", -5).attr("y2", 5).attr("stroke", "#087ca7");
+  rows.append("line").attr("x1", item => x(item.upper)).attr("x2", item => x(item.upper)).attr("y1", -5).attr("y2", 5).attr("stroke", "#087ca7");
+  rows.append("circle").attr("cx", item => x(item.effect)).attr("r", 5.5).attr("fill", item => item.group === "意义未明" ? "#f08b46" : "#19a8b2").attr("stroke", "#fff").attr("stroke-width", 1.5);
+  rows.append("text").attr("x", width - margin.right + 8).attr("dominant-baseline", "middle").attr("fill", "#52666f").attr("font-size", 10).text(item => `${item.effect} (${item.lower}-${item.upper})`);
+  host.dataset.rendered = "true";
+  window.__REPORT_CHARTS_READY__ = true;
+})();
+</script>
+{% endif %}

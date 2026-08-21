@@ -128,3 +128,103 @@ class ReportAccessLog(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class PatientReportSlot(models.Model):
+    """一行一个患者编号：管理员正式报告台账。"""
+
+    patient_no = models.CharField("患者编号", max_length=80, unique=True, db_index=True)
+    patient_name = models.CharField("患者姓名", max_length=80, blank=True)
+    user = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="report_slots",
+    )
+    report = models.ForeignKey(
+        Report, null=True, blank=True, on_delete=models.SET_NULL, related_name="patient_slots",
+    )
+    active_bundle = models.ForeignKey(
+        "SampleBundle",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="active_for_slots",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        verbose_name = "患者报告台账"
+        verbose_name_plural = "患者报告台账"
+
+    def __str__(self):
+        return self.patient_no
+
+
+class SampleBundle(models.Model):
+    """一次 node9 上传对应的样本版本目录。"""
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "当前有效"
+        SUPERSEDED = "superseded", "已作废"
+
+    slot = models.ForeignKey(PatientReportSlot, on_delete=models.CASCADE, related_name="bundles")
+    sample_id = models.CharField("样本编号", max_length=100, db_index=True)
+    upload_id = models.CharField("上传ID", max_length=120, unique=True)
+    wes_report_id = models.CharField("WES报告ID", max_length=100, db_index=True)
+    root_dir = models.CharField("版本目录", max_length=500)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.ACTIVE, db_index=True,
+    )
+    manifest = models.JSONField(default=dict, blank=True)
+    payload_sha256 = models.CharField(max_length=64, blank=True)
+    node_id = models.CharField(max_length=100, blank=True)
+    pdf_ready = models.BooleanField(default=False)
+    pdf_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    superseded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "样本报告包"
+        verbose_name_plural = "样本报告包"
+        indexes = [
+            models.Index(fields=["sample_id", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.sample_id}:{self.upload_id} ({self.status})"
+
+
+class BundleFile(models.Model):
+    """包内每个文件一条路径映射。"""
+
+    class Role(models.TextChoices):
+        REPORT_JSON = "report_json", "报告JSON"
+        GENERATED_PDF = "generated_pdf", "生成PDF"
+        GENERATED_HTML = "generated_html", "生成HTML"
+        QC_PLOT = "qc_plot", "质控图"
+        ATTACHMENT = "attachment", "附件"
+        OTHER = "other", "其他"
+
+    bundle = models.ForeignKey(SampleBundle, on_delete=models.CASCADE, related_name="files")
+    role = models.CharField(max_length=40, choices=Role.choices, default=Role.OTHER)
+    original_name = models.CharField(max_length=255)
+    rel_path = models.CharField(max_length=500)
+    abs_path = models.CharField(max_length=1000)
+    sha256 = models.CharField(max_length=64, blank=True)
+    size_bytes = models.BigIntegerField(default=0)
+    content_type = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "报告包文件"
+        verbose_name_plural = "报告包文件"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bundle", "rel_path"], name="unique_bundle_file_rel_path",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.bundle_id}:{self.rel_path}"

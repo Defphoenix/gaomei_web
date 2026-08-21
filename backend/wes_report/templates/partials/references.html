@@ -1,0 +1,19 @@
+<section id="references" class="content-section section-start">
+  <header class="section-heading">
+    <span>10.1</span><h2>参考文献与重要声明</h2>
+  </header>
+  <div class="references">
+    {% for item in data.references %}<p><span>[{{ item.index }}]</span>{{ item.citation }}</p>{% endfor %}
+  </div>
+
+  <div class="notices">
+    <h3>重要声明</h3>
+    <ul>{% for item in data.notices %}<li>{{ item }}</li>{% endfor %}</ul>
+  </div>
+
+  <div class="signature-grid">
+    <div><span>检测人</span><b></b></div>
+    <div><span>审核人</span><b>{{ data.report.reviewer }}</b></div>
+    <div><span>报告日期</span><b>{{ data.report.generated_at }}</b></div>
+  </div>
+</section>

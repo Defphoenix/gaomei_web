@@ -1,0 +1,24 @@
+<section class="cover-page">
+  <div class="brand-lockup">
+    <img class="brand-logo brand-logo-light" src="{{ assets.logo }}" alt="高美基因 G-GOMICS">
+  </div>
+
+  <div class="cover-hero">
+    <div class="cover-kicker">PRECISION MEDICINE · GENOMIC INSIGHT</div>
+    <h1>{{ data.report.title }}</h1>
+    <p>{{ data.report.subtitle }}</p>
+    <div class="cover-rule"></div>
+  </div>
+
+  <dl class="cover-meta">
+    <div><dt>样本编号</dt><dd>{{ data.sample.sample_id }}</dd></div>
+    <div><dt>受检者</dt><dd>{{ data.sample.name }}</dd></div>
+    <div><dt>报告编号</dt><dd>{{ data.report.report_id }}</dd></div>
+    <div><dt>报告日期</dt><dd>{{ data.report.generated_at }}</dd></div>
+  </dl>
+
+  <div class="cover-footer">
+    <span>{{ data.report.laboratory }}</span>
+    <span>服务健康 · 关爱生命</span>
+  </div>
+</section>

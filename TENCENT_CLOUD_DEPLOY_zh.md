@@ -60,6 +60,21 @@ sudo journalctl -u gaomei-web -f
 sudo tail -f /var/log/apache2/gaomei-web-error.log
 ```
 
+## Apache `/wes/` 反代
+
+正式报告 HTML / 编辑页在 Django `/wes/`。仓库模板
+`deploy/tencent/gaomei-web-apache.conf`（18080）已包含反代；**443 的
+certbot 配置** `gaomei-web-le-ssl.conf` 也需增加：
+
+```apache
+ProxyPass /wes http://127.0.0.1:18081/wes
+ProxyPassReverse /wes http://127.0.0.1:18081/wes
+```
+
+然后 `sudo apache2ctl configtest && sudo systemctl reload apache2`。
+
+node9 正式报告包对接见 `NODE9_REPORT_PACKAGE_zh.md`。
+
 ## 正式上线前
 
 调试端口通过后，再配置域名、HTTPS、`GAOMEI_WEB_SECURE_COOKIES=true`、

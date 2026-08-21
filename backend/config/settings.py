@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "bioblog",
     "company",
     "bridge",
+    "wes_report",
 ]
 
 MIDDLEWARE = [
@@ -178,6 +179,14 @@ CSRF_COOKIE_SECURE = env_bool("GAOMEI_WEB_SECURE_COOKIES", False)
 
 # SHA256 only. The raw node credential is stored on node9 and never committed.
 GAOMEI_BRIDGE_TOKEN_SHA256 = os.environ.get("GAOMEI_BRIDGE_TOKEN_SHA256", "")
+
+# Formal WES HTML/PDF report packages (node9 upload → cloud render).
+WES_BUNDLE_ROOT = Path(os.environ.get("GAOMEI_WES_BUNDLE_ROOT", MEDIA_ROOT / "wes_bundles"))
+WES_REPORT_DATA_DIR = Path(os.environ.get("GAOMEI_WES_REPORT_DATA_DIR", MEDIA_ROOT / "wes_reports"))
+WES_REPORT_OUTPUT_DIR = Path(os.environ.get("GAOMEI_WES_REPORT_OUTPUT_DIR", MEDIA_ROOT / "wes_output"))
+WES_REPORT_EXAMPLE_DIR = Path(
+    os.environ.get("GAOMEI_WES_REPORT_EXAMPLE_DIR", BASE_DIR / "wes_report_examples")
+)
 
 # Django REST Framework
 REST_FRAMEWORK = {

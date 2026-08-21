@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>编辑报告数据 - {{ report_id }}</title>
+  <style>{{ editor_style | safe }}</style>
+</head>
+<body>
+  <header class="editor-header">
+    <div><h1>编辑报告数据</h1><p>{{ report_id }} · 左侧预览，右侧修改，保存后首页与 PDF 使用最新 JSON</p></div>
+    <nav class="header-links">
+      <a href="{{ urls.preview }}">返回报告</a>
+      <a href="{{ urls.pdf }}">下载 PDF</a>
+    </nav>
+  </header>
+
+  <main class="editor-layout">
+    <section class="preview-pane" aria-label="报告预览">
+      <iframe id="previewFrame" class="preview-frame" title="报告 HTML 预览"></iframe>
+    </section>
+
+    <aside class="data-pane" aria-label="报告数据编辑器">
+      <div class="data-scroll">
+        <details class="editor-section" open>
+          <summary>报告与样本信息</summary>
+          <div class="section-body field-grid" id="basicFields"></div>
+        </details>
+
+        <details class="editor-section" open>
+          <summary>检测描述与结果摘要</summary>
+          <div class="section-body field-grid one" id="textFields"></div>
+        </details>
+
+        <details class="editor-section">
+          <summary>测序质控指标</summary>
+          <div class="section-body"><div id="qualityMetrics"></div></div>
+        </details>
+
+        <details class="editor-section">
+          <summary>覆盖度图表数值</summary>
+          <div class="section-body"><div id="coverageChart"></div></div>
+        </details>
+
+        <details class="editor-section" open>
+          <summary>重点变异列表</summary>
+          <div class="section-body"><div id="variants"></div></div>
+        </details>
+
+        <details class="editor-section">
+          <summary>临床相关变异解读</summary>
+          <div class="section-body"><div id="interpretations"></div></div>
+        </details>
+
+        <details class="editor-section">
+          <summary>方法、局限性与声明</summary>
+          <div class="section-body field-grid one" id="listFields"></div>
+        </details>
+
+        <details class="editor-section">
+          <summary>参考文献</summary>
+          <div class="section-body"><div id="references"></div></div>
+        </details>
+
+        <details class="editor-section" open>
+          <summary>ECharts / D3 动态图表</summary>
+          <div class="section-body"><div id="chartEditor"></div></div>
+        </details>
+
+        <details class="editor-section" open>
+          <summary>长报告扩展章节</summary>
+          <div class="section-body"><div id="extendedChapters"></div></div>
+        </details>
+
+        <details class="editor-section">
+          <summary>高级 JSON 编辑</summary>
+          <div class="section-body">
+            <textarea id="jsonEditor" class="json-editor" spellcheck="false"></textarea>
+            <button type="button" id="applyJson" class="minor-button">应用 JSON 到表单</button>
+          </div>
+        </details>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="editor-actions">
+    <div class="action-row">
+      <button type="button" id="renderButton" class="render-button">重新生成 HTML</button>
+      <button type="button" id="saveButton" class="save-button">保存 JSON</button>
+      <button type="button" id="exportButton" class="export-button">导出 JSON</button>
+    </div>
+    <div id="statusLine" class="status-line">尚未修改</div>
+  </footer>
+
+  <script>
+    const csrfToken = {{ csrf_token | tojson }};
+    const endpointUrls = {{ urls | tojson }};
+    let reportState = {{ data | tojson }};
+    const initialPreview = {{ preview_html | tojson }};
+    const previewFrame = document.getElementById("previewFrame");
+    const statusLine = document.getElementById("statusLine");
+    previewFrame.srcdoc = initialPreview;
+
+    const basicFieldDefinitions = [
+      ["report.report_id", "报告编号"], ["report.title", "报告标题"],
+      ["report.subtitle", "英文副标题"], ["report.template_version", "模板版本"],
+      ["report.generated_at", "报告日期"], ["report.laboratory", "实验室"],
+      ["report.reviewer", "审核人"], ["sample.sample_id", "样本编号"],
+      ["sample.name", "姓名"], ["sample.sex", "性别"], ["sample.age", "年龄"],
+      ["sample.specimen_type", "样本类型"], ["sample.clinical_diagnosis", "临床诊断"],
+      ["sample.received_at", "收样日期"], ["sample.tested_at", "检测日期"]
+    ];
+
+    const arrayDefinitions = {
+      quality_metrics: {
+        target: "qualityMetrics",
+        columns: [["label","指标"],["value","结果"],["reference","参考值"],["status","状态"]],
+        blank: {label:"新指标",value:"",reference:"",status:"合格"}
+      },
+      coverage_chart: {
+        target: "coverageChart",
+        columns: [["label","标签"],["value","数值","number"]],
+        blank: {label:"新柱",value:0}
+      },
+      variants: {
+        target: "variants",
+        columns: [["gene","基因"],["transcript","转录本"],["exon","外显子"],["nucleotide_change","核苷酸变异"],["amino_acid_change","氨基酸变异"],["zygosity","合子状态"],["allele_frequency","频率"],["classification","分类"],["disease","疾病"]],
+        blank: {gene:"",transcript:"",exon:"",nucleotide_change:"",amino_acid_change:"",zygosity:"",allele_frequency:"",classification:"临床意义未明",disease:""}
+      },
+      references: {
+        target: "references",
+        columns: [["index","序号","number"],["citation","文献"]],
+        blank: {index:1,citation:""}
+      }
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[char]));
+    }
+
+    function getPath(path) {
+      return path.split(".").reduce((value, key) => value[key], reportState);
+    }
+
+    function setPath(path, value) {
+      const keys = path.split(".");
+      const last = keys.pop();
+      const parent = keys.reduce((current, key) => current[key], reportState);
+      parent[last] = value;
+      markChanged();
+    }
+
+    function markChanged(message="数据已修改，尚未保存") {
+      statusLine.className = "status-line";
+      statusLine.textContent = message;
+      refreshJson();
+    }
+
+    function renderFixedFields() {
+      document.getElementById("basicFields").innerHTML = basicFieldDefinitions.map(([path,label]) => `
+        <label class="field"><span>${escapeHtml(label)}</span><input data-path="${path}" value="${escapeHtml(getPath(path))}"></label>
+      `).join("");
+      document.getElementById("textFields").innerHTML = [
+        ["project_description","检测项目描述"], ["result_summary","结果摘要"]
+      ].map(([path,label]) => `<label class="field full"><span>${label}</span><textarea data-path="${path}">${escapeHtml(getPath(path))}</textarea></label>`).join("");
+      document.querySelectorAll("[data-path]").forEach(input => input.addEventListener("input", () => setPath(input.dataset.path, input.value)));
+    }
+
+    function renderObjectArray(path) {
+      const definition = arrayDefinitions[path];
+      const rows = reportState[path] || [];
+      const headers = definition.columns.map(column => `<th>${escapeHtml(column[1])}</th>`).join("");
+      const body = rows.map((row,index) => `<tr>${definition.columns.map(([key,label,type]) => `
+        <td><input type="${type || "text"}" data-array="${path}" data-index="${index}" data-key="${key}" value="${escapeHtml(row[key])}"></td>
+      `).join("")}<td class="row-actions"><button class="icon-button" type="button" data-delete="${path}" data-index="${index}">删</button></td></tr>`).join("");
+      document.getElementById(definition.target).innerHTML = `<div class="array-wrap"><table class="array-table"><thead><tr>${headers}<th>操作</th></tr></thead><tbody>${body}</tbody></table></div><button type="button" class="add-button" data-add="${path}">新增一行</button>`;
+    }
+
+    function bindArrayEvents() {
+      document.querySelectorAll("[data-array]").forEach(input => input.addEventListener("input", () => {
+        const value = input.type === "number" ? Number(input.value) : input.value;
+        reportState[input.dataset.array][Number(input.dataset.index)][input.dataset.key] = value;
+        markChanged();
+      }));
+      document.querySelectorAll("[data-delete]").forEach(button => button.addEventListener("click", () => {
+        reportState[button.dataset.delete].splice(Number(button.dataset.index),1);
+        renderDynamicSections(); markChanged();
+      }));
+      document.querySelectorAll("[data-add]").forEach(button => button.addEventListener("click", () => {
+        const path = button.dataset.add;
+        const item = JSON.parse(JSON.stringify(arrayDefinitions[path].blank));
+        if (path === "references") item.index = reportState.references.length + 1;
+        reportState[path].push(item); renderDynamicSections(); markChanged();
+      }));
+    }
+
+    function renderInterpretations() {
+      const container = document.getElementById("interpretations");
+      container.innerHTML = reportState.interpretations.map((item,index) => `
+        <article class="interpretation-card">
+          <div class="interpretation-head"><strong>解读 ${index + 1}</strong><button type="button" class="icon-button" data-delete-interpretation="${index}">删除</button></div>
+          <div class="interpretation-fields">
+            ${interpretationInput(index,"gene","基因",item.gene)}
+            ${interpretationInput(index,"classification","分类",item.classification)}
+            ${interpretationInput(index,"title","标题",item.title,"full")}
+            ${interpretationTextarea(index,"evidence","证据（每行一条）",(item.evidence || []).join("\n"),"full")}
+            ${interpretationTextarea(index,"clinical_significance","临床意义",item.clinical_significance,"full")}
+            ${interpretationTextarea(index,"recommendation","建议",item.recommendation,"full")}
+          </div>
+        </article>`).join("") + `<button type="button" class="add-button" id="addInterpretation">新增解读</button>`;
+      container.querySelectorAll("[data-interpretation]").forEach(input => input.addEventListener("input", () => {
+        const key = input.dataset.key;
+        reportState.interpretations[Number(input.dataset.interpretation)][key] = key === "evidence" ? input.value.split(/\r?\n/).filter(Boolean) : input.value;
+        markChanged();
+      }));
+      container.querySelectorAll("[data-delete-interpretation]").forEach(button => button.addEventListener("click", () => {
+        reportState.interpretations.splice(Number(button.dataset.deleteInterpretation),1); renderInterpretations(); markChanged();
+      }));
+      document.getElementById("addInterpretation").addEventListener("click", () => {
+        reportState.interpretations.push({gene:"",title:"",classification:"临床意义未明",evidence:[],clinical_significance:"",recommendation:""}); renderInterpretations(); markChanged();
+      });
+    }
+
+    function interpretationInput(index,key,label,value,extra="") {
+      return `<label class="${extra}">${label}<input data-interpretation="${index}" data-key="${key}" value="${escapeHtml(value)}"></label>`;
+    }
+    function interpretationTextarea(index,key,label,value,extra="") {
+      return `<label class="${extra}">${label}<textarea data-interpretation="${index}" data-key="${key}">${escapeHtml(value)}</textarea></label>`;
+    }
+
+    function renderListFields() {
+      const fields = [["methods","检测方法"],["limitations","检测局限性"],["notices","重要声明"]];
+      document.getElementById("listFields").innerHTML = fields.map(([key,label]) => `<label class="field full"><span>${label}（每行一条）</span><textarea data-list="${key}">${escapeHtml((reportState[key] || []).join("\n"))}</textarea></label>`).join("");
+      document.querySelectorAll("[data-list]").forEach(input => input.addEventListener("input", () => {
+        reportState[input.dataset.list] = input.value.split(/\r?\n/).filter(line => line.trim()); markChanged();
+      }));
+    }
+
+    function renderDynamicSections() {
+      Object.keys(arrayDefinitions).forEach(renderObjectArray);
+      bindArrayEvents(); renderInterpretations(); renderListFields(); renderChartsEditor(); renderExtendedChapters(); refreshJson();
+    }
+
+    function lines(value) { return (value || []).join("\n"); }
+    function parseLines(value) { return value.split(/\r?\n/).map(item => item.trim()).filter(Boolean); }
+    function tableRows(value) { return (value || []).map(row => row.join("\t")).join("\n"); }
+    function parseTableRows(value) { return value.split(/\r?\n/).filter(row => row.trim()).map(row => row.split("\t")); }
+
+    function renderChartsEditor() {
+      const root = document.getElementById("chartEditor");
+      const charts = reportState.charts;
+      if (!charts) {
+        root.innerHTML = `<button type="button" class="add-button" id="enableCharts">创建动态图表数据</button>`;
+        document.getElementById("enableCharts").addEventListener("click", () => {
+          reportState.charts = {enabled:true,heatmap:{title:"风险热图",x_labels:["样本1"],y_labels:["指标1"],values:[[0]],min_value:0,max_value:100,low_color:"#1a9850",mid_color:"#fee08b",high_color:"#d73027"},forest:{title:"森林图",x_label:"效应量（95% CI）",reference:1,items:[]},sunburst:{title:"旭日图",root:{name:"全部",children:[]}}};
+          renderChartsEditor(); refreshJson(); markChanged();
+        });
+        return;
+      }
+      root.innerHTML = `
+        <label class="checkbox-field"><input type="checkbox" data-chart-field="enabled" data-kind="boolean" ${charts.enabled ? "checked" : ""}> 在报告中显示动态图表</label>
+        <details class="chart-editor-group" open><summary>ECharts 热图</summary><div class="chart-editor-body field-grid">
+          ${chartTextInput("heatmap.title","图表标题",charts.heatmap.title)}
+          <label class="field"><span>最小值</span><input type="number" data-chart-field="heatmap.min_value" data-kind="number" value="${charts.heatmap.min_value}"></label>
+          <label class="field"><span>最大值</span><input type="number" data-chart-field="heatmap.max_value" data-kind="number" value="${charts.heatmap.max_value}"></label>
+          <label class="field"><span>低值颜色</span><input type="color" data-chart-field="heatmap.low_color" value="${escapeHtml(charts.heatmap.low_color)}"></label>
+          <label class="field"><span>中值颜色</span><input type="color" data-chart-field="heatmap.mid_color" value="${escapeHtml(charts.heatmap.mid_color)}"></label>
+          <label class="field"><span>高值颜色</span><input type="color" data-chart-field="heatmap.high_color" value="${escapeHtml(charts.heatmap.high_color)}"></label>
+          <label class="field full"><span>横轴标签（每行一个）</span><textarea data-chart-field="heatmap.x_labels" data-kind="lines">${escapeHtml(lines(charts.heatmap.x_labels))}</textarea></label>
+          <label class="field full"><span>纵轴标签（每行一个）</span><textarea data-chart-field="heatmap.y_labels" data-kind="lines">${escapeHtml(lines(charts.heatmap.y_labels))}</textarea></label>
+          <label class="field full"><span>热图数值矩阵（每行对应一个纵轴标签，数值用Tab分隔）</span><textarea class="table-data-editor" data-chart-field="heatmap.values" data-kind="matrix">${escapeHtml(tableRows(charts.heatmap.values))}</textarea></label>
+        </div></details>
+        <details class="chart-editor-group"><summary>D3 森林图</summary><div class="chart-editor-body field-grid">
+          ${chartTextInput("forest.title","图表标题",charts.forest.title)}
+          ${chartTextInput("forest.x_label","横轴标题",charts.forest.x_label)}
+          <label class="field"><span>参考值</span><input type="number" step="any" data-chart-field="forest.reference" data-kind="number" value="${charts.forest.reference}"></label>
+          <label class="field full"><span>森林图数据（标签 ⇥ 效应量 ⇥ 下限 ⇥ 上限 ⇥ 分组）</span><textarea class="table-data-editor" data-chart-field="forest.items" data-kind="forest">${escapeHtml((charts.forest.items || []).map(item => [item.label,item.effect,item.lower,item.upper,item.group].join("\t")).join("\n"))}</textarea></label>
+        </div></details>
+        <details class="chart-editor-group"><summary>ECharts 旭日图</summary><div class="chart-editor-body field-grid">
+          ${chartTextInput("sunburst.title","图表标题",charts.sunburst.title)}
+          <label class="field full"><span>旭日图树形 JSON</span><textarea class="json-editor chart-json-editor" data-chart-field="sunburst.root" data-kind="json">${escapeHtml(JSON.stringify(charts.sunburst.root,null,2))}</textarea></label>
+        </div></details>
+        <p class="editor-help">修改图表数据后点击底部“重新生成 HTML”。热图颜色会按照最小值到最大值自动从低值色过渡到高值色。</p>`;
+
+      root.querySelectorAll("[data-chart-field]").forEach(input => input.addEventListener("input", () => {
+        const path = input.dataset.chartField.split(".");
+        let target = reportState.charts;
+        while (path.length > 1) target = target[path.shift()];
+        const field = path[0];
+        try {
+          if (input.dataset.kind === "boolean") target[field] = input.checked;
+          else if (input.dataset.kind === "number") target[field] = Number(input.value);
+          else if (input.dataset.kind === "lines") target[field] = parseLines(input.value);
+          else if (input.dataset.kind === "matrix") target[field] = parseTableRows(input.value).map(row => row.map(Number));
+          else if (input.dataset.kind === "forest") target[field] = parseTableRows(input.value).map(row => ({label:row[0] || "",effect:Number(row[1]),lower:Number(row[2]),upper:Number(row[3]),group:row[4] || ""}));
+          else if (input.dataset.kind === "json") target[field] = JSON.parse(input.value);
+          else target[field] = input.value;
+          markChanged("图表数据已修改，点击重新生成 HTML 查看效果");
+        } catch (error) {
+          statusLine.className = "status-line error"; statusLine.textContent = `图表 JSON 格式错误：${error.message}`;
+        }
+      }));
+    }
+
+    function chartTextInput(path, label, value) {
+      return `<label class="field full"><span>${label}</span><input data-chart-field="${path}" value="${escapeHtml(value || "")}"></label>`;
+    }
+
+    function renderExtendedChapters() {
+      const root = document.getElementById("extendedChapters");
+      const chapters = reportState.chapters || (reportState.chapters = []);
+      root.innerHTML = chapters.map((chapter, chapterIndex) => `
+        <details class="chapter-editor" open>
+          <summary>${escapeHtml(chapter.number)} · ${escapeHtml(chapter.title)}</summary>
+          <div class="chapter-editor-body">
+            <div class="field-grid">
+              ${extendedInput("chapter", chapterIndex, -1, "number", "章节编号", chapter.number)}
+              ${extendedInput("chapter", chapterIndex, -1, "title", "章节标题", chapter.title)}
+              ${extendedInput("chapter", chapterIndex, -1, "chapter_id", "章节ID", chapter.chapter_id)}
+              ${extendedInput("chapter", chapterIndex, -1, "subtitle", "英文副标题", chapter.subtitle)}
+            </div>
+            ${(chapter.sections || []).map((section, sectionIndex) => renderExtendedSection(chapterIndex, sectionIndex, section)).join("")}
+            <div class="extended-editor-actions">
+              <button type="button" class="add-button" data-extended-action="add-section" data-chapter="${chapterIndex}">新增小节</button>
+              <button type="button" class="icon-button" data-extended-action="delete-chapter" data-chapter="${chapterIndex}">删除章节</button>
+            </div>
+          </div>
+        </details>`).join("") + `<button type="button" class="add-button" data-extended-action="add-chapter">新增章节</button>`;
+
+      root.querySelectorAll("[data-extended-scope]").forEach(input => input.addEventListener("input", () => {
+        const chapter = chapters[Number(input.dataset.chapter)];
+        const target = input.dataset.extendedScope === "chapter" ? chapter : chapter.sections[Number(input.dataset.section)];
+        const field = input.dataset.field;
+        if (input.dataset.kind === "lines") target[field] = parseLines(input.value);
+        else if (input.dataset.kind === "metrics") target.metrics = parseTableRows(input.value).map(row => ({label:row[0] || "",value:row[1] || "",status:row[2] || "",detail:row.slice(3).join(" ")}));
+        else if (input.dataset.kind === "boolean") target[field] = input.checked;
+        else target[field] = input.value;
+        markChanged();
+      }));
+      root.querySelectorAll("[data-flex-table]").forEach(input => input.addEventListener("input", () => {
+        const table = chapters[Number(input.dataset.chapter)].sections[Number(input.dataset.section)].tables[Number(input.dataset.table)];
+        const field = input.dataset.field;
+        if (field === "columns") table.columns = input.value.split("\t").map(item => item.trim()).filter(Boolean);
+        else if (field === "rows") table.rows = parseTableRows(input.value);
+        else if (field === "compact") table.compact = input.checked;
+        else table[field] = input.value;
+        markChanged();
+      }));
+      root.querySelectorAll("[data-extended-action]").forEach(button => button.addEventListener("click", () => handleExtendedAction(button)));
+    }
+
+    function extendedInput(scope, chapter, section, field, label, value) {
+      return `<label class="field"><span>${label}</span><input data-extended-scope="${scope}" data-chapter="${chapter}" data-section="${section}" data-field="${field}" value="${escapeHtml(value || "")}"></label>`;
+    }
+
+    function renderExtendedSection(chapterIndex, sectionIndex, section) {
+      return `<details class="nested-editor-section">
+        <summary>${escapeHtml(section.number)} · ${escapeHtml(section.title)}</summary>
+        <div class="nested-editor-body">
+          <div class="field-grid">
+            ${extendedInput("section", chapterIndex, sectionIndex, "number", "小节编号", section.number)}
+            ${extendedInput("section", chapterIndex, sectionIndex, "title", "小节标题", section.title)}
+            ${extendedInput("section", chapterIndex, sectionIndex, "section_id", "小节ID", section.section_id)}
+            ${extendedInput("section", chapterIndex, sectionIndex, "subtitle", "英文副标题", section.subtitle)}
+            <label class="field full"><span>正文段落（每行一段）</span><textarea data-extended-scope="section" data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-field="paragraphs" data-kind="lines">${escapeHtml(lines(section.paragraphs))}</textarea></label>
+            <label class="field full"><span>指标卡（每行：标签 ⇥ 数值 ⇥ 状态 ⇥ 说明）</span><textarea data-extended-scope="section" data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-kind="metrics">${escapeHtml((section.metrics || []).map(item => [item.label,item.value,item.status,item.detail].join("\t")).join("\n"))}</textarea></label>
+            <label class="field full"><span>说明要点（每行一条）</span><textarea data-extended-scope="section" data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-field="bullets" data-kind="lines">${escapeHtml(lines(section.bullets))}</textarea></label>
+            <label class="field full"><span>重要提示（每行一条）</span><textarea data-extended-scope="section" data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-field="notes" data-kind="lines">${escapeHtml(lines(section.notes))}</textarea></label>
+            <label class="checkbox-field"><input type="checkbox" data-extended-scope="section" data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-field="page_break_before" data-kind="boolean" ${section.page_break_before ? "checked" : ""}> 小节前强制分页</label>
+          </div>
+          ${(section.tables || []).map((table, tableIndex) => renderFlexibleTableEditor(chapterIndex, sectionIndex, tableIndex, table)).join("")}
+          <div class="extended-editor-actions">
+            <button type="button" class="add-button" data-extended-action="add-table" data-chapter="${chapterIndex}" data-section="${sectionIndex}">新增表格</button>
+            <button type="button" class="icon-button" data-extended-action="delete-section" data-chapter="${chapterIndex}" data-section="${sectionIndex}">删除小节</button>
+          </div>
+        </div>
+      </details>`;
+    }
+
+    function renderFlexibleTableEditor(chapterIndex, sectionIndex, tableIndex, table) {
+      return `<div class="flex-table-editor">
+        <div class="flex-table-editor-title">表格 ${tableIndex + 1}</div>
+        <div class="field-grid">
+          <label class="field"><span>表格标题</span><input data-flex-table data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-table="${tableIndex}" data-field="title" value="${escapeHtml(table.title || "")}"></label>
+          <label class="checkbox-field"><input type="checkbox" data-flex-table data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-table="${tableIndex}" data-field="compact" ${table.compact ? "checked" : ""}> 紧凑表格</label>
+          <label class="field full"><span>列名（Tab分隔）</span><textarea data-flex-table data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-table="${tableIndex}" data-field="columns">${escapeHtml((table.columns || []).join("\t"))}</textarea></label>
+          <label class="field full"><span>表格数据（每行一条，列之间用Tab分隔）</span><textarea class="table-data-editor" data-flex-table data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-table="${tableIndex}" data-field="rows">${escapeHtml(tableRows(table.rows))}</textarea></label>
+          <label class="field full"><span>表下注释</span><textarea data-flex-table data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-table="${tableIndex}" data-field="note">${escapeHtml(table.note || "")}</textarea></label>
+        </div>
+        <button type="button" class="icon-button" data-extended-action="delete-table" data-chapter="${chapterIndex}" data-section="${sectionIndex}" data-table="${tableIndex}">删除此表格</button>
+      </div>`;
+    }
+
+    function handleExtendedAction(button) {
+      const action = button.dataset.extendedAction;
+      const chapters = reportState.chapters || (reportState.chapters = []);
+      const chapterIndex = Number(button.dataset.chapter);
+      const sectionIndex = Number(button.dataset.section);
+      const tableIndex = Number(button.dataset.table);
+      if (action === "add-chapter") chapters.push({chapter_id:`chapter-${chapters.length+1}`,number:String(chapters.length+3).padStart(2,"0"),title:"新章节",subtitle:"",sections:[]});
+      if (action === "delete-chapter") chapters.splice(chapterIndex,1);
+      if (action === "add-section") chapters[chapterIndex].sections.push({section_id:`section-${Date.now()}`,number:`${chapters[chapterIndex].number}.1`,title:"新小节",subtitle:"",paragraphs:[],metrics:[],tables:[],bullets:[],notes:[],page_break_before:false});
+      if (action === "delete-section") chapters[chapterIndex].sections.splice(sectionIndex,1);
+      if (action === "add-table") chapters[chapterIndex].sections[sectionIndex].tables.push({title:"新表格",columns:["列1","列2"],rows:[["",""]],note:"",compact:false});
+      if (action === "delete-table") chapters[chapterIndex].sections[sectionIndex].tables.splice(tableIndex,1);
+      renderExtendedChapters(); refreshJson(); markChanged();
+    }
+
+    function refreshJson() {
+      document.getElementById("jsonEditor").value = JSON.stringify(reportState,null,2);
+    }
+
+    async function postJson(url) {
+      const response = await fetch(url, {method:"POST",headers:{"Content-Type":"application/json","X-CSRFToken":csrfToken},body:JSON.stringify(reportState)});
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error((result.errors || []).map(item => item.msg || JSON.stringify(item)).join("；") || "请求失败");
+      return result;
+    }
+
+    async function runAction(button, action) {
+      const buttons = document.querySelectorAll(".action-row button");
+      buttons.forEach(item => item.disabled = true);
+      statusLine.className = "status-line"; statusLine.textContent = "正在处理…";
+      try { await action(); } catch (error) { statusLine.className = "status-line error"; statusLine.textContent = error.message; }
+      finally { buttons.forEach(item => item.disabled = false); }
+    }
+
+    document.getElementById("renderButton").addEventListener("click", event => runAction(event.currentTarget, async () => {
+      const result = await postJson(endpointUrls.render); previewFrame.srcdoc = result.html;
+      statusLine.className = "status-line success"; statusLine.textContent = "左侧 HTML 已按当前数据重新生成，尚未保存。";
+    }));
+
+    document.getElementById("saveButton").addEventListener("click", event => runAction(event.currentTarget, async () => {
+      const result = await postJson(endpointUrls.save); reportState = result.data; refreshJson();
+      previewFrame.srcdoc = (await postJson(endpointUrls.render)).html;
+      statusLine.className = "status-line success"; statusLine.textContent = result.message;
+    }));
+
+    document.getElementById("exportButton").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(reportState,null,2)], {type:"application/json;charset=utf-8"});
+      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `{{ report_id }}.json`; link.click(); URL.revokeObjectURL(link.href);
+    });
+
+    document.getElementById("applyJson").addEventListener("click", () => {
+      try { reportState = JSON.parse(document.getElementById("jsonEditor").value); renderFixedFields(); renderDynamicSections(); markChanged("高级 JSON 已应用，尚未保存"); }
+      catch (error) { statusLine.className = "status-line error"; statusLine.textContent = `JSON 格式错误：${error.message}`; }
+    });
+
+    renderFixedFields(); renderDynamicSections();
+  </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+@media screen {
+  .report-toolbar {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    min-height: 58px; padding: 8px 24px; color: #fff;
+    background: rgba(5,60,82,.96); box-shadow: 0 2px 14px rgba(0,0,0,.18);
+  }
+  .report-toolbar > div:first-child { display: flex; align-items: baseline; gap: 14px; }
+  .report-toolbar span { font-size: 12px; opacity: .7; }
+  .toolbar-actions { display: flex; gap: 10px; }
+  .report-toolbar button, .report-toolbar a { padding: 8px 15px; border: 1px solid rgba(255,255,255,.5); border-radius: 5px; color: #fff; background: transparent; font: inherit; cursor: pointer; text-decoration: none; }
+  .report-toolbar .primary-button { border-color: #2bc3c3; background: #18a8ad; }
+  .template-preview-banner { margin: 12px auto 0; width: 210mm; padding: 9px 16px; color: #174e63; background: #e7f7f7; border: 1px solid #b8e4e3; font: 13px Arial, sans-serif; }
+  .template-preview-banner a { color: #087ca7; font-weight: 700; }
+
+  .report-document { width: 210mm; box-shadow: 0 8px 38px rgba(26,54,67,.2); }
+  .cover-page, .executive-message-page, .toc-page, .chapter-cover, .content-section, .back-cover { width: 210mm; margin: 0 auto 10mm; box-shadow: 0 2mm 7mm rgba(31,59,70,.10); }
+  /* Match the printable A4 body box exactly: 297mm page minus the same
+     18mm/16mm page margins used by @page body. */
+  .content-section { min-height: 297mm; padding: 18mm 16mm; }
+  .chapter-cover { padding: 20mm; }
+}
+
+@media screen {
+  .toc-page:has(.toc-list a:nth-child(n+16)) .toc-list { column-count: 2; column-gap: 9mm; display: block; }
+  .toc-page:has(.toc-list a:nth-child(n+16)) .toc-list a { break-inside: avoid; padding: 2.1mm 0; }
+  .toc-page:has(.toc-list a:nth-child(n+16)) .toc-note { display: none; }
+}
+
+@media screen and (max-width: 850px) {
+  .report-toolbar { position: static; align-items: flex-start; gap: 8px; }
+  .report-toolbar > div:first-child { display: none; }
+  .report-document { transform-origin: top left; width: 210mm; }
+}

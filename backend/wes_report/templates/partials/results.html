@@ -1,0 +1,55 @@
+<section id="summary" class="content-section section-start">
+  <header class="section-heading">
+    <span>1.3</span><h2>本次检测小结</h2>
+  </header>
+  <div class="summary-panel">
+    <div class="summary-icon">✓</div>
+    <div>
+      <h3>结果摘要</h3>
+      <p>{{ data.result_summary }}</p>
+    </div>
+  </div>
+
+  <div class="result-counts">
+    <div><strong>{{ data.variants | length }}</strong><span>重点变异</span></div>
+    <div><strong>{{ data.interpretations | length }}</strong><span>详细解读</span></div>
+    <div><strong>{{ data.quality_metrics | length }}</strong><span>质控指标</span></div>
+  </div>
+</section>
+
+<section id="variants" class="content-section">
+  <header class="section-heading">
+    <span>1.4</span><h2>重点变异检测结果</h2>
+  </header>
+  {% if data.variants %}
+  <table class="data-table variant-table">
+    <thead>
+      <tr>
+        <th>基因</th><th>转录本/外显子</th><th>核苷酸变异</th><th>氨基酸变异</th>
+        <th>合子状态</th><th>变异频率</th><th>临床分类</th><th>相关疾病</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in data.variants %}
+      <tr>
+        <td><strong>{{ item.gene }}</strong></td>
+        <td>{{ item.transcript }}{% if item.exon %}<br>{{ item.exon }}{% endif %}</td>
+        <td>{{ item.nucleotide_change }}</td>
+        <td>{{ item.amino_acid_change or "--" }}</td>
+        <td>{{ item.zygosity or "--" }}</td>
+        <td>{{ item.allele_frequency or "--" }}</td>
+        <td><span class="classification">{{ item.classification }}</span></td>
+        <td>{{ item.disease or "--" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">本次检测未发现需要重点报告的变异。</div>
+  {% endif %}
+
+  <div class="table-note">
+    <strong>说明：</strong>变异命名遵循 HGVS 规范；临床分类应结合 ACMG/AMP 指南、数据库证据、文献及受检者表型综合判定。
+  </div>
+</section>
+

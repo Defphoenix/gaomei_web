@@ -1,0 +1,66 @@
+<section id="sample-info" class="content-section section-start">
+  <header class="section-heading">
+    <span>1.1</span><h2>基本信息与检测项目</h2>
+  </header>
+
+  <table class="info-table">
+    <tbody>
+      <tr><th>姓名</th><td>{{ data.sample.name }}</td><th>样本编号</th><td>{{ data.sample.sample_id }}</td></tr>
+      <tr><th>性别</th><td>{{ data.sample.sex }}</td><th>年龄</th><td>{{ data.sample.age }}</td></tr>
+      <tr><th>样本类型</th><td>{{ data.sample.specimen_type }}</td><th>临床诊断</th><td>{{ data.sample.clinical_diagnosis or "未提供" }}</td></tr>
+      <tr><th>收样日期</th><td>{{ data.sample.received_at }}</td><th>检测日期</th><td>{{ data.sample.tested_at }}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <h3>检测项目</h3>
+    <p>{{ data.project_description }}</p>
+  </div>
+</section>
+
+<section id="quality" class="content-section section-start">
+  <header class="section-heading">
+    <span>1.2</span><h2>测序质量评估</h2>
+  </header>
+
+  <div class="metric-grid">
+    {% for metric in data.quality_metrics %}
+    <article class="metric-card">
+      <div class="metric-status {{ 'status-pass' if metric.status == '合格' else 'status-warn' }}">{{ metric.status }}</div>
+      <h3>{{ metric.label }}</h3>
+      <div class="metric-value">{{ metric.value }}</div>
+      <p>参考：{{ metric.reference or "--" }}</p>
+    </article>
+    {% endfor %}
+  </div>
+
+  <div class="quality-figure" aria-label="示例覆盖度图">
+    <div class="figure-title">目标区域覆盖度概览</div>
+    <svg viewBox="0 0 760 220" role="img" aria-label="不同测序深度下的覆盖率">
+      <defs>
+        <linearGradient id="barGradient" x1="0" x2="1">
+          <stop offset="0" stop-color="#137ca4"/>
+          <stop offset="1" stop-color="#34b6bf"/>
+        </linearGradient>
+      </defs>
+      <g stroke="#d7e2e8" stroke-width="1">
+        <line x1="90" y1="30" x2="730" y2="30"/><line x1="90" y1="75" x2="730" y2="75"/>
+        <line x1="90" y1="120" x2="730" y2="120"/><line x1="90" y1="165" x2="730" y2="165"/>
+      </g>
+      <g fill="#5d6b73" font-size="13" font-family="sans-serif">
+        <text x="26" y="38">100%</text><text x="34" y="83">75%</text><text x="34" y="128">50%</text><text x="34" y="173">25%</text>
+      </g>
+      <g fill="url(#barGradient)">
+        {% for point in data.coverage_chart_rendered %}
+        <rect x="{{ point.x }}" y="{{ point.y }}" width="{{ point.width }}" height="{{ point.height }}" rx="5"/>
+        {% endfor %}
+      </g>
+      <g fill="#24343d" font-size="14" text-anchor="middle" font-family="sans-serif">
+        {% for point in data.coverage_chart_rendered %}
+        <text x="{{ point.label_x }}" y="212">{{ point.label }}</text>
+        {% endfor %}
+      </g>
+    </svg>
+    <p class="figure-caption">图 1｜示例数据用于展示 SVG 矢量图在 HTML 与 PDF 中的排版效果。</p>
+  </div>
+</section>
