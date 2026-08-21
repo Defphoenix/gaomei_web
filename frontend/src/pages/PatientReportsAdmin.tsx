@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import PortalSidebar from "../components/PortalSidebar";
 
 type PatientSlot = {
   patient_no: string;
@@ -71,22 +71,7 @@ const PatientReportsAdmin: React.FC = () => {
 
   return (
     <div className="portal-page">
-      <aside className="portal-sidebar">
-        <Link to="/" className="portal-logo">
-          <img className="brand-mark-img" src="/assets/images/logo_mark.png" alt="高美基因" />
-          <span><b>Gomics</b><small>高美协作平台</small></span>
-        </Link>
-        <nav>
-          <Link to="/dashboard"><i className="fas fa-th-large" />工作台</Link>
-          <Link to="/patient-reports" className="active"><i className="fas fa-file-medical" />患者报告</Link>
-          <Link to="/browser"><i className="fas fa-dna" />IGV 证据</Link>
-        </nav>
-        <div className="node-card">
-          <span><i className="fas fa-circle" /> 患者报告</span>
-          <b>云端 JSON → HTML/PDF</b>
-          <small>node9 只上传数据包</small>
-        </div>
-      </aside>
+      <PortalSidebar />
 
       <main className="portal-main">
         <header className="portal-topbar">

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/client";
 import type { Report } from "../types";
+import PortalSidebar from "../components/PortalSidebar";
 
 type PortalRole = "admin" | "analyst" | "reviewer" | "client";
 
@@ -23,17 +24,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="portal-page">
-      <aside className="portal-sidebar">
-        <Link to="/" className="portal-logo"><img className="brand-mark-img" src="/assets/images/logo_mark.png" alt="高美基因" /><span><b>Gomics</b><small>高美协作平台</small></span></Link>
-        <nav>
-          <a className="active" href="#overview"><i className="fas fa-th-large" />工作台</a>
-          {canOperate && <Link to="/patient-reports"><i className="fas fa-file-medical" />患者报告</Link>}
-          {canOperate && <a href="#review"><i className="fas fa-clipboard-check" />审核发布</a>}
-          <Link to="/browser"><i className="fas fa-dna" />IGV 证据</Link>
-          {role === "admin" && <a href="#users"><i className="fas fa-users-cog" />用户与权限</a>}
-        </nav>
-        <div className="node-card"><span><i className="fas fa-circle" /> 患者报告</span><b>云端排版与发布</b><small>node9 上传 JSON / 附属文件</small></div>
-      </aside>
+      <PortalSidebar />
 
       <main className="portal-main">
         <header className="portal-topbar">
