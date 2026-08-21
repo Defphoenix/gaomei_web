@@ -319,16 +319,21 @@ node9 WES Agent/Worker
 - MySQL 只监听 `127.0.0.1:3306`，当前 Django 实际使用 SQLite；
 - 腾讯云系统 UFW 未启用，主要依赖腾讯云安全组。
 
+已处理（HTTP → HTTPS，2026-08-21）：
+
+1. `http://gomics.icu` / `http://www.gomics.icu` 现返回 **301** 到对应 HTTPS；
+2. `http://118.25.149.190` 返回 **301** 到 `https://gomics.icu`（证书不含裸 IP）；
+3. 80 端口改为独立重定向 VirtualHost；业务内容只在 443（及可选调试口 18080）；
+4. 仓库模板已更新：`deploy/tencent/gaomei-web-apache.conf`。
+
 待处理：
 
-1. `http://gomics.icu` 当前仍返回 200，没有可靠跳转到 HTTPS；
-2. Apache 应将 80 端口做成独立的 HTTPS 重定向 VirtualHost；
-3. HSTS 尚未开启，应在 HTTPS 重定向稳定后谨慎启用；
-4. 公网 8080 当前开放，可能是 Genome Browser 镜像服务；不需要公网访问时应在腾讯云
+1. HSTS 尚未开启，应在 HTTPS 重定向稳定、确认无必要明文入口后再谨慎启用；
+2. 公网 8080 当前开放，可能是 Genome Browser 镜像服务；不需要公网访问时应在腾讯云
    安全组中关闭或限制来源 IP；
-5. 22 端口应限制为管理员固定 IP；
-6. 应建立 SQLite、media 和环境配置的定时加密备份；
-7. 应建立依赖漏洞审计和发布回滚演练。
+3. 22 端口应限制为管理员固定 IP；
+4. 应建立 SQLite、media 和环境配置的定时加密备份；
+5. 应建立依赖漏洞审计和发布回滚演练。
 
 ## 11. 数据库说明
 
@@ -395,8 +400,8 @@ curl https://gomics.icu/api/auth/me/
 | P0 | 添加腾讯云 GitHub Deploy key | 已完成：`git fetch origin` 成功 |
 | P0 | 验证云端真实修改可 push | 用真实文档/脚本提交验证（见 `deploy/tencent/deploy.sh`） |
 | P0 | 编写一键部署脚本 | 已落地：`deploy/tencent/deploy.sh`（deploy/rollback/status/health） |
-| P1 | 修复 HTTP 到 HTTPS 跳转 | HTTP 返回 301/308 到 HTTPS |
-| P1 | 收紧 8080、22 安全组 | 仅保留业务必需来源 |
+| P1 | 修复 HTTP 到 HTTPS 跳转 | 已完成：域名/IP 的 HTTP 返回 301 到 HTTPS |
+| P1 | 收紧 8080、22 安全组 | 仅保留业务必需来源（需腾讯云安全组操作） |
 | P1 | 建立生产数据备份 | SQLite、media、env 可恢复且有校验 |
 | P1 | 审核 npm 漏洞 | 升级后前端、IGV和3D报告回归通过 |
 | P2 | 评估 SQLite 到 MySQL 迁移 | 有迁移、校验、备份和回滚方案 |

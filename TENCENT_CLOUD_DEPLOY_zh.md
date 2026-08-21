@@ -1,9 +1,16 @@
 # 腾讯云调试部署
 
 正式域名为 `https://gomics.icu`，同时支持 `https://www.gomics.icu`。
-IP 调试入口为 `http://118.25.149.190`，备用入口为
-`http://118.25.149.190:18080`。React 静态文件由 Apache
-提供，`/api` 转发到仅监听本机 `127.0.0.1:18081` 的 Gunicorn。
+公网 **80 端口只做 HTTPS 跳转**（301），不再直接提供明文站点。
+IP 访问 `http://118.25.149.190` 会跳到 `https://gomics.icu`。
+备用 HTTP 调试入口为 `http://118.25.149.190:18080`（非对外主入口）。
+React 静态文件由 Apache 在 443 提供，`/api` 转发到仅监听本机
+`127.0.0.1:18081` 的 Gunicorn。
+
+Apache HTTP 模板：`deploy/tencent/gaomei-web-apache.conf`。
+修改后需安装到 `/etc/apache2/sites-available/gaomei-web.conf`，再
+`sudo apache2ctl configtest && sudo systemctl reload apache2`。
+当前**不要**急着开 HSTS；等跳转稳定、全站无混用 HTTP 后再谨慎启用。
 
 ## 目录
 
