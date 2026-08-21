@@ -24,7 +24,7 @@ const Header: React.FC = () => {
     <header className="site-header">
       <div className="site-container header-inner">
         <Link to="/" className="brand" onClick={close}>
-          <span className="brand-mark"><i className="fas fa-dna" /></span>
+          <img className="brand-mark-img" src="/assets/images/logo_mark.png" alt="高美基因" />
           <span><b>Gomics</b><small>高美基因</small></span>
         </Link>
         <button className="nav-toggle" onClick={() => setOpen(!open)} aria-label="打开导航" aria-expanded={open}><i className={`fas ${open ? "fa-times" : "fa-bars"}`} /></button>

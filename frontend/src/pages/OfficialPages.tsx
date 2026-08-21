@@ -458,7 +458,17 @@ export const ContactPage: React.FC = () => {
         <div className="site-container contact-type-tabs motion-stagger">{consultTypes.map((item, index) => <button type="button" className={consultType === index ? "is-active" : ""} onClick={() => setConsultType(index)} key={item.name}><MotionIcon variant={item.icon} /><span><b>{item.name}</b><small>{item.intro}</small></span></button>)}</div>
         <div className="site-container contact-grid enhanced-contact-grid">
           <div className="contact-direction motion-reveal" key={selected.name}><MotionIcon variant={selected.icon} /><small>SELECTED DIRECTION</small><h3>{selected.name}</h3><p>{selected.intro}</p><b>建议提前准备</b>{selected.details.map((item) => <span key={item}><i className="fas fa-check" />{item}</span>)}
-            <div className="contact-lines"><p><i className="fas fa-map-marker-alt" /><span><b>公司地址</b>杭州市西湖区科创园 12–15 层</span></p><a href="mailto:contact@gomics.com.cn"><i className="fas fa-envelope" /><span><b>商务合作</b>contact@gomics.com.cn</span></a><a href="tel:4000000000"><i className="fas fa-phone" /><span><b>服务热线</b>400-XXXX-XXXX · 工作日 9:00–18:00</span></a></div>
+            <div className="contact-lines">
+              <p><i className="fas fa-building" /><span><b>公司名称</b>浙江高美基因科技有限公司</span></p>
+              <p><i className="fas fa-map-marker-alt" /><span><b>公司地址</b>浙江省杭州市余杭区仓前街道留泽街110号4幢-201-2</span></p>
+              <a href="mailto:contact@gomicsgene.com"><i className="fas fa-envelope" /><span><b>商务邮箱</b>contact@gomicsgene.com</span></a>
+              <p><i className="fab fa-weixin" /><span><b>微信公众号</b>高美基因</span></p>
+              <p><i className="fas fa-sitemap" /><span><b>旗下子公司</b>浙江高美生物科技有限公司</span></p>
+            </div>
+            <div className="contact-wechat-card">
+              <img src="/assets/images/wechat_qrcode.jpg" alt="高美基因微信公众号二维码" />
+              <span>扫码关注微信公众号</span>
+            </div>
           </div>
           <form className="consult-form motion-reveal" onSubmit={(event) => event.preventDefault()}>
             <div className="form-tech-icon"><MotionIcon variant="network" /></div><small>RESPONSE WITHIN 1 BUSINESS DAY</small><h3>发送{selected.name}咨询</h3>
@@ -472,7 +482,7 @@ export const ContactPage: React.FC = () => {
 
       <section className="section section-tint anchor-section" id="careers">
         <div className="site-container"><div className="section-heading centered motion-reveal"><span className="eyebrow">CAREERS AT GOMICS</span><h2>加入我们的创新旅程</h2><p>点击岗位方向查看工作内容与能力关键词。</p></div>
-          <div className="career-grid motion-stagger">{careers.map((item, index) => <article className={`career-expand-card ${openCareer === index ? "is-open" : ""}`} key={item.title}><MotionIcon variant={(["microscope", "network", "report"] as MotionVariant[])[index]} /><h3>{item.title}</h3><p>{item.brief}</p><button type="button" className="button button-outline" aria-expanded={openCareer === index} onClick={() => setOpenCareer(openCareer === index ? null : index)}>{openCareer === index ? "收起职位" : "查看职位"}</button><div className="career-extra"><p>{item.detail}</p><div>{item.skills.map((skill) => <span key={skill}>{skill}</span>)}</div><a href="mailto:hr@gomics.com.cn">发送简历 <i className="fas fa-arrow-right" /></a></div><div className="card-scan-line" /></article>)}</div>
+          <div className="career-grid motion-stagger">{careers.map((item, index) => <article className={`career-expand-card ${openCareer === index ? "is-open" : ""}`} key={item.title}><MotionIcon variant={(["microscope", "network", "report"] as MotionVariant[])[index]} /><h3>{item.title}</h3><p>{item.brief}</p><button type="button" className="button button-outline" aria-expanded={openCareer === index} onClick={() => setOpenCareer(openCareer === index ? null : index)}>{openCareer === index ? "收起职位" : "查看职位"}</button><div className="career-extra"><p>{item.detail}</p><div>{item.skills.map((skill) => <span key={skill}>{skill}</span>)}</div><a href="mailto:contact@gomicsgene.com">发送简历 <i className="fas fa-arrow-right" /></a></div><div className="card-scan-line" /></article>)}</div>
         </div>
       </section>
 

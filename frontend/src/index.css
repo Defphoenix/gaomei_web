@@ -32,6 +32,7 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .header-inner { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
 .brand-mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--logo); box-shadow: 0 8px 22px rgba(27,84,151,.22); }
+.brand-mark-img { width: 38px; height: 48px; object-fit: contain; display: block; flex: 0 0 auto; }
 .brand > span:last-child { display: flex; flex-direction: column; line-height: 1.05; }
 .brand b { font-size: 17px; color: var(--logo); }
 .brand small { margin-top: 5px; font-size: 11px; letter-spacing: .08em; color: #596579; }
@@ -140,10 +141,13 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .timeline-item span { padding-left:55px; font-weight:600; }
 .contact-grid { display:grid; grid-template-columns:.9fr 1.1fr; gap:90px; }
 .contact-lines { margin-top:34px; }
-.contact-lines p { display:flex; gap:16px; margin:22px 0; }
-.contact-lines i { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; color:var(--logo); background:var(--blue-bg); }
+.contact-lines p,.contact-lines a { display:flex; gap:16px; margin:22px 0; text-decoration:none; color:inherit; }
+.contact-lines i { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; color:var(--logo); background:var(--blue-bg); flex:0 0 auto; }
 .contact-lines span { display:flex; flex-direction:column; gap:4px; color:var(--muted); font-size:13px; }
 .contact-lines b { color:var(--ink); }
+.contact-wechat-card { margin-top:22px; padding:16px; display:inline-flex; flex-direction:column; align-items:center; gap:10px; border:1px solid var(--line); border-radius:14px; background:#fff; }
+.contact-wechat-card img { width:140px; height:140px; object-fit:cover; border-radius:8px; }
+.contact-wechat-card span { color:var(--muted); font-size:12px; }
 .consult-form { padding:30px; border:1px solid var(--line); border-radius:20px; background:#f6f3fb; }
 .consult-form h3 { margin:0 0 22px; }
 .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -157,6 +161,8 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .footer-grid { display: grid; grid-template-columns: 1.5fr repeat(3,1fr); gap: 70px; padding-bottom: 55px; }
 .footer-brand { margin-bottom: 18px; color: #fff; font-size: 20px; font-weight: 800; }
 .footer-brand span { color: #9dc0ff; }
+.footer-brand-link { display: inline-block; margin-bottom: 16px; text-decoration: none; }
+.footer-logo-img { display: block; width: min(220px, 100%); height: auto; }
 .footer-grid p { max-width: 310px; line-height: 1.8; font-size: 13px; }
 .footer-grid h3 { margin: 0 0 18px; color: #fff; font-size: 14px; }
 .footer-grid a, .footer-grid > div > span { display: block; margin: 11px 0; color: #8d99ad; text-decoration: none; font-size: 13px; }
@@ -633,6 +639,7 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
   .site-header { height:66px; }
   .main-nav { top:66px; }
   .brand-mark { width:36px; height:36px; }
+  .brand-mark-img { width:34px; height:42px; }
   .header-actions .login-link, .header-user { display:none; }
   .button { min-height:43px; padding:0 19px; }
   .home-hero { min-height:auto; }
@@ -945,6 +952,8 @@ html { scroll-behavior:smooth; }
 .contact-direction > span i { margin-right:8px; color:#79dca1; }
 .contact-direction .contact-lines { margin-top:28px; padding-top:20px; border-top:1px solid rgba(255,255,255,.12); }
 .contact-direction .contact-lines p,.contact-direction .contact-lines a { color:#d4deeb; }
+.contact-direction .contact-wechat-card { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14); }
+.contact-direction .contact-wechat-card span { color:#b7c6da; }
 .consult-form > small { color:var(--logo); font-size:8px; letter-spacing:.12em; }
 .consult-form select + select { margin-top:0; }
 .career-expand-card { height:max-content; }
