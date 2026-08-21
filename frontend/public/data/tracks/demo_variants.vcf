@@ -1,0 +1,21 @@
+##fileformat=VCFv4.2
+##source=GaomeiBio Demo
+##reference=GRCh38
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency">
+##INFO=<ID=GENE,Number=1,Type=String,Description="Gene name">
+##INFO=<ID=CLNSIG,Number=1,Type=String,Description="Clinical significance">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
+##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele Frequency">
+##contig=<ID=chr8,length=145138636>
+##contig=<ID=chr17,length=83257441>
+##contig=<ID=chr7,length=159345973>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1
+chr8	127736588	rs_demo_myc	C	T	100	PASS	AF=0.35;GENE=MYC;CLNSIG=Pathogenic	GT:DP:AF	0/1:120:0.35
+chr8	127737200	.	G	A	80	PASS	AF=0.22;GENE=MYC;CLNSIG=VUS	GT:DP:AF	0/1:95:0.22
+chr8	127738500	.	T	C	90	PASS	AF=0.45;GENE=MYC;CLNSIG=Likely_pathogenic	GT:DP:AF	0/1:110:0.45
+chr17	7668421	rs_demo_tp53	G	A	200	PASS	AF=0.48;GENE=TP53;CLNSIG=Pathogenic	GT:DP:AF	0/1:200:0.48
+chr17	7673780	.	C	T	150	PASS	AF=0.30;GENE=TP53;CLNSIG=VUS	GT:DP:AF	0/1:150:0.30
+chr17	43044295	rs_demo_brca1	AT	A	180	PASS	AF=0.40;GENE=BRCA1;CLNSIG=Likely_pathogenic	GT:DP:AF	1/0:180:0.40
+chr7	55019017	rs_demo_egfr	T	G	120	PASS	AF=0.25;GENE=EGFR;CLNSIG=VUS	GT:DP:AF	0/1:130:0.25
+chr7	55086725	.	A	G	95	PASS	AF=0.18;GENE=EGFR;CLNSIG=Likely_benign	GT:DP:AF	0/1:100:0.18

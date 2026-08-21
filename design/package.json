@@ -1,0 +1,9 @@
+{
+  "name": "gaomei-wes-report-3d-prototype",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "echarts": "6.0.0",
+    "three": "0.179.1"
+  }
+}

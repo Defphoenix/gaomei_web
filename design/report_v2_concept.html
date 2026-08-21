@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>高美WES报告 V2 概念图</title>
+  <style>
+    :root {
+      --ink: #142033;
+      --muted: #67748a;
+      --line: #dfe6ef;
+      --paper: #ffffff;
+      --bg: #f3f6fa;
+      --blue: #1768e5;
+      --cyan: #08a5c8;
+      --green: #15966a;
+      --amber: #d99016;
+      --red: #d84747;
+      --navy: #0d2744;
+      --shadow: 0 8px 24px rgba(29, 48, 78, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .topbar {
+      position: fixed;
+      z-index: 20;
+      inset: 0 0 auto 0;
+      height: 68px;
+      display: grid;
+      grid-template-columns: 250px 1fr 290px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.98);
+    }
+    .brand {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 0 22px;
+      color: white;
+      background: var(--navy);
+    }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.35);
+      background: #0d7ddf;
+      font-weight: 800;
+    }
+    .brand strong { display: block; font-size: 16px; }
+    .brand small { display: block; margin-top: 2px; color: #9fc5e8; font-size: 10px; }
+    .tabs {
+      height: 100%;
+      display: flex;
+      align-items: stretch;
+      padding-left: 22px;
+      gap: 8px;
+    }
+    .tab {
+      min-width: 126px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-bottom: 3px solid transparent;
+      color: #5f6b7d;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .tab.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+      background: #f8fbff;
+    }
+    .top-meta {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 14px;
+      padding-right: 22px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 0 4px rgba(21,150,106,.12);
+    }
+    .avatar {
+      width: 34px; height: 34px; display: grid; place-items: center;
+      border-radius: 50%; background: #dcecff; color: var(--blue); font-weight: 800;
+    }
+
+    .sidebar {
+      position: fixed;
+      z-index: 15;
+      top: 68px;
+      bottom: 0;
+      left: 0;
+      width: 250px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--line);
+      background: #f9fbfe;
+    }
+    .case {
+      padding: 22px 22px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .case .eyebrow { color: var(--muted); font-size: 10px; font-weight: 800; }
+    .case h2 { margin: 7px 0 5px; font-size: 18px; }
+    .case p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .nav { padding: 14px 12px; }
+    .nav-item {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      border-left: 3px solid transparent;
+      color: #536176;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .nav-item .icon {
+      width: 24px; height: 24px; display: grid; place-items: center;
+      border: 1px solid #dbe4f0; background: white; color: #60738e;
+    }
+    .nav-item.active {
+      border-left-color: var(--blue);
+      color: var(--blue);
+      background: #eaf2ff;
+    }
+    .nav-item.active .icon { border-color: #b9d3ff; color: var(--blue); }
+    .sidebar-note {
+      margin: auto 18px 14px;
+      padding: 13px;
+      border: 1px solid #dce7f4;
+      background: white;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.6;
+    }
+    .side-action {
+      height: 42px;
+      margin: 0 18px 18px;
+      border: 0;
+      background: var(--blue);
+      color: white;
+      font-weight: 800;
+    }
+
+    main {
+      margin-left: 250px;
+      padding: 92px 28px 60px;
+      min-width: 1060px;
+    }
+    .page-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .page-head .eyebrow { color: var(--blue); font-size: 11px; font-weight: 800; }
+    .page-head h1 { margin: 6px 0 4px; font-size: 24px; }
+    .page-head p { margin: 0; color: var(--muted); font-size: 12px; }
+    .source-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    .chip {
+      padding: 6px 9px;
+      border: 1px solid #d9e2ee;
+      background: white;
+      color: #5f6e82;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .kpi {
+      position: relative;
+      min-height: 108px;
+      padding: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .kpi::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 4px;
+      background: var(--accent);
+    }
+    .kpi-top { display: flex; align-items: center; justify-content: space-between; }
+    .kpi-label { color: var(--muted); font-size: 11px; font-weight: 700; }
+    .kpi-icon {
+      width: 30px; height: 30px; display: grid; place-items: center;
+      background: color-mix(in srgb, var(--accent) 12%, white);
+      color: var(--accent); font-weight: 900;
+    }
+    .kpi strong { display: block; margin-top: 10px; font-size: 25px; }
+    .kpi small { color: var(--muted); font-size: 10px; }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(650px, 1.55fr) minmax(350px, .85fr);
+      gap: 14px;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .panel-head {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-title { display: flex; align-items: center; gap: 10px; }
+    .panel-title .marker { width: 4px; height: 24px; background: var(--blue); }
+    .panel-title strong { display: block; font-size: 14px; }
+    .panel-title small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .legend { display: flex; gap: 12px; color: var(--muted); font-size: 10px; }
+    .legend i { display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 50%; }
+
+    .body-stage {
+      position: relative;
+      min-height: 470px;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(18, 51, 85, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(18, 51, 85, .045) 1px, transparent 1px),
+        radial-gradient(circle at center, #fbfdff 0, #eef5fa 72%, #e9f0f6 100%);
+      background-size: 28px 28px, 28px 28px, auto;
+    }
+    .scan-line {
+      position: absolute;
+      z-index: 4;
+      left: 18%;
+      right: 18%;
+      top: 47%;
+      height: 1px;
+      background: #43c9e6;
+      box-shadow: 0 0 12px #43c9e6;
+      opacity: .65;
+    }
+    .human {
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      top: 52%;
+      width: 230px;
+      height: 430px;
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 20px 18px rgba(18, 55, 82, .18));
+    }
+    .human-glow {
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      width: 250px;
+      height: 420px;
+      transform: translate(-50%, -50%);
+      border-radius: 45%;
+      background: radial-gradient(ellipse, rgba(23,104,229,.14), transparent 68%);
+    }
+    .hotspot {
+      position: absolute;
+      z-index: 6;
+      min-width: 132px;
+      padding: 9px 11px;
+      border: 1px solid var(--hot);
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 6px 20px rgba(23,45,72,.09);
+      font-size: 10px;
+    }
+    .hotspot::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 54px;
+      height: 1px;
+      background: var(--hot);
+    }
+    .hotspot.left::after { left: 100%; }
+    .hotspot.right::after { right: 100%; }
+    .hotspot strong { display: block; color: var(--hot); font-size: 14px; }
+    .hotspot small { color: var(--muted); }
+    .lung { --hot: var(--red); left: 8%; top: 22%; }
+    .digest { --hot: var(--amber); right: 7%; top: 51%; }
+    .heart { --hot: var(--green); right: 8%; top: 24%; }
+    .brain { --hot: var(--cyan); left: 10%; top: 6%; }
+    .hint {
+      position: absolute;
+      z-index: 7;
+      left: 20px;
+      bottom: 18px;
+      padding: 8px 10px;
+      background: rgba(13,39,68,.88);
+      color: white;
+      font-size: 9px;
+    }
+
+    .side-stack { display: grid; gap: 14px; }
+    .focus {
+      border-top: 4px solid var(--red);
+      padding: 18px;
+    }
+    .focus-head { display: flex; justify-content: space-between; gap: 18px; }
+    .risk-badge {
+      min-width: 78px; height: 78px; display: grid; place-items: center;
+      border: 8px solid #f5dada; border-top-color: var(--red);
+      border-right-color: var(--red); border-radius: 50%;
+      color: var(--red); font-size: 22px; font-weight: 900;
+    }
+    .focus h3 { margin: 3px 0 5px; font-size: 18px; }
+    .focus p { margin: 12px 0; color: #536176; font-size: 11px; line-height: 1.75; }
+    .evidence-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .evidence {
+      padding: 10px;
+      background: #f6f8fb;
+      color: var(--muted);
+      font-size: 9px;
+    }
+    .evidence strong { display: block; margin-top: 3px; color: var(--ink); font-size: 11px; }
+
+    .bars { padding: 16px 18px 18px; }
+    .bar-row { margin: 14px 0; }
+    .bar-label { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 10px; }
+    .track { height: 7px; overflow: hidden; background: #e9eef4; }
+    .fill { height: 100%; width: var(--w); background: var(--c); }
+
+    .next-section {
+      margin-top: 14px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    .next-head { display: flex; justify-content: space-between; align-items: center; }
+    .next-head h2 { margin: 0; font-size: 16px; }
+    .next-head a { color: var(--blue); font-size: 11px; font-weight: 700; }
+    .mini-grid { display: grid; grid-template-columns: 1.05fr 1fr 1fr; gap: 12px; margin-top: 14px; }
+    .mini {
+      min-height: 112px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: #fbfcfe;
+    }
+    .mini strong { display: block; font-size: 12px; }
+    .mini p { color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .variant-line { display: flex; align-items: center; gap: 7px; margin-top: 9px; }
+    .gene { padding: 4px 6px; background: #e9f2ff; color: var(--blue); font-size: 10px; font-weight: 800; }
+    .level { padding: 4px 6px; background: #fdecec; color: var(--red); font-size: 9px; font-weight: 800; }
+    .spark { height: 26px; display: flex; align-items: flex-end; gap: 4px; margin-top: 12px; }
+    .spark i { flex: 1; height: var(--h); background: var(--c); opacity: .82; }
+
+    @media (max-width: 1200px) {
+      .topbar { grid-template-columns: 220px 1fr 190px; }
+      .sidebar { width: 220px; }
+      main { margin-left: 220px; min-width: 930px; }
+      .tab { min-width: 100px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">G</div>
+      <div><strong>高美精准医学</strong><small>WES CLINICAL INSIGHT</small></div>
+    </div>
+    <nav class="tabs" aria-label="报告一级导航">
+      <div class="tab active">◉ 健康概览</div>
+      <div class="tab">⌬ 专业注释</div>
+      <div class="tab">⌁ 数据与质控</div>
+      <div class="tab">◇ 单基因疾病</div>
+    </nav>
+    <div class="top-meta">
+      <span class="status-dot"></span>
+      <span>报告已审核 · V2.0</span>
+      <span class="avatar">张</span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <section class="case">
+      <div class="eyebrow">患者全外显子组报告</div>
+      <h2>样本 WES-2026-042</h2>
+      <p>患者：张某某 · 女 · 42岁<br>肿瘤/正常配对 · GRCh38</p>
+    </section>
+    <nav class="nav">
+      <div class="nav-item active"><span class="icon">⌂</span>总体概览</div>
+      <div class="nav-item"><span class="icon">人</span>器官系统关注度</div>
+      <div class="nav-item"><span class="icon">DNA</span>重点变异</div>
+      <div class="nav-item"><span class="icon">H</span>新抗原与HLA</div>
+      <div class="nav-item"><span class="icon">Rx</span>临床与药物证据</div>
+      <div class="nav-item"><span class="icon">✓</span>质量控制</div>
+      <div class="nav-item"><span class="icon">↓</span>下载报告</div>
+    </nav>
+    <div class="sidebar-note">
+      患者模式默认展示结论和解释。<br>
+      点击“查看专业证据”可进入变异证据矩阵。
+    </div>
+    <button class="side-action">下载正式报告 PDF</button>
+  </aside>
+
+  <main>
+    <header class="page-head">
+      <div>
+        <div class="eyebrow">HEALTH OVERVIEW · 患者友好视图</div>
+        <h1>全外显子组健康与肿瘤相关发现</h1>
+        <p>结果由生物信息分析与人工审核共同生成；器官系统分值表示证据关注度，不等同于疾病确诊概率。</p>
+      </div>
+      <div class="source-chips">
+        <span class="chip">VEP 115</span><span class="chip">ANNOVAR</span>
+        <span class="chip">ClinVar</span><span class="chip">gnomAD</span><span class="chip">dbNSFP</span>
+      </div>
+    </header>
+
+    <section class="kpis">
+      <article class="kpi" style="--accent: var(--red)">
+        <div class="kpi-top"><span class="kpi-label">最高系统关注度</span><span class="kpi-icon">!</span></div>
+        <strong>8.9 <small>/ 10</small></strong><small>呼吸系统 · 建议优先复核</small>
+      </article>
+      <article class="kpi" style="--accent: var(--blue)">
+        <div class="kpi-top"><span class="kpi-label">重点体细胞变异</span><span class="kpi-icon">V</span></div>
+        <strong>12 <small>项</small></strong><small>其中 3 项具临床证据</small>
+      </article>
+      <article class="kpi" style="--accent: var(--green)">
+        <div class="kpi-top"><span class="kpi-label">强结合新抗原</span><span class="kpi-icon">H</span></div>
+        <strong>7 <small>条</small></strong><small>双工具一致支持 3 条</small>
+      </article>
+      <article class="kpi" style="--accent: var(--cyan)">
+        <div class="kpi-top"><span class="kpi-label">检测质量等级</span><span class="kpi-icon">Q</span></div>
+        <strong>A</strong><small>平均深度 126× · 20×覆盖 98.7%</small>
+      </article>
+    </section>
+
+    <section class="dashboard">
+      <article class="panel">
+        <header class="panel-head">
+          <div class="panel-title"><span class="marker"></span><div><strong>器官系统证据地图</strong><small>点击风险热区查看基因、证据和建议</small></div></div>
+          <div class="legend"><span><i style="background:var(--red)"></i>重点</span><span><i style="background:var(--amber)"></i>关注</span><span><i style="background:var(--green)"></i>低关注</span></div>
+        </header>
+        <div class="body-stage">
+          <div class="human-glow"></div>
+          <div class="scan-line"></div>
+          <svg class="human" viewBox="0 0 230 430" role="img" aria-label="人体器官三维模型概念占位">
+            <defs>
+              <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#c7e2ee"/>
+                <stop offset=".48" stop-color="#7db7ca"/>
+                <stop offset="1" stop-color="#3b7189"/>
+              </linearGradient>
+              <linearGradient id="torso" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#2d6681" stop-opacity=".72"/>
+                <stop offset=".5" stop-color="#a8d3de" stop-opacity=".38"/>
+                <stop offset="1" stop-color="#244e69" stop-opacity=".8"/>
+              </linearGradient>
+              <filter id="organGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <ellipse cx="115" cy="35" rx="31" ry="35" fill="url(#skin)"/>
+            <path d="M91 68 Q115 82 139 68 L158 104 L145 245 Q136 274 127 292 L103 292 Q94 274 85 245 L72 104Z" fill="url(#torso)" stroke="#7fbdcf" stroke-width="2"/>
+            <path d="M75 98 Q51 106 42 139 L23 239 Q20 253 31 257 Q42 260 47 245 L67 167 L85 118Z" fill="url(#skin)"/>
+            <path d="M155 98 Q179 106 188 139 L207 239 Q210 253 199 257 Q188 260 183 245 L163 167 L145 118Z" fill="url(#skin)"/>
+            <path d="M103 288 L86 414 Q85 427 99 428 Q112 427 114 414 L121 304Z" fill="url(#skin)"/>
+            <path d="M127 288 L144 414 Q145 427 131 428 Q118 427 116 414 L109 304Z" fill="url(#skin)"/>
+            <ellipse cx="115" cy="34" rx="18" ry="13" fill="#25b7d3" opacity=".74" filter="url(#organGlow)"/>
+            <path d="M109 112 Q83 103 79 143 Q82 178 107 176Z" fill="#e84a5f" opacity=".82" filter="url(#organGlow)"/>
+            <path d="M121 112 Q147 103 151 143 Q148 178 123 176Z" fill="#e84a5f" opacity=".82" filter="url(#organGlow)"/>
+            <path d="M115 132 C101 119 94 146 115 166 C136 146 129 119 115 132Z" fill="#20a978" filter="url(#organGlow)"/>
+            <path d="M89 194 Q115 177 141 194 Q151 226 126 250 Q103 260 83 234 Q78 211 89 194Z" fill="#e4a12b" opacity=".9" filter="url(#organGlow)"/>
+            <path d="M115 76 L115 287" stroke="#a5d4df" stroke-width="2" opacity=".58"/>
+          </svg>
+          <div class="hotspot left brain"><small>神经系统</small><strong>2.1 低关注</strong></div>
+          <div class="hotspot left lung"><small>呼吸系统</small><strong>8.9 重点</strong></div>
+          <div class="hotspot right heart"><small>心血管系统</small><strong>2.4 低关注</strong></div>
+          <div class="hotspot right digest"><small>消化系统</small><strong>6.7 关注</strong></div>
+          <div class="hint">可旋转人体 · 点击器官热区 · 风险来源可追溯</div>
+        </div>
+      </article>
+
+      <div class="side-stack">
+        <article class="panel focus">
+          <div class="focus-head">
+            <div>
+              <small style="color:var(--red);font-weight:800">当前选中 · 重点关注</small>
+              <h3>呼吸系统</h3>
+              <span style="color:var(--muted);font-size:10px">RESPIRATORY SYSTEM</span>
+            </div>
+            <div class="risk-badge">8.9</div>
+          </div>
+          <p>检测到与肺部肿瘤生物学相关的体细胞变异。该结果用于辅助分层和证据复核，不代表单独确诊；建议结合病理、影像及临床资料综合判断。</p>
+          <div class="evidence-grid">
+            <div class="evidence">重点基因<strong>TP53 · ERBB2</strong></div>
+            <div class="evidence">临床证据<strong>ClinVar / OncoKB 接口</strong></div>
+            <div class="evidence">可用药物线索<strong>3 项待审核</strong></div>
+            <div class="evidence">新抗原候选<strong>4 条强结合</strong></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head">
+            <div class="panel-title"><span class="marker" style="background:var(--cyan)"></span><div><strong>器官系统关注度对比</strong><small>基于已审核变异与证据规则</small></div></div>
+          </header>
+          <div class="bars">
+            <div class="bar-row"><div class="bar-label"><span>呼吸系统</span><b style="color:var(--red)">8.9</b></div><div class="track"><div class="fill" style="--w:89%;--c:var(--red)"></div></div></div>
+            <div class="bar-row"><div class="bar-label"><span>消化系统</span><b style="color:var(--amber)">6.7</b></div><div class="track"><div class="fill" style="--w:67%;--c:var(--amber)"></div></div></div>
+            <div class="bar-row"><div class="bar-label"><span>免疫系统</span><b style="color:var(--blue)">4.8</b></div><div class="track"><div class="fill" style="--w:48%;--c:var(--blue)"></div></div></div>
+            <div class="bar-row"><div class="bar-label"><span>心血管系统</span><b style="color:var(--green)">2.4</b></div><div class="track"><div class="fill" style="--w:24%;--c:var(--green)"></div></div></div>
+            <div class="bar-row"><div class="bar-label"><span>神经系统</span><b style="color:var(--cyan)">2.1</b></div><div class="track"><div class="fill" style="--w:21%;--c:var(--cyan)"></div></div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="next-section">
+      <div class="next-head"><h2>重点发现与下一步</h2><a>查看全部专业证据 →</a></div>
+      <div class="mini-grid">
+        <article class="mini">
+          <strong>临床相关变异</strong>
+          <div class="variant-line"><span class="gene">TP53 p.R248Q</span><span class="level">致病证据</span></div>
+          <div class="variant-line"><span class="gene">ERBB2 p.S310F</span><span class="level" style="background:#fff2dc;color:#b46b00">治疗线索</span></div>
+          <p>患者视图展示结论；完整的 VAF、TLOD、DP、群体频率与多数据库证据进入“专业注释”。</p>
+        </article>
+        <article class="mini">
+          <strong>变异构成</strong>
+          <div class="spark">
+            <i style="--h:76%;--c:var(--blue)"></i><i style="--h:44%;--c:var(--cyan)"></i><i style="--h:28%;--c:var(--amber)"></i><i style="--h:18%;--c:var(--red)"></i><i style="--h:56%;--c:var(--green)"></i>
+          </div>
+          <p>错义 61% · 移码 14% · 终止获得 9% · 剪接区 8% · 其他 8%</p>
+        </article>
+        <article class="mini">
+          <strong>建议行动</strong>
+          <p>① 病理与临床资料联合复核<br>② 审核药物证据等级<br>③ 对强结合新抗原进行优先排序</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,58 @@
+# macOS / editors
+.DS_Store
+._*
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Django runtime and patient data
+backend/db.sqlite3
+backend/db.sqlite3-*
+backend/media/
+backend/staticfiles/
+*.log
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+design/node_modules/
+
+# Local service runtime
+.runtime/
+*.pid
+
+# Secrets and deployment-local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.token
+*.crt
+*.p12
+*.pfx
+deploy/tencent/gaomei-web.env
+
+# Temporary and backup files
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*~
+
+# Duplicate local media copy; the deployed source is under frontend/public.
+/e290b9130d929414f139b195eb34932d.mp4
+

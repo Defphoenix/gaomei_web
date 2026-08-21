@@ -1,0 +1,18 @@
+[Unit]
+Description=Gaomei public web Django API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/apps/gaomei_web/current/backend
+EnvironmentFile=/home/ubuntu/apps/gaomei_web/shared/gaomei-web.env
+ExecStart=/home/ubuntu/envs/gaomei_web/bin/gunicorn config.wsgi:application --bind 127.0.0.1:18081 --workers 2 --threads 2 --timeout 120 --access-logfile - --error-logfile -
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
