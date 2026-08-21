@@ -78,12 +78,11 @@ const PatientReportsAdmin: React.FC = () => {
         </Link>
         <nav>
           <Link to="/dashboard"><i className="fas fa-th-large" />工作台</Link>
-          <Link to="/patient-reports" className="active"><i className="fas fa-file-medical" />患者正式报告</Link>
-          <Link to="/cloud-jobs"><i className="fas fa-code-branch" />云端任务</Link>
+          <Link to="/patient-reports" className="active"><i className="fas fa-file-medical" />患者报告</Link>
           <Link to="/browser"><i className="fas fa-dna" />IGV 证据</Link>
         </nav>
         <div className="node-card">
-          <span><i className="fas fa-circle" /> 正式报告</span>
+          <span><i className="fas fa-circle" /> 患者报告</span>
           <b>云端 JSON → HTML/PDF</b>
           <small>node9 只上传数据包</small>
         </div>
@@ -92,7 +91,7 @@ const PatientReportsAdmin: React.FC = () => {
       <main className="portal-main">
         <header className="portal-topbar">
           <div>
-            <h1>患者正式报告</h1>
+            <h1>患者报告</h1>
             <p>按患者编号管理 · {user?.username || "内部用户"}</p>
           </div>
           <div className="portal-top-actions">
@@ -105,7 +104,7 @@ const PatientReportsAdmin: React.FC = () => {
             <div className="panel-head">
               <div>
                 <h2>患者编号台账</h2>
-                <p>查看 HTML 预览或编辑正式报告；患者端仅可下载 PDF</p>
+                <p>查看 HTML 预览或编辑报告；患者端仅可下载 PDF</p>
               </div>
               <div className="project-search">
                 <i className="fas fa-search" />
@@ -191,7 +190,7 @@ const PatientReportsAdmin: React.FC = () => {
                   {!loading && !filtered.length && (
                     <tr>
                       <td colSpan={7}>
-                        <div className="empty-state">暂无患者正式报告包。等待 node9 调用 /api/bridge/reports/package/</div>
+                        <div className="empty-state">暂无患者报告包。等待 node9 调用 /api/bridge/reports/package/</div>
                       </td>
                     </tr>
                   )}
