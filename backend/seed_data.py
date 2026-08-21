@@ -42,7 +42,6 @@ team_data = [
     {"name": "张明远", "position": "创始人 & CEO", "bio": "北京大学生命科学博士，前华大基因高级研究员，专注基因组学研究15年。", "order": 1},
     {"name": "李婷婷", "position": "首席技术官", "bio": "中科院生物信息学博士后，擅长NGS数据分析流程开发和甲基化算法设计。", "order": 2},
     {"name": "王浩然", "position": "研发总监", "bio": "浙江大学生物医学工程硕士，负责检测平台技术优化和产品开发。", "order": 3},
-    {"name": "陈思琪", "position": "生信分析总监", "bio": "复旦大学生物信息学博士，带领团队完成超过10万例样本的生信分析。", "order": 4},
 ]
 for td in team_data:
     TeamMember.objects.get_or_create(name=td["name"], defaults=td)

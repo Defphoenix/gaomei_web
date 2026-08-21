@@ -41,7 +41,7 @@ def homepage_data(request):
     services = Service.objects.filter(is_active=True)[:4]
     services_data = ServiceSerializer(services, many=True).data
 
-    team = TeamMember.objects.filter(is_active=True)[:4]
+    team = TeamMember.objects.filter(is_active=True)[:3]
     team_data = TeamMemberSerializer(team, many=True).data
 
     latest_posts = Post.objects.filter(

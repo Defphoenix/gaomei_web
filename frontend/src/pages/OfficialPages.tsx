@@ -216,22 +216,22 @@ export const AboutPage: React.FC = () => {
 
 const oncologyServices = [
   {
-    id: "screening", name: "肿瘤早筛", label: "EARLY DETECTION", icon: "target" as MotionVariant, image: "/assets/images/about_one.jpg",
+    id: "screening", name: "肿瘤早筛", label: "EARLY DETECTION", icon: "target" as MotionVariant, image: "/assets/images/service_tumor_screening.jpg",
     intro: "通过甲基化与多组学信号识别早期风险，为研究队列和高风险人群管理提供分层依据。",
     bullets: ["风险信号识别", "多癌种研究策略", "队列级模型评估"], samples: "血液、组织及研究方案规定的其他样本",
   },
   {
-    id: "therapy", name: "晚期治疗方案制定", label: "THERAPY DECISION", icon: "dna" as MotionVariant, image: "/assets/images/feature_uppper_img.jpg",
+    id: "therapy", name: "晚期治疗方案制定", label: "THERAPY DECISION", icon: "dna" as MotionVariant, image: "/assets/images/service_therapy_planning.jpg",
     intro: "结合肿瘤—正常配对 WES、深度 Panel 和临床证据，整理可能影响治疗选择的重要分子信息。",
     bullets: ["驱动变异与通路", "靶向治疗相关证据", "免疫相关标志物"], samples: "肿瘤组织 + 配对正常样本，必要时结合血液",
   },
   {
-    id: "companion", name: "伴随诊断", label: "COMPANION DIAGNOSTICS", icon: "microscope" as MotionVariant, image: "/assets/images/feature_down_img.jpg",
+    id: "companion", name: "伴随诊断", label: "COMPANION DIAGNOSTICS", icon: "microscope" as MotionVariant, image: "/assets/images/service_companion_diagnostics.jpg",
     intro: "围绕明确药物或治疗路径配置重点基因、融合、拷贝数和免疫标志物分析。",
     bullets: ["MSI / TMB / HRD", "融合与扩增缺失", "重点药物相关位点"], samples: "FFPE、手术组织、活检及合格核酸",
   },
   {
-    id: "monitoring", name: "复发与疗效监测", label: "LONGITUDINAL MONITORING", icon: "scan" as MotionVariant, image: "/assets/images/about_two.jpg",
+    id: "monitoring", name: "复发与疗效监测", label: "LONGITUDINAL MONITORING", icon: "scan" as MotionVariant, image: "/assets/images/service_recurrence_monitoring.jpg",
     intro: "以纵向采样和重点位点追踪观察治疗前后变化，为复发风险研究和持续随访提供数据支持。",
     bullets: ["基线变异建立", "低频信号追踪", "多时间点趋势"], samples: "连续血液样本及对应基线组织",
   },

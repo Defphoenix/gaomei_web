@@ -15,10 +15,9 @@ const fallbackServices: ServiceItem[] = [
 ];
 
 const fallbackTeam: TeamMember[] = [
-  { id: 1, name: "张伟 博士", position: "创始人兼首席科学家", bio: "专注肿瘤基因组学与精准医学转化。", expertise: "肿瘤基因组学，精准医学，临床转化", photo: "/assets/images/team_one.jpg" },
-  { id: 2, name: "李芳 教授", position: "医学顾问", bio: "长期从事肿瘤早筛及临床研究。", expertise: "肿瘤早筛，临床研究，分子诊断", photo: "/assets/images/team_two.jpg" },
-  { id: 3, name: "王建国", position: "生物信息负责人", bio: "负责多组学算法与分析平台建设。", expertise: "生物信息，多组学，算法平台", photo: "/assets/images/team_three.jpg" },
-  { id: 4, name: "陈晓", position: "临床平台主管", bio: "推动检测产品的标准化与临床应用。", expertise: "临床检测，质量管理，产品转化", photo: "/assets/images/testimonial_one.jpg" },
+  { id: 1, name: "张明远", position: "创始人 & CEO", bio: "北京大学生命科学博士，前华大基因高级研究员，专注基因组学研究15年。", expertise: "肿瘤基因组学，精准医学，临床转化", photo: "/assets/images/team_male_2.jpg" },
+  { id: 2, name: "李婷婷", position: "首席技术官", bio: "中科院生物信息学博士后，擅长NGS数据分析流程开发和甲基化算法设计。", expertise: "生物信息，甲基化算法，多组学", photo: "/assets/images/team_female.jpg" },
+  { id: 3, name: "王浩然", position: "研发总监", bio: "浙江大学生物医学工程硕士，负责检测平台技术优化和产品开发。", expertise: "检测平台，产品研发，工程转化", photo: "/assets/images/team_male_1.jpg" },
 ];
 
 const iconVariants = ["dna", "target", "microscope", "network"] as const;
@@ -50,9 +49,9 @@ const capabilityDetails = [
 ];
 
 const labDetails = [
-  { title: "表观基因组", subtitle: "METHYLOME & CHROMATIN", text: "以 DNA 甲基化与染色质可及性为核心，解析调控元件、细胞状态和疾病相关表观标记。", image: "/assets/images/about_one.jpg", metrics: ["全基因组甲基化", "ATAC-seq", "单细胞图谱"], icon: "dna" as const },
-  { title: "表观转录组", subtitle: "EPITRANSCRIPTOMICS", text: "聚焦 m6A 等 RNA 修饰及其对转录本稳定性、翻译效率与疾病机制的影响。", image: "/assets/images/feature_uppper_img.jpg", metrics: ["m6A-seq", "RNA 调控网络", "功能富集"], icon: "scan" as const },
-  { title: "表观微生物", subtitle: "MICROBIOME INTERACTION", text: "结合微生物组结构、宿主响应和表观标记，研究环境、菌群与疾病表型之间的联系。", image: "/assets/images/service_circle.jpg", metrics: ["宏基因组", "宿主互作", "生物标志物"], icon: "microscope" as const },
+  { title: "表观基因组", subtitle: "METHYLOME & CHROMATIN", text: "以 DNA 甲基化与染色质可及性为核心，解析调控元件、细胞状态和疾病相关表观标记。", image: "/assets/images/lab_epigenome.jpg", metrics: ["全基因组甲基化", "ATAC-seq", "单细胞图谱"], icon: "dna" as const },
+  { title: "表观转录组", subtitle: "EPITRANSCRIPTOMICS", text: "聚焦 m6A 等 RNA 修饰及其对转录本稳定性、翻译效率与疾病机制的影响。", image: "/assets/images/lab_epigenetics.jpg", metrics: ["m6A-seq", "RNA 调控网络", "功能富集"], icon: "scan" as const },
+  { title: "表观微生物", subtitle: "MICROBIOME INTERACTION", text: "结合微生物组结构、宿主响应和表观标记，研究环境、菌群与疾病表型之间的联系。", image: "/assets/images/lab_epimicrobiome.jpg", metrics: ["宏基因组", "宿主互作", "生物标志物"], icon: "microscope" as const },
 ];
 
 const Home: React.FC = () => {
@@ -217,10 +216,10 @@ const Home: React.FC = () => {
         <div className="site-container">
           <div className="section-heading split-heading motion-reveal"><div><span className="eyebrow">OUR LEADERS</span><h2>核心团队</h2></div><p>跨越医学、组学、生物信息和工程领域，把前沿研究转化为可用的临床工具。</p></div>
           <div className="home-team-grid motion-stagger">
-            {team.slice(0, 4).map((member, index) => (
+            {team.slice(0, 3).map((member, index) => (
               <button type="button" className={`team-card team-flip-card ${flippedMember === member.id ? "is-flipped" : ""}`} key={member.id} aria-pressed={flippedMember === member.id} onClick={() => setFlippedMember(flippedMember === member.id ? null : member.id)}>
                 <span className="team-flip-inner">
-                  <span className="team-face team-front"><span className="team-photo"><img src={member.photo || fallbackTeam[index]?.photo || "/assets/images/team_one.jpg"} alt={member.name} /><span className="team-index">0{index + 1}</span><span className="flip-hint"><i className="fas fa-sync-alt" /> 点击了解更多</span></span><strong>{member.name}</strong><em>{member.position}</em></span>
+                  <span className="team-face team-front"><span className="team-photo"><img src={member.photo || fallbackTeam[index]?.photo || "/assets/images/team_male_2.jpg"} alt={member.name} /><span className="team-index">0{index + 1}</span><span className="flip-hint"><i className="fas fa-sync-alt" /> 点击了解更多</span></span><strong>{member.name}</strong><em>{member.position}</em></span>
                   <span className="team-face team-back"><MotionIcon variant="network" /><small>CORE TEAM · 0{index + 1}</small><strong>{member.name}</strong><em>{member.position}</em><p>{member.bio || fallbackTeam[index]?.bio}</p><span className="expertise-tags">{(member.expertise || fallbackTeam[index]?.expertise || "精准医学，多组学，临床转化").split(/[，,]/).slice(0, 3).map((tag) => <b key={tag}>{tag.trim()}</b>)}</span><span className="flip-back-hint"><i className="fas fa-undo" /> 点击返回</span></span>
                 </span>
               </button>
