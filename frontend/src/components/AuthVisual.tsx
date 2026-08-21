@@ -29,7 +29,7 @@ const AuthVisual: React.FC<{ mode: AuthMode }> = ({ mode }) => {
   const copy = content[mode];
   return (
     <div className={`auth-visual auth-visual-${mode}`}>
-      <Link to="/" className="brand auth-brand"><span className="brand-mark"><i className="fas fa-dna" /></span><span><b>Gomics</b><small>高美基因</small></span></Link>
+      <Link to="/" className="brand auth-brand"><img className="brand-mark-img" src="/assets/images/logo_mark_light.png" alt="高美基因" /><span><b>Gomics</b><small>高美基因</small></span></Link>
       <div className="auth-visual-core">
         <div className="auth-orbit"><MotionIcon variant={mode === "reset" ? "shield" : mode === "register" ? "network" : "dna"} /></div>
         <span className="eyebrow dark">{copy.eyebrow}</span>

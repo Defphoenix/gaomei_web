@@ -92,7 +92,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="portal-page">
       <aside className="portal-sidebar">
-        <Link to="/" className="portal-logo"><span className="brand-mark"><i className="fas fa-dna" /></span><span><b>Gomics</b><small>高美协作平台</small></span></Link>
+        <Link to="/" className="portal-logo"><img className="brand-mark-img" src="/assets/images/logo_mark.png" alt="高美基因" /><span><b>Gomics</b><small>高美协作平台</small></span></Link>
         <nav>
           <a className="active" href="#overview"><i className="fas fa-th-large" />工作台</a>
           <a href="#projects"><i className="fas fa-vials" />项目中心</a>
