@@ -230,8 +230,15 @@ npm ci
 npm run build
 ```
 
-部署时发现 `npm audit` 报告 4 个 moderate 和 3 个 high 风险依赖。不要直接执行
-`npm audit fix --force`，应先确认依赖升级是否造成 React/Vite/IGV 功能回归。
+2026-08-21 已执行安全修复：`npm audit fix`（**未**使用 `--force`），`npm run build` 通过。
+锁文件中已升级：`postcss`、`nanoid`、`dompurify`、`react-router` / `react-router-dom`（仍为 6.x）。
+
+仍残留且 **需要破坏性大版本** 才能清零（暂不强制）：
+
+- Vite 5 / esbuild：官方修复路径会升到 Vite 8；
+- React Router 6：官方修复路径会升到 `react-router-dom@7.x`。
+
+不要直接执行 `npm audit fix --force`。若以后要清零，应单独开任务并回归官网、IGV、3D 报告与 PDF 导出。
 
 ## 8. 标准部署顺序
 
@@ -403,6 +410,6 @@ curl https://gomics.icu/api/auth/me/
 | P1 | 修复 HTTP 到 HTTPS 跳转 | 已完成：域名/IP 的 HTTP 返回 301 到 HTTPS |
 | P1 | 收紧 8080、22 安全组 | 仅保留业务必需来源（需腾讯云安全组操作） |
 | P1 | 建立生产数据备份 | SQLite、media、env 可恢复且有校验 |
-| P1 | 审核 npm 漏洞 | 升级后前端、IGV和3D报告回归通过 |
+| P1 | 审核 npm 漏洞 | 已做安全修复（无 `--force`）；剩 Vite5/esbuild 与 React Router 6，需大版本升级另开任务 |
 | P2 | 评估 SQLite 到 MySQL 迁移 | 有迁移、校验、备份和回滚方案 |
 
