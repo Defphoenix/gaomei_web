@@ -658,8 +658,8 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
   .drawer-visual { width:80px; height:80px; }
   .lab-overlay { max-width:90%; left:18px; right:18px; bottom:16px; }
   .lab-overlay h3 { font-size:22px; }
-  .team-flip-card,.team-flip-inner { min-height:420px; height:420px; }
-  .team-front .team-photo { aspect-ratio:3 / 4; max-height:320px; }
+  .team-flip-card,.team-flip-inner { min-height:560px; height:560px; }
+  .team-front .team-photo { aspect-ratio:auto; max-height:none; }
   .team-photo { aspect-ratio:auto; }
   .consultation-banner { gap:18px; }
   .inner-hero-orbit { width:250px; height:250px; right:-80px; }
