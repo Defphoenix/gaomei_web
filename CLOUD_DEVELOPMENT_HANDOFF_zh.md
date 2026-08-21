@@ -235,7 +235,18 @@ npm run build
 
 ## 8. 标准部署顺序
 
-后续建议把以下步骤封装为仓库内受审阅的 `deploy.sh`。在脚本完成前，人工部署必须遵循：
+一键脚本（推荐）：
+
+```bash
+cd /home/ubuntu/src/gaomei_web
+bash deploy/tencent/deploy.sh status
+bash deploy/tencent/deploy.sh health
+bash deploy/tencent/deploy.sh deploy
+# 失败回滚示例：
+# bash deploy/tencent/deploy.sh rollback --restore-db --yes
+```
+
+脚本已封装下列步骤；若需人工部署，仍必须遵循同一顺序：
 
 1. 确认工作区干净且位于 `main`；
 2. `git pull --rebase origin main`；
@@ -247,15 +258,16 @@ npm run build
 8. 安装/核对 Python 依赖；
 9. 执行 Django `check`、迁移和 `collectstatic`；
 10. 执行 React `npm ci && npm run build`；
-11. 同步前端 `dist/` 到 `/var/www/gaomei_web`；
-12. 原子切换 `current`；
-13. 重启 `gaomei-web`；
-14. 检查 API、官网、Bridge 和数据库记录数；
-15. 失败时切回前一个 release，并恢复对应数据库备份。
+11. 原子切换 `current` 并重启 `gaomei-web`；
+12. 同步前端 `dist/` 与 Django static；
+13. 检查 API、官网和数据库记录数；
+14. 失败时切回前一个 release，并恢复对应数据库备份。
 
 服务检查：
 
 ```bash
+bash deploy/tencent/deploy.sh health
+# 或手动：
 sudo systemctl status gaomei-web --no-pager
 sudo journalctl -u gaomei-web -n 100 --no-pager
 curl -I https://gomics.icu/
@@ -380,9 +392,9 @@ curl https://gomics.icu/api/auth/me/
 
 | 优先级 | 工作 | 验收标准 |
 |---|---|---|
-| P0 | 添加腾讯云 GitHub Deploy key | `git fetch origin` 成功 |
-| P0 | 验证云端真实修改可 push | 使用实际文档/代码提交验证，不制造垃圾提交 |
-| P0 | 编写一键部署脚本 | 可备份、构建、迁移、发布、检查和回滚 |
+| P0 | 添加腾讯云 GitHub Deploy key | 已完成：`git fetch origin` 成功 |
+| P0 | 验证云端真实修改可 push | 用真实文档/脚本提交验证（见 `deploy/tencent/deploy.sh`） |
+| P0 | 编写一键部署脚本 | 已落地：`deploy/tencent/deploy.sh`（deploy/rollback/status/health） |
 | P1 | 修复 HTTP 到 HTTPS 跳转 | HTTP 返回 301/308 到 HTTPS |
 | P1 | 收紧 8080、22 安全组 | 仅保留业务必需来源 |
 | P1 | 建立生产数据备份 | SQLite、media、env 可恢复且有校验 |
