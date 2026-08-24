@@ -233,7 +233,32 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .db-table-tabs button small { color:#8a97aa; font-size:9px; }
 .db-table-tabs button.active { color:#1d4f8c; border-color:#9bbbe4; background:#eef5ff; font-weight:700; }
 .db-table-tabs button.active small { color:#5b7eab; }
-.path-cell { display:inline-block; max-width:280px; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; font-size:10px; }
+.db-browser-table td.path-td {
+  white-space: normal;
+  max-width: none;
+  word-break: break-all;
+  cursor: copy;
+}
+.path-cell {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #2f4054;
+  user-select: text;
+}
+.path-copy-toast {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  color: #1d5a3a;
+  border: 1px solid #b7dfc6;
+  background: #eefaf2;
+  font-size: 12px;
+  word-break: break-all;
+}
 .cloud-project-form select {
   min-width:0; height:40px; padding:0 11px; border:1px solid #cdd9e3; border-radius:5px; background:#fafcfd;
 }

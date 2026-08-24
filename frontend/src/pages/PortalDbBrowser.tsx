@@ -51,10 +51,33 @@ const emptyUserForm = {
   is_bioinfo: false,
 };
 
+const PATH_COLUMNS = new Set(["abs_path", "root_dir", "pdf_url", "rel_path"]);
+
 function cell(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "boolean") return value ? "是" : "否";
   return String(value);
+}
+
+async function copyText(text: string): Promise<boolean> {
+  if (!text || text === "—") return false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through
+  }
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.style.position = "fixed";
+  area.style.left = "-9999px";
+  document.body.appendChild(area);
+  area.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(area);
+  return ok;
 }
 
 const PortalDbBrowser: React.FC = () => {
@@ -71,6 +94,13 @@ const PortalDbBrowser: React.FC = () => {
   const [editing, setEditing] = useState<UserRow | null>(null);
   const [form, setForm] = useState({ ...emptyUserForm });
   const [saving, setSaving] = useState(false);
+  const [copyHint, setCopyHint] = useState("");
+
+  async function onPathDoubleClick(text: string) {
+    const ok = await copyText(text);
+    setCopyHint(ok ? `已复制：${text}` : "复制失败，请手动选中");
+    window.setTimeout(() => setCopyHint(""), 2500);
+  }
 
   const currentMeta = catalog.find((t) => t.key === tableKey);
   const isAdmin = user?.role === "admin" || !!user?.is_staff;
@@ -236,6 +266,7 @@ const PortalDbBrowser: React.FC = () => {
                   {currentMeta?.description || "查看数据库记录"}
                   {currentMeta?.model ? ` · ${currentMeta.model}` : ""}
                   {canEditUsers ? " · 管理员可增删改" : " · 仅查看"}
+                  {" · 路径列完整显示，双击复制"}
                 </p>
               </div>
               <div className="project-search">
@@ -249,6 +280,7 @@ const PortalDbBrowser: React.FC = () => {
             </div>
 
             {error && <div className="cloud-create-error">{error}</div>}
+            {copyHint && <div className="path-copy-toast">{copyHint}</div>}
 
             {loading ? (
               <div className="empty-state">加载中…</div>
@@ -256,7 +288,7 @@ const PortalDbBrowser: React.FC = () => {
               <div className="empty-state">暂无数据</div>
             ) : (
               <div className="table-wrap">
-                <table className="project-table">
+                <table className="project-table db-browser-table">
                   <thead>
                     <tr>
                       {columns.map((col) => <th key={col}>{col}</th>)}
@@ -266,13 +298,22 @@ const PortalDbBrowser: React.FC = () => {
                   <tbody>
                     {filtered.map((row, idx) => (
                       <tr key={String(row.id ?? idx)}>
-                        {columns.map((col) => (
-                          <td key={col} title={cell(row[col])}>
-                            {col === "abs_path" || col === "root_dir" || col === "pdf_url"
-                              ? <code className="path-cell">{cell(row[col])}</code>
-                              : cell(row[col])}
-                          </td>
-                        ))}
+                        {columns.map((col) => {
+                          const text = cell(row[col]);
+                          const isPath = PATH_COLUMNS.has(col);
+                          return (
+                            <td
+                              key={col}
+                              className={isPath ? "path-td" : undefined}
+                              title={isPath ? "双击复制完整路径" : text}
+                              onDoubleClick={isPath ? () => { void onPathDoubleClick(text); } : undefined}
+                            >
+                              {isPath
+                                ? <code className="path-cell">{text}</code>
+                                : text}
+                            </td>
+                          );
+                        })}
                         {canEditUsers && (
                           <td>
                             <div className="row-actions">
