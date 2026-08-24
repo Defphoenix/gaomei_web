@@ -38,7 +38,14 @@ Content-Type: multipart/form-data
 }
 ```
 
-`report.json` 必须符合 `wes_report` 的 `ReportData` schema（可用仓库内 `backend/wes_report_examples/sample_report.json` 作模板）。
+`report.json` 必须符合 `wes_report` 的 **clinical_v2** schema（含 `executive_message` /
+「致受检者的一封信」）。仓库示例：
+
+`backend/wes_report_examples/clinical_v2_demo/report.json`
+
+同目录还附带演示用 `tumor.report.bam` / `normal.report.bam`（及 `.bai`），用于 IGV 查看突变证据。
+旧版 `sample_report.json` 为 legacy 模板，**不要**再用于正式报告包。
+
 
 ## curl 示例
 

@@ -1,0 +1,1594 @@
+{
+  "report": {
+    "report_id": "GAOMEI-WES-SH05677-20260819",
+    "title": "全外显子组测序临床报告",
+    "subtitle": "Tumor-Normal Paired Whole Exome Sequencing Report",
+    "template_version": "2.0",
+    "generated_at": "2026-08-19",
+    "laboratory": "高美基因医学检验实验室",
+    "reviewer": "待审核"
+  },
+  "sample": {
+    "sample_id": "SH05677",
+    "name": "冒烟测试患者",
+    "sex": "男",
+    "age": "53岁",
+    "specimen_type": "组织+血液",
+    "clinical_diagnosis": "胃腺癌",
+    "received_at": "2026-08-10",
+    "tested_at": "2026-08-19"
+  },
+  "layout": {
+    "document_type": "clinical_v2",
+    "show_toc": true,
+    "font_scale": 1.3
+  },
+  "executive_message": {
+    "enabled": true,
+    "page_title": "致受检者的一封信",
+    "salutation": "尊敬的受检者及家属：",
+    "paragraphs": [
+      "感谢您选择高美基因提供的全外显子组测序服务。每一份样本背后，都是一份对生命健康的认真托付。",
+      "我们坚持以规范的实验流程、严谨的数据分析和审慎的医学解释，为临床诊疗提供可追溯的分子信息。本报告中的结果仍需由临床医生结合病理诊断、疾病分期、既往治疗及其他检查综合判断。",
+      "这是一份用于内部讨论的致辞草案。后续可根据公司负责人意见继续调整文字、署名与表达方式。"
+    ],
+    "closing": "让基因科技服务每一个生命。",
+    "signer_name": "待讨论",
+    "signer_title": "高美基因负责人",
+    "date": "2026-08-19"
+  },
+  "samples": [
+    {
+      "sample_id": "SH05677",
+      "role": "肿瘤样本",
+      "specimen_type": "组织"
+    },
+    {
+      "sample_id": "SH05678",
+      "role": "正常对照",
+      "specimen_type": "血液"
+    }
+  ],
+  "overview": {
+    "number": "01",
+    "title": "检测概览",
+    "subtitle": "REPORT OVERVIEW",
+    "sections": [
+      {
+        "section_id": "1-1",
+        "number": "1.1",
+        "title": "基本信息与检测项目",
+        "subtitle": "",
+        "paragraphs": [
+          "本次检测采用肿瘤-正常配对全外显子组测序，对体细胞SNV/Indel、肿瘤突变负荷、免疫相关变异、HLA分型、新抗原候选、化疗药物基因组学及遗传性肿瘤候选进行综合分析。参考基因组为GRCh38。"
+        ],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "基本信息",
+            "columns": [
+              "姓名",
+              "临床诊断",
+              "性别",
+              "样本类型",
+              "年龄",
+              "样本编号"
+            ],
+            "rows": [
+              [
+                "冒烟测试患者",
+                "胃腺癌",
+                "男",
+                "组织+血液",
+                "53",
+                "SH05677"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "01",
+        "show_heading": true
+      },
+      {
+        "section_id": "1-2",
+        "number": "1.2",
+        "title": "本次检测小结",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "靶向药物相关标志物评估汇总",
+            "columns": [
+              "检测内容",
+              "变异等级",
+              "本次结果",
+              "说明"
+            ],
+            "rows": [
+              [
+                "体细胞变异",
+                "Ⅰ类",
+                "--",
+                "未发现A/B级患者级临床证据"
+              ],
+              [
+                "体细胞变异",
+                "Ⅱ类",
+                "--",
+                "未发现C/D级患者级临床证据"
+              ],
+              [
+                "体细胞变异",
+                "Ⅲ类",
+                "5个",
+                "当前临床复核候选"
+              ],
+              [
+                "其他药物治疗方案",
+                "指南方案",
+                "有",
+                "详见2.4"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          },
+          {
+            "title": "免疫治疗相关标志物评估汇总",
+            "columns": [
+              "评估内容",
+              "评估结果",
+              "结论"
+            ],
+            "rows": [
+              [
+                "肿瘤突变负荷（TMB）",
+                "3.214 mutations/Mb",
+                "TMB-L；当前为研发阈值"
+              ],
+              [
+                "MSI",
+                "--",
+                "未完成正式判定"
+              ],
+              [
+                "免疫治疗新抗原评估",
+                "3个双工具强结合组合",
+                "计算候选，需进一步验证"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "02",
+        "show_heading": true
+      },
+      {
+        "section_id": "1-3",
+        "number": "1.3",
+        "title": "其他标志物与综合说明",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "其他相关标志物评估汇总",
+            "columns": [
+              "评估内容",
+              "分类",
+              "评估结果"
+            ],
+            "rows": [
+              [
+                "化疗药物评估",
+                "推荐使用药物",
+                "伊立替康"
+              ],
+              [
+                "化疗药物评估",
+                "谨慎使用药物",
+                "氟尿嘧啶"
+              ],
+              [
+                "家族性遗传肿瘤综合征",
+                "致病/可能致病变异",
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "03",
+        "show_heading": true
+      }
+    ]
+  },
+  "targeted_therapy": {
+    "number": "02",
+    "title": "重要变异及靶向用药检测结果",
+    "subtitle": "TARGETED THERAPY FINDINGS",
+    "sections": [
+      {
+        "section_id": "2-1",
+        "number": "2.1",
+        "title": "肿瘤热点基因变异检测结果",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "基因",
+              "外显子/内含子",
+              "核苷酸变异",
+              "氨基酸变异",
+              "丰度/拷贝数",
+              "变异类型"
+            ],
+            "rows": [
+              [
+                "BRAF",
+                "--",
+                "--",
+                "--",
+                "--",
+                "--"
+              ],
+              [
+                "ERBB2",
+                "--",
+                "--",
+                "--",
+                "--",
+                "--"
+              ],
+              [
+                "NTRK1",
+                "--",
+                "--",
+                "--",
+                "--",
+                "--"
+              ],
+              [
+                "RET",
+                "--",
+                "--",
+                "--",
+                "--",
+                "--"
+              ]
+            ],
+            "note": "当前WES结果未发现符合Ⅰ/Ⅱ类报告条件的上述基因SNV/Indel。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "01",
+        "show_heading": true
+      },
+      {
+        "section_id": "2-2",
+        "number": "2.2",
+        "title": "具有明确临床意义的变异解读（Ⅰ类变异）",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "本次检测结果",
+            "columns": [
+              "结果"
+            ],
+            "rows": [
+              [
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "02",
+        "show_heading": true
+      },
+      {
+        "section_id": "2-3",
+        "number": "2.3",
+        "title": "具有潜在临床意义的变异解读（Ⅱ类变异）",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "本次检测结果",
+            "columns": [
+              "结果"
+            ],
+            "rows": [
+              [
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "02",
+        "show_heading": true
+      },
+      {
+        "section_id": "2-4",
+        "number": "2.4",
+        "title": "其他药物治疗方案",
+        "subtitle": "",
+        "paragraphs": [
+          "下表为依据胃癌诊疗指南整理的通用治疗路径，不代表本病例已经满足适用条件。"
+        ],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "癌种",
+              "指南治疗方案",
+              "治疗阶段",
+              "机制",
+              "适用条件",
+              "本病例匹配"
+            ],
+            "rows": [
+              [
+                "胃癌",
+                "FLOT或含氟嘧啶/铂类围手术期方案",
+                "围手术期",
+                "化疗",
+                "结合分期和体能状态",
+                "--"
+              ],
+              [
+                "胃癌",
+                "曲妥珠单抗联合含氟嘧啶和铂类",
+                "一线",
+                "HER2靶向+化疗",
+                "HER2阳性晚期胃癌",
+                "--"
+              ],
+              [
+                "胃癌",
+                "纳武利尤单抗联合化疗",
+                "一线",
+                "免疫+化疗",
+                "HER2阴性；结合PD-L1 CPS",
+                "--"
+              ],
+              [
+                "胃癌",
+                "PD-1/PD-L1相关治疗",
+                "系统治疗",
+                "免疫",
+                "dMMR/MSI-H",
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": "treatment-table"
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "03",
+        "show_heading": true
+      }
+    ]
+  },
+  "quality_control": {
+    "number": "03",
+    "title": "检测质控",
+    "subtitle": "QUALITY CONTROL",
+    "sections": [],
+    "samples": [
+      {
+        "sample_id": "SH05677",
+        "role": "肿瘤样本",
+        "mean_target_coverage": 210.87,
+        "pct_target_bases_20x": 0.982,
+        "pct_target_bases_100x": 0.741,
+        "pct_unique_reads_aligned": 0.961,
+        "duplication_rate": 0.187
+      },
+      {
+        "sample_id": "SH05678",
+        "role": "正常对照",
+        "mean_target_coverage": 128.4,
+        "pct_target_bases_20x": 0.975,
+        "pct_target_bases_100x": 0.612,
+        "pct_unique_reads_aligned": 0.972,
+        "duplication_rate": 0.152
+      }
+    ],
+    "coverage_thresholds": [
+      1,
+      10,
+      20,
+      30,
+      50,
+      100
+    ],
+    "coverage_series": [
+      {
+        "sample_id": "SH05677",
+        "role": "肿瘤样本",
+        "values": [
+          0.998,
+          0.991,
+          0.982,
+          0.965,
+          0.891,
+          0.741
+        ]
+      },
+      {
+        "sample_id": "SH05678",
+        "role": "正常对照",
+        "values": [
+          0.997,
+          0.988,
+          0.975,
+          0.942,
+          0.812,
+          0.612
+        ]
+      }
+    ],
+    "notes": [
+      "平均深度和覆盖率用于评估目标区域数据充足性。",
+      "重复率、比对率应结合建库方法与实验室验证阈值综合判定。",
+      "本页为演示质控数据。"
+    ],
+    "table": {
+      "title": "",
+      "columns": [
+        "主要评估内容",
+        "质控参数",
+        "肿瘤样本",
+        "正常样本",
+        "参考/状态"
+      ],
+      "rows": [
+        [
+          "测序质量评估",
+          "平均目标深度",
+          "210.9×",
+          "128.4×",
+          "Picard HsMetrics"
+        ],
+        [
+          "测序质量评估",
+          "目标区≥20×覆盖率",
+          "98.2%",
+          "97.5%",
+          "Picard HsMetrics"
+        ],
+        [
+          "测序质量评估",
+          "目标区≥100×覆盖率",
+          "74.1%",
+          "61.2%",
+          "Picard HsMetrics"
+        ],
+        [
+          "测序质量评估",
+          "唯一reads比对率",
+          "96.1%",
+          "97.2%",
+          "Picard HsMetrics"
+        ],
+        [
+          "测序质量评估",
+          "重复排除比例",
+          "18.7%",
+          "15.2%",
+          "Picard HsMetrics"
+        ]
+      ],
+      "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+      "compact": true,
+      "css_class": "qc-data-table"
+    },
+    "guidance_table": {
+      "title": "质控指标说明",
+      "columns": [
+        "指标",
+        "主要含义",
+        "解释口径"
+      ],
+      "rows": [
+        [
+          "平均目标深度",
+          "目标区域平均有效覆盖",
+          "总体统计量，不代表每个位点深度相同"
+        ],
+        [
+          "目标区覆盖率",
+          "达到指定深度阈值的目标区域比例",
+          "结合实验室验证阈值解释"
+        ],
+        [
+          "唯一reads比对率",
+          "去重后有效序列比对比例",
+          "受样本质量与文库复杂度影响"
+        ],
+        [
+          "重复排除比例",
+          "PCR/光学重复被排除的比例",
+          "较高时需结合总深度判断"
+        ],
+        [
+          "肿瘤-正常配对",
+          "辅助区分体细胞与胚系变异",
+          "正常对照质量不足会影响过滤"
+        ],
+        [
+          "综合质控结论",
+          "样本/建库/测序/生信整体复核",
+          "按SOP由授权人员签发"
+        ],
+        [
+          "肿瘤细胞含量",
+          "病理评估的肿瘤比例",
+          "影响低丰度变异检出"
+        ],
+        [
+          "DNA完整性",
+          "核酸降解程度",
+          "未提供时不能反推原始样本质量"
+        ]
+      ],
+      "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+      "compact": true,
+      "css_class": "qc-guidance-table"
+    }
+  },
+  "somatic_variants": {
+    "number": "04",
+    "title": "靶向药物相关标志物检测结果",
+    "subtitle": "SOMATIC VARIANT FINDINGS",
+    "sections": [
+      {
+        "section_id": "4-1",
+        "number": "4.1",
+        "title": "基因变异结果汇总",
+        "subtitle": "",
+        "paragraphs": [
+          "本表列出当前经过体细胞过滤并纳入编码后果集合的5条候选，暂按Ⅲ类展示。"
+        ],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "变异分类",
+              "基因",
+              "外显子/内含子",
+              "核苷酸变异",
+              "氨基酸变异",
+              "丰度/拷贝数",
+              "变异类型"
+            ],
+            "rows": [
+              [
+                "Ⅲ类变异",
+                "TP53",
+                "exon 7",
+                "c.743G>A",
+                "p.R248Q",
+                "35.2%",
+                "错义突变"
+              ],
+              [
+                "Ⅲ类变异",
+                "KRAS",
+                "exon 2",
+                "c.35G>A",
+                "p.G12D",
+                "28.6%",
+                "错义突变"
+              ],
+              [
+                "Ⅲ类变异",
+                "PIK3CA",
+                "exon 10",
+                "c.1633G>A",
+                "p.E545K",
+                "18.1%",
+                "错义突变"
+              ],
+              [
+                "Ⅲ类变异",
+                "APC",
+                "exon 16",
+                "c.3927_3931del",
+                "p.E1309Dfs*4",
+                "22.4%",
+                "移码突变"
+              ],
+              [
+                "Ⅲ类变异",
+                "ERBB2",
+                "exon 20",
+                "c.2324_2325ins12",
+                "p.A775_G776insYVMA",
+                "12.8%",
+                "插入突变"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": "somatic-table"
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "01",
+        "show_heading": true
+      }
+    ]
+  },
+  "immunotherapy": {
+    "number": "05",
+    "title": "免疫治疗相关标志物评估结果",
+    "subtitle": "IMMUNOTHERAPY BIOMARKERS",
+    "sections": [
+      {
+        "section_id": "5-1",
+        "number": "5.1",
+        "title": "肿瘤突变负荷评估详细解读",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "评估指标",
+              "本次结果",
+              "说明"
+            ],
+            "rows": [
+              [
+                "TMB",
+                "3.214 mutations/Mb",
+                "当前研发阈值下为TMB-L"
+              ],
+              [
+                "纳入编码变异",
+                "66个",
+                "missense、stop、frameshift等"
+              ],
+              [
+                "有效编码区域",
+                "20.534 Mb",
+                "当前BED推算分母"
+              ],
+              [
+                "免疫治疗结论",
+                "--",
+                "不能仅根据当前TMB形成用药结论"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "01",
+        "show_heading": true
+      },
+      {
+        "section_id": "5-2",
+        "number": "5.2",
+        "title": "MSI检测详细解读",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "评估内容",
+              "检测结果",
+              "临床提示"
+            ],
+            "rows": [
+              [
+                "MSI状态",
+                "--",
+                "未判定"
+              ],
+              [
+                "微卫星稳定性",
+                "--",
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "02",
+        "show_heading": true
+      },
+      {
+        "section_id": "5-3",
+        "number": "5.3",
+        "title": "免疫治疗正相关评估结果",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "基因",
+              "核苷酸变异",
+              "氨基酸变异",
+              "丰度/拷贝数",
+              "疗效提示"
+            ],
+            "rows": [
+              [
+                "--",
+                "--",
+                "--",
+                "--",
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "03",
+        "show_heading": true
+      },
+      {
+        "section_id": "5-4",
+        "number": "5.4",
+        "title": "免疫治疗超进展评估结果",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "基因",
+              "核苷酸变异",
+              "氨基酸变异",
+              "丰度/拷贝数",
+              "疗效提示"
+            ],
+            "rows": [
+              [
+                "--",
+                "--",
+                "--",
+                "--",
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "03",
+        "show_heading": true
+      },
+      {
+        "section_id": "5-5",
+        "number": "5.5",
+        "title": "免疫治疗耐药评估结果",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "基因",
+              "核苷酸变异",
+              "氨基酸变异",
+              "丰度/拷贝数",
+              "疗效提示"
+            ],
+            "rows": [
+              [
+                "--",
+                "--",
+                "--",
+                "--",
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "04",
+        "show_heading": true
+      }
+    ]
+  },
+  "neoantigens": {
+    "number": "06",
+    "title": "免疫治疗新抗原预测结果",
+    "subtitle": "HLA AND NEOANTIGEN",
+    "sections": [
+      {
+        "section_id": "6-1",
+        "number": "6.1",
+        "title": "HLA-I高分辨率分型",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "HLA分型",
+            "columns": [
+              "位点",
+              "拷贝",
+              "HLA*LA分型",
+              "结合预测等位基因",
+              "平均覆盖度"
+            ],
+            "rows": [
+              [
+                "A",
+                "1",
+                "A*31:01:02G",
+                "HLA-A*31:01",
+                "86.2"
+              ],
+              [
+                "A",
+                "2",
+                "A*33:03:01G",
+                "HLA-A*33:03",
+                "91.4"
+              ],
+              [
+                "B",
+                "1",
+                "B*15:01:01G",
+                "HLA-B*15:01",
+                "78.9"
+              ],
+              [
+                "B",
+                "2",
+                "B*58:01:01G",
+                "HLA-B*58:01",
+                "82.1"
+              ],
+              [
+                "C",
+                "1",
+                "C*03:02:01G",
+                "HLA-C*03:02",
+                "74.5"
+              ],
+              [
+                "C",
+                "2",
+                "C*15:02:01G",
+                "HLA-C*15:02",
+                "79.0"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "01",
+        "show_heading": true
+      },
+      {
+        "section_id": "6-2",
+        "number": "6.2",
+        "title": "优先新抗原候选",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "Top候选",
+            "columns": [
+              "基因",
+              "突变",
+              "肽段",
+              "HLA分型",
+              "NetMHCpan EL rank",
+              "MHCflurry亲和力"
+            ],
+            "rows": [
+              [
+                "TP53",
+                "p.R248Q",
+                "NYMCNSSCM",
+                "HLA-A*33:03",
+                "0.082",
+                "48.2 nM"
+              ],
+              [
+                "KRAS",
+                "p.G12D",
+                "KLVVVGAGGV",
+                "HLA-A*31:01",
+                "0.150",
+                "62.1 nM"
+              ],
+              [
+                "PIK3CA",
+                "p.E545K",
+                "STRDPLSEI",
+                "HLA-B*15:01",
+                "0.210",
+                "95.4 nM"
+              ]
+            ],
+            "note": "共有3个双工具强结合组合；新抗原为计算预测。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "02",
+        "show_heading": true
+      }
+    ]
+  },
+  "pharmacogenomics": {
+    "number": "07",
+    "title": "化疗药物检测结果",
+    "subtitle": "PHARMACOGENOMICS",
+    "sections": [
+      {
+        "section_id": "7-1",
+        "number": "7.1",
+        "title": "常见肿瘤化疗药物分类与综合评估",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "药物分类",
+              "药物列表",
+              "患者药物基因组综合结果"
+            ],
+            "rows": [
+              [
+                "铂类",
+                "顺铂、卡铂、奥沙利铂",
+                "常规使用：顺铂、卡铂、奥沙利铂"
+              ],
+              [
+                "嘧啶类似物",
+                "卡培他滨、氟尿嘧啶、替吉奥",
+                "谨慎使用：氟尿嘧啶；常规使用：卡培他滨、替吉奥"
+              ],
+              [
+                "紫杉烷类",
+                "多西他赛、紫杉醇",
+                "常规使用：多西他赛、紫杉醇"
+              ],
+              [
+                "伊立替康类",
+                "伊立替康",
+                "推荐使用：伊立替康"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": "pgx-class-table"
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "01",
+        "show_heading": true
+      },
+      {
+        "section_id": "7-2",
+        "number": "7.2",
+        "title": "获得患者基因型证据的药物详情",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "药物",
+              "药物类别",
+              "常见肿瘤用途",
+              "药效方向",
+              "毒性方向",
+              "综合建议",
+              "证据"
+            ],
+            "rows": [
+              [
+                "伊立替康",
+                "拓扑异构酶I抑制剂",
+                "结直肠癌/胃癌",
+                "可能获益",
+                "未见额外警示",
+                "推荐使用",
+                "ClinPGx 1A"
+              ],
+              [
+                "氟尿嘧啶",
+                "嘧啶类似物",
+                "消化道肿瘤",
+                "常规",
+                "毒性风险升高",
+                "谨慎使用",
+                "ClinPGx 1A"
+              ],
+              [
+                "奥沙利铂",
+                "铂类",
+                "消化道肿瘤",
+                "常规",
+                "未见额外警示",
+                "常规使用",
+                "ClinPGx 2A"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": "pgx-detail-table"
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "02",
+        "show_heading": true
+      }
+    ]
+  },
+  "hereditary_risk": {
+    "number": "08",
+    "title": "遗传性肿瘤综合征风险评估结果",
+    "subtitle": "HEREDITARY CANCER RISK",
+    "sections": [
+      {
+        "section_id": "8-1",
+        "number": "8.1",
+        "title": "遗传性肿瘤结果摘要",
+        "subtitle": "",
+        "paragraphs": [
+          "本部分依据ClinGen高可信基因-疾病关系，对遗传性肿瘤相关疾病进行患者级胚系变异匹配。"
+        ],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "致病/可能致病胚系变异",
+            "columns": [
+              "基因",
+              "变异位点",
+              "临床意义",
+              "合子类型",
+              "相关遗传性肿瘤综合征",
+              "相关易感肿瘤"
+            ],
+            "rows": [
+              [
+                "--",
+                "--",
+                "--",
+                "--",
+                "--",
+                "--"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          },
+          {
+            "title": "相关肿瘤发生风险评估结果",
+            "columns": [
+              "评估内容",
+              "评估结果",
+              "说明"
+            ],
+            "rows": [
+              [
+                "高可信疾病/综合征",
+                "5种（演示子集）",
+                "ClinGen高等级关系"
+              ],
+              [
+                "P/LP疾病匹配",
+                "0种",
+                "当前未发现"
+              ],
+              [
+                "潜在遗传疾病匹配",
+                "1种",
+                "VUS潜在匹配"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "01",
+        "show_heading": true
+      },
+      {
+        "section_id": "8-2",
+        "number": "8.2",
+        "title": "潜在遗传疾病匹配",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "潜在遗传疾病匹配",
+            "columns": [
+              "基因",
+              "变异",
+              "相关疾病/综合征",
+              "证据说明"
+            ],
+            "rows": [
+              [
+                "APC",
+                "c.3920T>A p.I1307K",
+                "家族性腺瘤性息肉病相关",
+                "VUS：临床意义未明"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "02",
+        "show_heading": true
+      },
+      {
+        "section_id": "8-3",
+        "number": "8.3",
+        "title": "高置信遗传性肿瘤疾病矩阵（演示子集）",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "ClinGen疾病矩阵",
+            "columns": [
+              "疾病/综合征",
+              "相关基因",
+              "遗传方式",
+              "患者状态"
+            ],
+            "rows": [
+              [
+                "遗传性乳腺癌卵巢癌综合征",
+                "BRCA1, BRCA2",
+                "显性",
+                "未见明确升高证据"
+              ],
+              [
+                "Lynch综合征",
+                "MLH1, MSH2, MSH6, PMS2",
+                "显性",
+                "未见明确升高证据"
+              ],
+              [
+                "家族性腺瘤性息肉病",
+                "APC",
+                "显性",
+                "潜在匹配(VUS)"
+              ],
+              [
+                "Li-Fraumeni综合征",
+                "TP53",
+                "显性",
+                "未见明确升高证据"
+              ],
+              [
+                "遗传性弥漫性胃癌",
+                "CDH1",
+                "显性",
+                "未见明确升高证据"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "03",
+        "show_heading": true
+      }
+    ]
+  },
+  "appendices": {
+    "number": "09",
+    "title": "附录",
+    "subtitle": "APPENDICES",
+    "sections": [
+      {
+        "section_id": "9-1",
+        "number": "9.1",
+        "title": "注释数据来源",
+        "subtitle": "",
+        "paragraphs": [],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "名称",
+              "版本",
+              "组装",
+              "用途",
+              "状态"
+            ],
+            "rows": [
+              [
+                "VEP",
+                "115",
+                "GRCh38",
+                "变异后果注释",
+                "available"
+              ],
+              [
+                "ClinVar",
+                "2026-07",
+                "GRCh38",
+                "临床意义参考",
+                "available"
+              ],
+              [
+                "OncoKB",
+                "2026-06",
+                "GRCh38",
+                "肿瘤学证据",
+                "available"
+              ],
+              [
+                "ClinPGx",
+                "2026-05",
+                "GRCh38",
+                "药物基因组",
+                "available"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "01",
+        "show_heading": true
+      },
+      {
+        "section_id": "9-2",
+        "number": "9.2",
+        "title": "检测限制与声明",
+        "subtitle": "",
+        "paragraphs": [
+          "本报告是实验室检测结果与知识库证据的综合说明，不构成处方或诊断证明的替代品。",
+          "演示数据均为虚构，仅用于模板与系统联调。"
+        ],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "声明摘要",
+            "columns": [
+              "项目",
+              "说明"
+            ],
+            "rows": [
+              [
+                "参考基因组",
+                "GRCh38"
+              ],
+              [
+                "适用边界",
+                "不覆盖融合/蛋白表达类独立伴随诊断"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "02",
+        "show_heading": true
+      },
+      {
+        "section_id": "9-3",
+        "number": "9.3",
+        "title": "指南与注释资源说明",
+        "subtitle": "",
+        "paragraphs": [
+          "NCCN和CSCO指南需以签发时可获得的正式版本为准；本报告仅保留判读框架。"
+        ],
+        "metrics": [],
+        "tables": [
+          {
+            "title": "",
+            "columns": [
+              "资源",
+              "用途"
+            ],
+            "rows": [
+              [
+                "NCCN / CSCO",
+                "治疗路径框架参考"
+              ],
+              [
+                "ClinGen / ClinVar",
+                "遗传性肿瘤证据参考"
+              ]
+            ],
+            "note": "表注：结果应结合本节判读口径、检测限制及签发时最新指南和数据库版本综合解释。",
+            "compact": true,
+            "css_class": ""
+          }
+        ],
+        "bullets": [],
+        "notes": [
+          "结果需结合临床资料与实验室SOP综合解释。",
+          "数据库与指南版本会持续更新，签发前应复核。",
+          "本演示数据为虚构，不可作为医学结论。"
+        ],
+        "page_break_before": true,
+        "page_group": "03",
+        "show_heading": true
+      }
+    ]
+  },
+  "provenance": {
+    "coordinate_system": "GRCh38",
+    "source_schema": "wes_package_v1_clinical_v2_demo",
+    "source_generated_at": "2026-08-19",
+    "source_sha256": "",
+    "warnings": [
+      "演示数据：不可用于临床决策"
+    ]
+  },
+  "igv_tracks": {
+    "tumor_bam": "tumor.report.bam",
+    "tumor_bai": "tumor.report.bam.bai",
+    "normal_bam": "normal.report.bam",
+    "normal_bai": "normal.report.bam.bai",
+    "default_locus": "chr17:7,674,100-7,674,400"
+  },
+  "portal_variants": [
+    {
+      "gene": "TP53",
+      "chrom": "17",
+      "pos": 7674220,
+      "ref": "C",
+      "alt": "T",
+      "hgvsc": "c.743G>A",
+      "hgvsp": "p.R248Q",
+      "consequence": "missense_variant",
+      "tumor_af": 0.352,
+      "tumor_dp": 120,
+      "tumor_alt_reads": 42,
+      "normal_dp": 90,
+      "normal_alt_reads": 0,
+      "tlod": 48.2,
+      "significance": "pathogenic"
+    },
+    {
+      "gene": "KRAS",
+      "chrom": "12",
+      "pos": 25245350,
+      "ref": "C",
+      "alt": "T",
+      "hgvsc": "c.35G>A",
+      "hgvsp": "p.G12D",
+      "consequence": "missense_variant",
+      "tumor_af": 0.286,
+      "tumor_dp": 98,
+      "tumor_alt_reads": 28,
+      "normal_dp": 85,
+      "normal_alt_reads": 0,
+      "tlod": 36.1,
+      "significance": "pathogenic"
+    },
+    {
+      "gene": "PIK3CA",
+      "chrom": "3",
+      "pos": 179218294,
+      "ref": "G",
+      "alt": "A",
+      "hgvsc": "c.1633G>A",
+      "hgvsp": "p.E545K",
+      "consequence": "missense_variant",
+      "tumor_af": 0.181,
+      "tumor_dp": 110,
+      "tumor_alt_reads": 20,
+      "normal_dp": 88,
+      "normal_alt_reads": 1,
+      "tlod": 22.4,
+      "significance": "likely_pathogenic"
+    }
+  ]
+}

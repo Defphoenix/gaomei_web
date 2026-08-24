@@ -18,7 +18,7 @@ from django.utils import timezone
 from wes_report.schemas import ReportData
 from wes_report.services import load_report_data, save_report_data, write_html, write_pdf
 
-from .models import BundleFile, PatientReportSlot, Report, SampleBundle
+from .models import BundleFile, PatientReportSlot, Report, ReportItem, SampleBundle
 
 SAFE_SAMPLE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
 SAFE_UPLOAD = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$")
@@ -67,6 +67,8 @@ def _role_for_name(name: str, declared: str | None = None) -> str:
     lower = name.lower()
     if lower in {"report.json", "current.json"} or lower.endswith(".json"):
         return BundleFile.Role.REPORT_JSON
+    if lower.endswith((".bam", ".bai", ".cram", ".crai")):
+        return BundleFile.Role.ATTACHMENT
     if lower.endswith((".png", ".jpg", ".jpeg", ".svg", ".pdf")) and "qc" in lower:
         return BundleFile.Role.QC_PLOT
     return BundleFile.Role.ATTACHMENT if declared is None else BundleFile.Role.OTHER
@@ -141,6 +143,103 @@ def _record_file(
         },
     )
     return obj
+
+
+def _media_url_for(abs_path: Path) -> str:
+    media_root = Path(settings.MEDIA_ROOT).resolve()
+    try:
+        rel = abs_path.resolve().relative_to(media_root)
+    except ValueError:
+        return ""
+    return f"/media/{rel.as_posix()}"
+
+
+def _sync_portal_variants(
+    report: Report,
+    payload: dict[str, Any],
+    bundle_root_path: Path,
+) -> None:
+    """Create ReportItem rows + IGV track URLs from package JSON extras."""
+    igv = payload.get("igv_tracks") if isinstance(payload.get("igv_tracks"), dict) else {}
+    tumor_bam = bundle_root_path / Path(str(igv.get("tumor_bam") or "tumor.report.bam")).name
+    tumor_bai = bundle_root_path / Path(str(igv.get("tumor_bai") or "tumor.report.bam.bai")).name
+    normal_bam = bundle_root_path / Path(str(igv.get("normal_bam") or "normal.report.bam")).name
+    normal_bai = bundle_root_path / Path(str(igv.get("normal_bai") or "normal.report.bam.bai")).name
+    tumor_bam_url = _media_url_for(tumor_bam) if tumor_bam.is_file() else ""
+    tumor_bai_url = _media_url_for(tumor_bai) if tumor_bai.is_file() else ""
+    normal_bam_url = _media_url_for(normal_bam) if normal_bam.is_file() else ""
+    normal_bai_url = _media_url_for(normal_bai) if normal_bai.is_file() else ""
+
+    analysis = dict(report.analysis_data or {})
+    analysis["schema_version"] = payload.get("schema_version") or "wes_package_v1"
+    analysis["wes_report_id"] = to_wes_report_id(report.sample_id)
+    analysis["document_type"] = (payload.get("layout") or {}).get("document_type") or "clinical_v2"
+    analysis["igv_tracks"] = {
+        "tumor_bam": tumor_bam_url,
+        "tumor_bai": tumor_bai_url,
+        "normal_bam": normal_bam_url,
+        "normal_bai": normal_bai_url,
+        "default_locus": igv.get("default_locus") or "",
+    }
+    report.analysis_data = analysis
+    report.tumor_sample_id = str((payload.get("sample") or {}).get("sample_id") or report.sample_id)[:100]
+    samples = payload.get("samples") if isinstance(payload.get("samples"), list) else []
+    for sample in samples:
+        if isinstance(sample, dict) and "正常" in str(sample.get("role") or ""):
+            report.normal_sample_id = str(sample.get("sample_id") or "")[:100]
+    report.summary = "已接收 clinical_v2 正式报告包，等待审核发布。"
+    report.save(update_fields=[
+        "analysis_data", "tumor_sample_id", "normal_sample_id", "summary",
+    ])
+
+    variants = payload.get("portal_variants") if isinstance(payload.get("portal_variants"), list) else []
+    report.items.all().delete()
+    items = []
+    for variant in variants:
+        if not isinstance(variant, dict):
+            continue
+        chrom = str(variant.get("chrom") or "").removeprefix("chr")
+        pos = variant.get("pos")
+        try:
+            pos = int(pos)
+        except (TypeError, ValueError):
+            continue
+        if not chrom:
+            continue
+        significance = str(variant.get("significance") or "vus")
+        if significance not in {"pathogenic", "likely_pathogenic", "vus", "likely_benign", "benign"}:
+            significance = "vus"
+        items.append(ReportItem(
+            report=report,
+            gene=str(variant.get("gene") or "-")[:50],
+            chromosome=chrom[:10],
+            position=pos,
+            end_position=pos + max(len(str(variant.get("ref") or "N")), 1) - 1,
+            ref_allele=str(variant.get("ref") or "")[:500],
+            alt_allele=str(variant.get("alt") or "")[:500],
+            variant_type="SNP" if len(str(variant.get("ref") or "N")) == 1 and len(str(variant.get("alt") or "N")) == 1 else "InDel",
+            significance=significance,
+            af=float(variant["tumor_af"]) if variant.get("tumor_af") is not None else None,
+            annotation=str(variant.get("clinical_summary") or ""),
+            transcript=str(variant.get("transcript") or "")[:100],
+            hgvs_c=str(variant.get("hgvsc") or "")[:200],
+            hgvs_p=str(variant.get("hgvsp") or "")[:200],
+            consequence=str(variant.get("consequence") or "")[:100],
+            tumor_depth=int(variant["tumor_dp"]) if variant.get("tumor_dp") is not None else None,
+            tumor_alt_reads=int(variant["tumor_alt_reads"]) if variant.get("tumor_alt_reads") is not None else None,
+            normal_depth=int(variant["normal_dp"]) if variant.get("normal_dp") is not None else None,
+            normal_alt_reads=int(variant["normal_alt_reads"]) if variant.get("normal_alt_reads") is not None else None,
+            tlod=float(variant["tlod"]) if variant.get("tlod") is not None else None,
+            filter_status="REPORTABLE",
+            bam_track_url=tumor_bam_url,
+            bam_index_url=tumor_bai_url,
+            annotations={
+                "normal_bam_url": normal_bam_url,
+                "normal_bam_index_url": normal_bai_url,
+            },
+        ))
+    if items:
+        ReportItem.objects.bulk_create(items)
 
 
 def generate_outputs_for_bundle(bundle: SampleBundle) -> dict[str, Any]:
@@ -333,6 +432,8 @@ def ingest_report_package(
         rel_path="wes_active/current.json",
         content_type="application/json",
     )
+
+    _sync_portal_variants(portal_report, payload, root)
 
     outputs = generate_outputs_for_bundle(bundle)
     return package_response(bundle, created=True, idempotent=False, outputs=outputs)
