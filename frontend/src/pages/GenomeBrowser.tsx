@@ -195,10 +195,10 @@ const GenomeBrowser: React.FC = () => {
     setAddingTrack(true);
     try {
       if (customTrackRef.current) {
-        await browserRef.current.removeTrack(customTrackRef.current);
+        await (browserRef.current as any).removeTrack(customTrackRef.current);
         customTrackRef.current = null;
       }
-      const track = await browserRef.current.loadTrack({
+      const track = await (browserRef.current as any).loadTrack({
         name: customTrackName || "自定义 BAM",
         url: bamUrl.trim(),
         indexURL: bamIndexUrl.trim() || undefined,
