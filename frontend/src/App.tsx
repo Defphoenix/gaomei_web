@@ -23,10 +23,13 @@ import PersonalReports from "./pages/PersonalReports";
 import ScrollManager from "./components/ScrollManager";
 import ResetPassword from "./pages/ResetPassword";
 import PatientReportsAdmin from "./pages/PatientReportsAdmin";
+import PortalDbBrowser from "./pages/PortalDbBrowser";
 
 const AppShell: React.FC = () => {
   const location = useLocation();
-  const isPortal = location.pathname === "/dashboard" || location.pathname === "/patient-reports";
+  const isPortal = location.pathname === "/dashboard"
+    || location.pathname === "/patient-reports"
+    || location.pathname === "/db-browser";
   const isReportDetail = location.pathname.startsWith("/reports/");
   const isAuthPage = ["/login", "/register", "/reset-password"].includes(location.pathname);
   const hidePublicChrome = isPortal || isReportDetail || isAuthPage;
@@ -58,6 +61,7 @@ const AppShell: React.FC = () => {
             <Route path="/my-reports" element={<ProtectedRoute><PersonalReports /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><Dashboard /></ProtectedRoute>} />
             <Route path="/patient-reports" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><PatientReportsAdmin /></ProtectedRoute>} />
+            <Route path="/db-browser" element={<ProtectedRoute roles={["admin"]}><PortalDbBrowser /></ProtectedRoute>} />
             <Route path="/reports/:id" element={<ProtectedRoute><ReportDetail /></ProtectedRoute>} />
             <Route path="/browser" element={<ProtectedRoute><GenomeBrowser /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />

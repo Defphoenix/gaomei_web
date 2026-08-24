@@ -47,6 +47,79 @@ Content-Type: multipart/form-data
 旧版 `sample_report.json` 为 legacy 模板，**不要**再用于正式报告包。
 
 
+## 本机（Windows）/ node9 共用上传（推荐）
+
+**同一套 Token + 同一接口**：Windows 本机和 node9 都可以上传；云端只认 `X-Gaomei-Bridge-Token` 明文对应的 SHA256。
+
+仓库已带演示包与跨平台脚本（clinical_v2 + 位点小 BAM）：
+
+- 示例目录：`backend/wes_report_examples/clinical_v2_demo/`
+  - 必填：`report.json`
+  - IGV：`tumor.report.bam` / `.bai`，`normal.report.bam` / `.bai`（只含报告位点附近的小切片即可）
+- 生成 Token：`python scripts/gen_bridge_token.py`（也可用 `.sh`）
+- 上传：`python scripts/wes_package_upload.py`（也可用 `.sh`；**Windows 请用 Python 版**）
+
+### A. 一次性：生成 Token 并写入云端
+
+在任意一台有 Python3 的机器上：
+
+```bash
+python scripts/gen_bridge_token.py
+```
+
+把打印的 `GAOMEI_BRIDGE_TOKEN_SHA256=...` 写入云端  
+`/home/ubuntu/apps/gaomei_web/shared/gaomei-web.env`，然后：
+
+```bash
+sudo systemctl restart gaomei-web
+```
+
+明文 `GAOMEI_BRIDGE_TOKEN` **同时**保存在 Windows 本机和 node9（可用环境变量或本地私密文件，不要提交 git）。
+
+### B. Windows 本机上传（PowerShell）
+
+前置：安装 [Python 3](https://www.python.org/downloads/)（勾选 Add to PATH），并拿到本仓库（git clone 或复制整个目录）。
+
+```powershell
+cd D:\path\to\gaomei_web
+
+# 明文 Token（与云端 SHA256 对应）
+$env:GAOMEI_BRIDGE_TOKEN = "粘贴明文token"
+
+python scripts\wes_package_upload.py `
+  --dir backend\wes_report_examples\clinical_v2_demo `
+  --patient-no P20260001 `
+  --patient-name "测试患者" `
+  --sample-id SH05677 `
+  --upload-id ("upload-win-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+```
+
+或 CMD：
+
+```bat
+cd /d D:\path\to\gaomei_web
+set GAOMEI_BRIDGE_TOKEN=粘贴明文token
+python scripts\wes_package_upload.py --dir backend\wes_report_examples\clinical_v2_demo --patient-no P20260001 --patient-name 测试患者 --sample-id SH05677
+```
+
+### C. node9（Linux）上传
+
+```bash
+cd /path/to/gaomei_web
+export GAOMEI_BRIDGE_TOKEN='粘贴明文token'
+python3 scripts/wes_package_upload.py \
+  --dir backend/wes_report_examples/clinical_v2_demo \
+  --patient-no P20260001 \
+  --patient-name '测试患者' \
+  --sample-id SH05677 \
+  --upload-id "upload-node9-$(date +%Y%m%d-%H%M%S)"
+```
+
+成功时响应里 `pdf_ready: true`，管理员打开 `preview_url`。  
+患者端要能下载 PDF，还需在「患者报告」里把该报告 **发布 (released)**。
+
+> 每次上传请换新的 `upload_id`（脚本默认已带时间戳）。同一样本新上传会 **覆盖** 旧 active 包。
+
 ## curl 示例
 
 ```bash
@@ -58,9 +131,12 @@ curl -X POST 'https://gomics.icu/api/bridge/reports/package/' \
   -F 'patient_no=P20260001' \
   -F 'patient_name=张某某' \
   -F 'sample_id=SH05677' \
-  -F 'manifest={"schema_version":"wes_package_v1","files":[{"name":"report.json","role":"report_json"}]}' \
+  -F 'manifest={"schema_version":"wes_package_v1","files":[{"name":"report.json","role":"report_json"},{"name":"tumor.report.bam","role":"attachment"},{"name":"tumor.report.bam.bai","role":"attachment"},{"name":"normal.report.bam","role":"attachment"},{"name":"normal.report.bam.bai","role":"attachment"}]}' \
   -F 'files=@/path/to/report.json;filename=report.json' \
-  -F 'files=@/path/to/coverage.svg;filename=coverage.svg'
+  -F 'files=@/path/to/tumor.report.bam;filename=tumor.report.bam' \
+  -F 'files=@/path/to/tumor.report.bam.bai;filename=tumor.report.bam.bai' \
+  -F 'files=@/path/to/normal.report.bam;filename=normal.report.bam' \
+  -F 'files=@/path/to/normal.report.bam.bai;filename=normal.report.bam.bai'
 ```
 
 ## 云端行为

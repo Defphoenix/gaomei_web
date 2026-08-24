@@ -202,9 +202,41 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .portal-logo b { color:#fff; }
 .portal-logo small { margin-top:4px; color:#7f91ad; font-size:10px; }
 .portal-sidebar nav { display:flex; flex-direction:column; gap:5px; }
-.portal-sidebar nav a { display:flex; align-items:center; gap:13px; padding:12px 14px; color:#91a2bd; border-radius:10px; text-decoration:none; font-size:13px; }
-.portal-sidebar nav a i { width:17px; text-align:center; }
-.portal-sidebar nav a:hover, .portal-sidebar nav a.active { color:#fff; background:rgba(99,154,255,.14); }
+.portal-sidebar nav a,
+.portal-sidebar nav .portal-nav-group > button {
+  display:flex; align-items:center; gap:13px; padding:12px 14px; color:#91a2bd; border-radius:10px;
+  text-decoration:none; font-size:13px; border:0; background:transparent; width:100%; text-align:left; cursor:pointer;
+}
+.portal-sidebar nav a i,
+.portal-sidebar nav .portal-nav-group > button i:first-child { width:17px; text-align:center; }
+.portal-sidebar nav a:hover, .portal-sidebar nav a.active,
+.portal-sidebar nav .portal-nav-group > button:hover,
+.portal-sidebar nav .portal-nav-group > button.active { color:#fff; background:rgba(99,154,255,.14); }
+.portal-nav-group > button span { flex:1; }
+.portal-nav-group .nav-caret { margin-left:auto; width:auto; font-size:10px; opacity:.7; }
+.portal-nav-submenu {
+  margin:2px 0 8px 12px; padding:4px 0 4px 8px; display:flex; flex-direction:column; gap:2px;
+  border-left:1px solid rgba(255,255,255,.08);
+}
+.portal-nav-submenu a {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:8px 10px; font-size:12px; border-radius:8px;
+}
+.portal-nav-submenu a small { color:#6f819a; font-size:9px; }
+.portal-nav-submenu a.active small { color:#b7c9e6; }
+.db-table-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.db-table-tabs button {
+  display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+  padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:#fff;
+  color:#53677b; font-size:12px; cursor:pointer;
+}
+.db-table-tabs button small { color:#8a97aa; font-size:9px; }
+.db-table-tabs button.active { color:#1d4f8c; border-color:#9bbbe4; background:#eef5ff; font-weight:700; }
+.db-table-tabs button.active small { color:#5b7eab; }
+.path-cell { display:inline-block; max-width:280px; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; font-size:10px; }
+.cloud-project-form select {
+  min-width:0; height:40px; padding:0 11px; border:1px solid #cdd9e3; border-radius:5px; background:#fafcfd;
+}
 .node-card { margin-top:auto; padding:15px; border:1px solid rgba(255,255,255,.09); border-radius:12px; background:rgba(255,255,255,.04); }
 .node-card span, .node-card b, .node-card small { display:block; }
 .node-card span { color:#8fdaa9; font-size:10px; }
@@ -626,9 +658,13 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
   .admin-news-link,.wiki-nav-link { display:none; }
   .portal-page { --sidebar:78px; }
   .portal-sidebar { padding:25px 10px; }
-  .portal-sidebar nav a { justify-content:center; font-size:0; }
-  .portal-sidebar nav a.active { font-size:0; }
-  .portal-sidebar nav a i { font-size:15px; }
+  .portal-sidebar nav a,
+  .portal-sidebar nav .portal-nav-group > button { justify-content:center; font-size:0; }
+  .portal-sidebar nav a.active,
+  .portal-sidebar nav .portal-nav-group > button.active { font-size:0; }
+  .portal-sidebar nav a i,
+  .portal-sidebar nav .portal-nav-group > button i:first-child { font-size:15px; }
+  .portal-nav-submenu { display:none; }
   .portal-logo { justify-content:center; padding-left:0; padding-right:0; }
   .portal-logo > span:last-child, .node-card { display:none; }
   .metric-grid { grid-template-columns:1fr 1fr; }

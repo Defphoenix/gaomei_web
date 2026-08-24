@@ -1,6 +1,14 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+
+const DB_TABLES = [
+  { key: "users", label: "用户与权限", hint: "可编辑" },
+  { key: "patient_slots", label: "患者报告台账", hint: "只读" },
+  { key: "sample_bundles", label: "样本报告包", hint: "只读" },
+  { key: "bundle_files", label: "报告包文件路径", hint: "只读" },
+  { key: "reports", label: "门户报告", hint: "只读" },
+] as const;
 
 /** Shared left nav for internal portal pages. */
 const PortalSidebar: React.FC = () => {
@@ -12,6 +20,23 @@ const PortalSidebar: React.FC = () => {
   const path = location.pathname;
   const onDashboard = path === "/dashboard";
   const onPatientReports = path === "/patient-reports";
+  const onDbBrowser = path === "/db-browser";
+  const [dbOpen, setDbOpen] = useState(onDbBrowser);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (onDbBrowser) setDbOpen(true);
+  }, [onDbBrowser]);
+
+  useEffect(() => {
+    function onDocClick(ev: MouseEvent) {
+      if (!menuRef.current?.contains(ev.target as Node)) {
+        if (!onDbBrowser) setDbOpen(false);
+      }
+    }
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, [onDbBrowser]);
 
   return (
     <aside className="portal-sidebar">
@@ -37,9 +62,33 @@ const PortalSidebar: React.FC = () => {
           <i className="fas fa-dna" />IGV 证据
         </Link>
         {isAdmin && (
-          <Link to="/dashboard#users" title="用户与权限">
-            <i className="fas fa-users-cog" />用户与权限
-          </Link>
+          <div className={`portal-nav-group ${dbOpen || onDbBrowser ? "open" : ""}`} ref={menuRef}>
+            <button
+              type="button"
+              className={onDbBrowser ? "active" : undefined}
+              title="用户与权限 / 数据表"
+              onClick={() => setDbOpen((v) => !v)}
+            >
+              <i className="fas fa-users-cog" />
+              <span>用户与权限</span>
+              <i className={`fas fa-chevron-${dbOpen ? "up" : "down"} nav-caret`} />
+            </button>
+            {dbOpen && (
+              <div className="portal-nav-submenu">
+                {DB_TABLES.map((t) => (
+                  <Link
+                    key={t.key}
+                    to={`/db-browser?table=${t.key}`}
+                    className={onDbBrowser && new URLSearchParams(location.search).get("table") === t.key ? "active" : undefined}
+                    title={t.hint}
+                  >
+                    {t.label}
+                    <small>{t.hint}</small>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </nav>
       <div className="node-card">
