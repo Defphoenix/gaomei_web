@@ -31,64 +31,60 @@ const Cta: React.FC<{ title?: string; text?: string }> = ({
 );
 
 const values = [
-  { title: "企业愿景", brief: "成为值得信赖的精准医学技术伙伴。", detail: "围绕癌症早检、精准诊断与生物信息平台持续投入，让可靠的组学证据进入更多科研和临床场景。", icon: "target" as MotionVariant, color: "#accbee" },
-  { title: "企业使命", brief: "更早发现风险，让治疗决策更有依据。", detail: "以标准化实验、可解释算法和可追溯报告连接样本、数据与临床问题，缩短研究成果抵达应用的路径。", icon: "cloud" as MotionVariant, color: "#e7d9ce" },
-  { title: "服务理念", brief: "严谨对待数据，也认真理解每个项目。", detail: "从方案评估到结果交付保持清晰沟通，为不同团队提供可复核、可更新、可长期协作的服务体验。", icon: "shield" as MotionVariant, color: "#bdc2e8" },
+  { title: "企业愿景", brief: "世界一流的泛癌早筛、早诊。", detail: "以肿瘤基因组学与表观遗传技术为支柱，持续建设从实验、算法到临床服务的完整能力，让早筛与早诊技术惠及更多人群。", icon: "target" as MotionVariant, color: "#accbee" },
+  { title: "企业使命", brief: "让天下无癌。", detail: "通过规范的实验流程、自主算法与 AI 模型，将复杂组学数据转化为可理解、可落地的风险评估与精准医学方案。", icon: "cloud" as MotionVariant, color: "#e7d9ce" },
+  { title: "核心价值观", brief: "诚朴、创新、卓越。", detail: "以诚朴对待每一份样本与数据，以创新推动检测技术与算法迭代，以卓越标准交付科研与临床服务。", icon: "shield" as MotionVariant, color: "#bdc2e8" },
 ];
 
 const cultures = [
-  { title: "创新", text: "保持好奇，探索科学边界", detail: "关注检测技术、分析算法和产品体验的协同创新，以真实问题推动技术迭代。" },
-  { title: "诚信", text: "数据可信，过程可追溯", detail: "保留关键参数、质控指标和审核记录，让每一个结论都能回到证据本身。" },
-  { title: "卓越", text: "以更高标准交付结果", detail: "建立实验、生信和报告三级质量检查，在效率与严谨之间取得长期稳定的平衡。" },
-  { title: "共赢", text: "与伙伴共享长期价值", detail: "尊重科研与临床团队的专业判断，以开放协作推动项目持续更新和成果转化。" },
+  { title: "诚朴", text: "严谨对待每一份样本", detail: "从采血、提取到测序全流程质控，保留关键指标，让检测结果可追溯、可复现。" },
+  { title: "创新", text: "持续探索技术边界", detail: "布局 WES、TAPS、cfDNA 甲基化与单细胞多组学，推动算法与 AI 模型持续迭代。" },
+  { title: "卓越", text: "以更高标准交付", detail: "建立实验、生信与医学解读协同的质量体系，在效率与严谨之间保持平衡。" },
 ];
 
 const history = [
-  ["2018", "公司成立", "完成核心团队组建，确立肿瘤基因组学与精准医学方向。"],
-  ["2019", "实验平台建设", "建立样本处理、建库和高通量测序的标准化实验能力。"],
-  ["2020", "WES 流程建立", "完成肿瘤—正常配对分析流程和关键质量控制体系。"],
-  ["2021", "甲基化技术突破", "布局 WGBS 与甲基化标志物研究，拓展早期筛查能力。"],
-  ["2022", "临床项目启动", "推动检测、医学解读和中文报告进入完整交付流程。"],
-  ["2023", "多组学能力扩展", "整合 Panel、RNA-seq、CNV、融合与免疫相关指标。"],
-  ["2024", "生信平台建设", "建立任务追踪、参数管理、证据审核和报告版本体系。"],
-  ["2026", "智能协作平台", "连接云端管理与本地 Linux 计算，面向持续更新的项目协作。"],
+  ["2018", "公司成立", "浙江高美基因科技有限公司成立，确立肿瘤基因组学与表观遗传研究方向。"],
+  ["2020", "实验平台建设", "建立 WGBS、RRBS 等表观基因组检测能力，布局甲基化研究服务。"],
+  ["2022", "早筛模型研发", "推进 cfDNA 甲基化早筛模型研发，建设国人专属甲基化数据库。"],
+  ["2024", "突变分析拓展", "完善 WES、靶向 Panel 与 TAPS 肿瘤突变分析平台，形成突变+甲基化双维度能力。"],
+  ["2026", "AI 与全链条服务", "融合自主算法与 AI 模型，连接科研服务、临床检测与健康管理服务。"],
 ];
 
 const platforms = [
   {
-    id: "wgbs", name: "WGBS", label: "全基因组甲基化", icon: "scan" as MotionVariant,
-    description: "在全基因组尺度解析 CpG 位点甲基化状态，用于表观调控、疾病标志物和早期信号研究。",
-    specs: ["全基因组 CpG 覆盖", "甲基化水平定量", "DMR 与功能区域"],
-    applications: ["肿瘤早筛研究", "发育与衰老", "环境与疾病机制"],
-    delivery: "质控报告、甲基化矩阵、差异区域、功能注释及可视化结果。",
+    id: "somatic", name: "WES / Panel / TAPS", label: "肿瘤突变分析", icon: "dna" as MotionVariant,
+    description: "从全外显子组到靶向 Panel，以高深度测序解析 SNV、InDel、CNV；TAPS 可无亚硫酸盐转化同时获取甲基化与突变信息。",
+    specs: ["WES 全外显子覆盖", "Panel 高深度靶向", "TAPS 突变+甲基化"],
+    applications: ["肿瘤分子分型", "用药参考研究", "疗效动态监测"],
+    delivery: "标准化变异结果、质控报告、结构化注释与中文报告。",
   },
   {
-    id: "wes", name: "WES", label: "全外显子组测序", icon: "dna" as MotionVariant,
-    description: "聚焦蛋白编码区，支持肿瘤—正常配对分析和科研队列变异研究。",
-    specs: ["SNV / InDel", "CNV 与 TMB", "配对样本过滤"],
-    applications: ["实体瘤研究", "遗传变异研究", "治疗相关标志物"],
-    delivery: "原始数据质控、标准化变异表、证据分级、报告数据和最终小 BAM。",
+    id: "wgbs", name: "WGBS / RRBS", label: "表观基因组", icon: "scan" as MotionVariant,
+    description: "以 WGBS、RRBS 为核心，系统检测 DNA 甲基化；配合 ATAC-seq、ChIP-seq 解析染色质状态。",
+    specs: ["单碱基甲基化", "CpG 富集区", "染色质开放性"],
+    applications: ["肿瘤早筛研究", "标志物发现", "机制研究"],
+    delivery: "质控报告、甲基化矩阵、差异区域与功能注释。",
   },
   {
-    id: "panel", name: "Panel", label: "高深度靶向测序", icon: "target" as MotionVariant,
-    description: "针对重点基因和区域进行高深度检测，适合明确目标、低频变异和随访场景。",
-    specs: ["灵活基因集合", "高深度覆盖", "低频变异检测"],
-    applications: ["伴随诊断", "复发监控", "重点通路研究"],
-    delivery: "目标区域覆盖度、变异结果、热点证据、样本级质量评估。",
+    id: "cfdna", name: "cfDNA", label: "液体活检早筛", icon: "target" as MotionVariant,
+    description: "面向无创早筛的核心平台，从一管外周血完成 cfDNA 提取、甲基化文库构建与测序检测。",
+    specs: ["低起始量测序", "全流程质控", "风险评估模型"],
+    applications: ["肝癌辅助筛查", "肺癌辅助筛查", "高危人群管理"],
+    delivery: "风险评估报告、特征信号解读与健康管理建议。",
   },
   {
-    id: "rna", name: "RNA-seq", label: "转录组与融合分析", icon: "network" as MotionVariant,
-    description: "从表达谱、可变剪接和融合事件理解肿瘤功能状态及通路变化。",
-    specs: ["表达定量", "融合与剪接", "通路富集"],
-    applications: ["肿瘤分型", "治疗响应研究", "免疫微环境"],
-    delivery: "表达矩阵、差异基因、融合候选、通路结果与可视化图表。",
+    id: "scrna", name: "scRNA / scWGBS", label: "单细胞多组学", icon: "microscope" as MotionVariant,
+    description: "在单细胞分辨率解析基因表达、DNA 甲基化与染色质开放状态，揭示肿瘤异质性。",
+    specs: ["scRNA-seq", "scWGBS", "scATAC-seq"],
+    applications: ["肿瘤微环境", "稀有细胞群体", "谱系追踪"],
+    delivery: "细胞图谱、差异特征、通路富集与可视化结果。",
   },
   {
-    id: "multiomics", name: "Bioinformatics", label: "多组学生信平台", icon: "cloud" as MotionVariant,
-    description: "将 DNA、RNA、甲基化和临床信息纳入统一的项目、参数与审核框架。",
-    specs: ["GRCh38 标准", "参数可追溯", "版本化报告"],
-    applications: ["科研队列", "临床转化", "私有化分析平台"],
-    delivery: "结构化 JSON、TSV、图表、审核记录、PDF 报告及在线证据查看。",
+    id: "compute", name: "BseQC / MOABS", label: "计算技术平台", icon: "cloud" as MotionVariant,
+    description: "覆盖质控、比对、定量与特征挖掘的自研算法体系，支撑大规模甲基化与变异分析。",
+    specs: ["BseQC 质控", "RRBSMAP 比对", "MOABS 定量"],
+    applications: ["队列研究", "模型训练", "多组学整合"],
+    delivery: "标准化分析流程、特征矩阵、模型输出与可复现报告。",
   },
 ];
 
@@ -109,7 +105,7 @@ export const AboutPage: React.FC = () => {
 
   return (
     <AnimatedPage className="about-public-page">
-      <PageHero eyebrow="HUMANITY THROUGH DATA" title="关于我们" text="更早发现风险，让可靠的生命数据更快转化为研究与临床答案。">
+      <PageHero eyebrow="HUMANITY THROUGH DATA" title="关于我们" text="让天下无癌——以肿瘤基因组学与表观遗传技术，构建从实验到 AI 早筛的完整能力。">
         <div className="hero-actions">
           <a className="button button-primary" href="#company-profile">了解公司背景</a>
           <a className="button button-ghost" href="#technology-platform">浏览技术平台</a>
@@ -120,19 +116,22 @@ export const AboutPage: React.FC = () => {
         <div className="site-container company-profile-grid">
           <div className="motion-reveal">
             <span className="eyebrow">WHO WE ARE</span>
-            <h2>让实验、算法与医学判断在同一条路径上协作</h2>
-            <p className="lead">高美基因围绕肿瘤基因组学、甲基化研究和生物信息分析建设完整技术体系，为科研机构、临床团队和生信人员提供从方案设计到报告发布的连续服务。</p>
-            <div className="company-tags"><span>科研设计</span><span>标准化检测</span><span>配对分析</span><span>证据审核</span><span>版本化报告</span></div>
+            <h2>肿瘤基因组 × 表观遗传 × AI 模型</h2>
+            <p className="lead">高美基因以表观遗传学为核心、肿瘤基因组学为支柱，构建了从全基因组突变到单细胞多组学、从组织样本到一管外周血的完整技术矩阵，并以自主算法与 AI 模型将其转化为可落地的肿瘤早筛与精准医学方案。</p>
+            <div className="company-tags"><span>肿瘤突变分析</span><span>cfDNA 甲基化</span><span>表观基因组</span><span>单细胞多组学</span><span>AI 早筛</span></div>
           </div>
           <div className="company-data-panel motion-reveal">
             <div className="company-orbit"><MotionIcon variant="network" /></div>
-            <small>INTEGRATED CAPABILITY</small>
-            <strong>Sample → Data → Evidence → Report</strong>
+            <small>COMPANY METRICS</small>
+            <strong>实验 → 算法 → 产品 → 服务</strong>
             <div className="company-metrics">
-              <span><b data-count="5" data-suffix="+">0</b>技术平台</span>
-              <span><b data-count="4">0</b>审核角色</span>
-              <span><b data-count="38" data-suffix="">0</b>参考基因组</span>
+              <span><b data-count="7000" data-suffix="+">0</b>累计样本</span>
+              <span><b data-count="40" data-suffix="+">0</b>合作机构</span>
+              <span><b data-count="12" data-suffix="">0</b>覆盖癌种</span>
             </div>
+            <p style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}>
+              <a href="/assets/tech-platform-architecture.html" target="_blank" rel="noreferrer">查看技术平台架构图</a>
+            </p>
           </div>
         </div>
       </section>
@@ -163,7 +162,7 @@ export const AboutPage: React.FC = () => {
             </div>
           </div>
           <div className="selector-detail culture-detail motion-reveal" key={activeCulture}>
-            <MotionIcon variant={(["target", "shield", "report", "network"] as MotionVariant[])[activeCulture]} />
+            <MotionIcon variant={(["target", "cloud", "shield"] as MotionVariant[])[activeCulture]} />
             <small>CULTURE · 0{activeCulture + 1}</small><h3>{cultures[activeCulture].title}</h3><p>{cultures[activeCulture].detail}</p>
             <div className="detail-pulse-line"><i /><i /><i /><i /></div>
           </div>
@@ -279,7 +278,7 @@ export const TechPage: React.FC = () => {
 
   return (
     <AnimatedPage className="tech-public-page">
-      <PageHero eyebrow="PRECISION ONCOLOGY" title={<>肿瘤全周期<br /><span>精准检测服务</span></>} text="从早期风险信号、治疗相关变异到疗效与复发监测，以可追溯的实验和生信流程支持每个阶段的判断。">
+      <PageHero eyebrow="PRECISION ONCOLOGY" title={<>肿瘤全周期<br /><span>精准检测服务</span></>} text="从 cfDNA 甲基化早筛、肿瘤突变分析到疗效监测，以五大多组学实验体系与自主算法支撑每个阶段的判断。">
         <div className="hero-actions"><Link className="button button-primary" to="/contact#consultation-form">立即咨询</Link><a className="button button-ghost" href="#oncology-services">查看服务体系</a></div>
       </PageHero>
 
@@ -342,36 +341,41 @@ export const TechPage: React.FC = () => {
 
 const productItems = [
   {
-    id: "screen", title: "肿瘤早筛早检", icon: "target" as MotionVariant, color: "#accbee", tech: ["甲基化", "多组学"],
-    text: "针对多癌种的早期风险研究，通过表观遗传和多组学信号识别早期变化。",
+    id: "meiganxin", title: "美甘鑫 · 肝癌风险评估", icon: "target" as MotionVariant, color: "#accbee", tech: ["cfDNA", "甲基化"],
+    text: "基于 cfDNA 甲基化信号的肝癌风险评估模型，助力肝癌高危人群的早期发现与健康管理。",
+    scene: "肝癌高危人群、健康管理、队列研究", sample: "10 mL 外周血", output: "风险评估报告、特征解读与随访建议",
+  },
+  {
+    id: "meiganfei", title: "美甘飞 · 肺癌风险评估", icon: "scan" as MotionVariant, color: "#b3d8b6", tech: ["cfDNA", "甲基化"],
+    text: "面向肺癌的 cfDNA 甲基化风险评估模型，与影像学手段互补，辅助早期肺癌风险识别。",
+    scene: "肺癌高危筛查、体检联合、科研验证", sample: "10 mL 外周血", output: "风险评估报告、模型分层与研究报告",
+  },
+  {
+    id: "screen", title: "肿瘤早筛早检", icon: "microscope" as MotionVariant, color: "#e7d9ce", tech: ["甲基化", "多组学"],
+    text: "通过表观遗传和多组学信号识别早期风险，覆盖多癌种研究队列与健康管理场景。",
     scene: "高风险队列、健康管理研究、早期标志物验证", sample: "血液及研究方案规定样本", output: "风险信号、模型分层、关键特征和研究报告",
   },
   {
-    id: "diagnosis", title: "肿瘤伴随诊断", icon: "microscope" as MotionVariant, color: "#e7d9ce", tech: ["WES", "Panel", "RNA"],
-    text: "通过配对 WES、深度 Panel 和 RNA 分析整理治疗相关分子信息。",
-    scene: "治疗方案讨论、重要靶点检测、免疫标志物评估", sample: "肿瘤组织与配对正常样本", output: "变异总表、证据分级、IGV 证据和中文报告",
-  },
-  {
-    id: "monitor", title: "肿瘤复发监控", icon: "scan" as MotionVariant, color: "#b3d8b6", tech: ["Panel", "多组学"],
-    text: "围绕基线变异和连续样本开展动态追踪，观察治疗后信号变化。",
-    scene: "术后随访、疗效观察、复发风险研究", sample: "基线组织与多个时间点血液", output: "重点位点趋势、样本对比、随访数据和更新报告",
+    id: "diagnosis", title: "肿瘤精准检测", icon: "dna" as MotionVariant, color: "#bdc2e8", tech: ["WES", "Panel", "TAPS"],
+    text: "通过 WES、靶向 Panel 和 TAPS 技术，整理治疗相关分子信息与拷贝数变异。",
+    scene: "治疗方案讨论、靶点检测、分子分型", sample: "肿瘤组织、配对正常样本或血液 cfDNA", output: "变异总表、证据分级、中文报告",
   },
 ];
 
 const matrixItems = [
-  { phase: "早筛", title: "甲基化风险信号", tech: ["甲基化", "多组学"], desc: "面向早期标志物和队列风险分层。" },
+  { phase: "早筛", title: "美甘鑫 / 美甘飞", tech: ["甲基化", "cfDNA"], desc: "基于 cfDNA 甲基化信号的肝癌、肺癌风险评估。" },
+  { phase: "早筛", title: "泛癌种甲基化研究", tech: ["甲基化", "多组学"], desc: "面向多癌种队列的风险信号识别与模型验证。" },
   { phase: "确诊", title: "肿瘤—正常配对 WES", tech: ["WES"], desc: "建立较完整的体细胞变异图谱。" },
-  { phase: "治疗", title: "高深度靶向 Panel", tech: ["Panel"], desc: "聚焦治疗相关基因与重点区域。" },
-  { phase: "治疗", title: "表达与融合检测", tech: ["RNA"], desc: "补充表达、剪接和融合层面的证据。" },
+  { phase: "治疗", title: "靶向 Panel / TAPS", tech: ["Panel", "TAPS"], desc: "高深度靶向检测，TAPS 可同时获取突变与甲基化。" },
   { phase: "随访", title: "重点位点动态追踪", tech: ["Panel"], desc: "对基线结果进行连续时间点观察。" },
-  { phase: "研究", title: "多组学联合分析", tech: ["多组学", "WES", "RNA"], desc: "连接基因、表达、甲基化和临床信息。" },
+  { phase: "研究", title: "单细胞多组学", tech: ["多组学", "scRNA"], desc: "解析肿瘤异质性与表观调控机制。" },
 ];
 
 const productProcess = [
-  ["样本采集与配对", "确认样本编号、患者关联、肿瘤—正常配对和采样时间。"],
-  ["GRCh38 标准化分析", "统一参考版本与分析流程，记录软件、参数和质量指标。"],
-  ["智能变异筛选", "结合固定规则、分析员参数和临床证据形成最终结果集。"],
-  ["中文报告与证据", "交付在线报告、PDF、结构化结果表和 IGV 证据查看。"],
+  ["外周血采集", "10 mL 外周血完成采样，血浆分离与 cfDNA 提取质控。"],
+  ["文库构建与测序", "甲基化或突变文库构建，高通量测序与数据质控。"],
+  ["自研算法分析", "BseQC、RRBSMAP、MOABS 等工具完成甲基化定量与变异检测。"],
+  ["AI 模型与报告", "风险评估模型判读，交付结构化报告与健康管理建议。"],
 ];
 
 export const ProductsPage: React.FC = () => {
@@ -382,7 +386,7 @@ export const ProductsPage: React.FC = () => {
 
   return (
     <AnimatedPage className="products-public-page">
-      <PageHero eyebrow="PRECISION MEDICINE" title={<>癌症全周期<br /><span>产品解决方案</span></>} text="围绕早筛、伴随诊断与复发监控搭建可扩展产品体系，后续新增产品可直接纳入统一详情和技术矩阵。">
+      <PageHero eyebrow="PRECISION MEDICINE" title={<>癌症全周期<br /><span>产品解决方案</span></>} text="美甘鑫、美甘飞等 cfDNA 甲基化早筛产品，结合 WES、Panel、TAPS 精准检测，覆盖早筛、诊断与随访全周期。">
         <div className="hero-actions"><Link className="button button-primary" to="/contact#consultation-form">了解产品详情</Link><a className="button button-ghost" href="#products">探索产品</a></div>
       </PageHero>
 
@@ -474,7 +478,7 @@ export const ContactPage: React.FC = () => {
             <div className="form-tech-icon"><MotionIcon variant="network" /></div><small>RESPONSE WITHIN 1 BUSINESS DAY</small><h3>发送{selected.name}咨询</h3>
             <div className="form-row"><input aria-label="姓名" placeholder="您的姓名" /><input type="email" aria-label="电子邮箱" placeholder="电子邮箱" /></div>
             <select aria-label="咨询类型" value={selected.name} onChange={(event) => setConsultType(Math.max(0, consultTypes.findIndex((item) => item.name === event.target.value)))}>{consultTypes.map((item) => <option key={item.name}>{item.name}</option>)}</select>
-            {selected.name === "检测产品" && <select aria-label="产品方向" defaultValue=""><option value="" disabled>请选择产品方向</option><option>肿瘤早筛</option><option>伴随诊断</option><option>复发监控</option><option>组合方案</option></select>}
+            {selected.name === "检测产品" && <select aria-label="产品方向" defaultValue=""><option value="" disabled>请选择产品方向</option><option>美甘鑫 · 肝癌风险评估</option><option>美甘飞 · 肺癌风险评估</option><option>肿瘤精准检测</option><option>科研合作方案</option></select>}
             <textarea aria-label="咨询内容" defaultValue={requestedService ? `咨询方案：${requestedService}\n` : undefined} placeholder={`请描述${selected.details.join("、")}等信息…`} rows={6} /><button className="button button-primary" type="submit">提交咨询</button>
           </form>
         </div>

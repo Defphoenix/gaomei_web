@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>技术平台总体架构图 v2</title>
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #EDF2F8;
+    display: flex;
+    justify-content: center;
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+  }
+  .sheet {
+    background: #FFFFFF;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(22, 64, 109, 0.12);
+    padding: 16px;
+    max-width: 1040px;
+    width: 100%;
+  }
+  svg { width: 100%; height: auto; display: block; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .sheet { box-shadow: none; padding: 0; }
+    @page { size: A4 landscape; margin: 8mm; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+<svg viewBox="0 0 680 870" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif">
+
+  <!-- ================= 背景 ================= -->
+  <rect x="0" y="0" width="680" height="870" fill="#F7FAFD"/>
+
+  <!-- ================= 页头 ================= -->
+  <rect x="0" y="0" width="680" height="86" fill="#16406D"/>
+  <rect x="0" y="83" width="680" height="3" fill="#E8B84B"/>
+  <text x="340" y="40" text-anchor="middle" font-size="22" font-weight="700" fill="#FFFFFF">技术平台总体架构</text>
+  <text x="340" y="66" text-anchor="middle" font-size="12" fill="#B8D4F0">肿瘤基因组 × 表观遗传 × AI 早筛 —— 突变与甲基化双维度技术体系</text>
+
+  <!-- ================= 左栏：实验技术平台 ================= -->
+  <rect x="20" y="100" width="310" height="30" rx="6" fill="#1D5A96"/>
+  <text x="175" y="120" text-anchor="middle" font-size="14" font-weight="700" fill="#FFFFFF">实验技术平台 · Wet Lab</text>
+
+  <!-- 卡片1：肿瘤突变检测 -->
+  <rect x="20" y="142" width="310" height="94" rx="8" fill="#FFFFFF" stroke="#C9D9EA" stroke-width="1"/>
+  <rect x="32" y="154" width="8" height="8" fill="#1D5A96"/>
+  <text x="46" y="163" font-size="13" font-weight="700" fill="#16406D">肿瘤突变检测</text>
+  <rect x="136" y="151" width="36" height="15" rx="7" fill="#E85A5A"/>
+  <text x="154" y="162.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">NEW</text>
+  <text x="36" y="182" font-size="11"><tspan font-weight="700" fill="#16406D">WES</tspan><tspan fill="#4A5A6A">　全外显子组测序</tspan></text>
+  <text x="36" y="200" font-size="11"><tspan font-weight="700" fill="#16406D">靶向 Panel</tspan><tspan fill="#4A5A6A">　肿瘤基因高深度测序</tspan></text>
+  <text x="36" y="218" font-size="11"><tspan font-weight="700" fill="#16406D">TAPS</tspan><tspan fill="#4A5A6A">　无亚硫酸盐 · 突变+甲基化双维度</tspan></text>
+
+  <!-- 卡片2：表观基因组 -->
+  <rect x="20" y="246" width="310" height="112" rx="8" fill="#FFFFFF" stroke="#C9D9EA" stroke-width="1"/>
+  <rect x="32" y="258" width="8" height="8" fill="#1D5A96"/>
+  <text x="46" y="267" font-size="13" font-weight="700" fill="#16406D">表观基因组</text>
+  <text x="36" y="286" font-size="11"><tspan font-weight="700" fill="#16406D">WGBS</tspan><tspan fill="#4A5A6A">　全基因组甲基化（金标准）</tspan></text>
+  <text x="36" y="304" font-size="11"><tspan font-weight="700" fill="#16406D">RRBS</tspan><tspan fill="#4A5A6A">　CpG 富集区甲基化</tspan></text>
+  <text x="36" y="322" font-size="11"><tspan font-weight="700" fill="#16406D">ATAC-seq</tspan><tspan fill="#4A5A6A">　染色质开放性</tspan></text>
+  <text x="36" y="340" font-size="11"><tspan font-weight="700" fill="#16406D">ChIP-seq</tspan><tspan fill="#4A5A6A">　组蛋白修饰 / 转录因子</tspan></text>
+
+  <!-- 卡片3：转录组与表观转录组 -->
+  <rect x="20" y="368" width="310" height="94" rx="8" fill="#FFFFFF" stroke="#C9D9EA" stroke-width="1"/>
+  <rect x="32" y="380" width="8" height="8" fill="#1D5A96"/>
+  <text x="46" y="389" font-size="13" font-weight="700" fill="#16406D">转录组与表观转录组</text>
+  <text x="36" y="408" font-size="11"><tspan font-weight="700" fill="#16406D">RNA-seq</tspan><tspan fill="#4A5A6A">　转录组表达谱</tspan></text>
+  <text x="36" y="426" font-size="11"><tspan font-weight="700" fill="#16406D">MeRIP-seq</tspan><tspan fill="#4A5A6A">　m6A RNA 修饰图谱</tspan></text>
+  <text x="36" y="444" font-size="11"><tspan font-weight="700" fill="#16406D">RIP-seq</tspan><tspan fill="#4A5A6A">　RNA-蛋白互作</tspan></text>
+
+  <!-- 卡片4：单细胞多组学 -->
+  <rect x="20" y="472" width="310" height="94" rx="8" fill="#FFFFFF" stroke="#C9D9EA" stroke-width="1"/>
+  <rect x="32" y="484" width="8" height="8" fill="#1D5A96"/>
+  <text x="46" y="493" font-size="13" font-weight="700" fill="#16406D">单细胞多组学</text>
+  <text x="36" y="512" font-size="11"><tspan font-weight="700" fill="#16406D">scRNA-seq</tspan><tspan fill="#4A5A6A">　单细胞转录组</tspan></text>
+  <text x="36" y="530" font-size="11"><tspan font-weight="700" fill="#16406D">scWGBS</tspan><tspan fill="#4A5A6A">　单细胞全基因组甲基化</tspan></text>
+  <text x="36" y="548" font-size="11"><tspan font-weight="700" fill="#16406D">scATAC-seq</tspan><tspan fill="#4A5A6A">　单细胞染色质可及性</tspan></text>
+
+  <!-- 卡片5：cfDNA 核心（高亮） -->
+  <rect x="20" y="576" width="310" height="94" rx="8" fill="#FFF8EA" stroke="#E8B84B" stroke-width="1.5"/>
+  <rect x="32" y="588" width="8" height="8" fill="#E8B84B"/>
+  <text x="46" y="597" font-size="13" font-weight="700" fill="#B07818">★ cfDNA 甲基化检测平台（核心）</text>
+  <text x="36" y="616" font-size="11"><tspan font-weight="700" fill="#9A6A10">低输入测序</tspan><tspan fill="#6A5A3A">　低起始量 WGBS / 靶向 panel</tspan></text>
+  <text x="36" y="634" font-size="11"><tspan font-weight="700" fill="#9A6A10">全流程质控</tspan><tspan fill="#6A5A3A">　采样 → 提取 → 建库可追溯</tspan></text>
+  <text x="36" y="652" font-size="11"><tspan font-weight="700" fill="#9A6A10">一管血检测</tspan><tspan fill="#6A5A3A">　无创早筛 · 协同 TAPS 双维度</tspan></text>
+
+  <!-- ================= 右栏：计算技术平台 ================= -->
+  <rect x="350" y="100" width="310" height="30" rx="6" fill="#0E7C7B"/>
+  <text x="505" y="120" text-anchor="middle" font-size="14" font-weight="700" fill="#FFFFFF">计算技术平台 · Dry Lab</text>
+
+  <!-- 卡片6：自主生信算法体系 -->
+  <rect x="350" y="142" width="310" height="280" rx="8" fill="#FFFFFF" stroke="#BFDAD9" stroke-width="1"/>
+  <rect x="362" y="154" width="8" height="8" fill="#0E7C7B"/>
+  <text x="376" y="163" font-size="13" font-weight="700" fill="#0A5F5E">自主生信算法体系（全流程覆盖）</text>
+
+  <rect x="366" y="182" width="62" height="18" rx="9" fill="#E0F0EF"/>
+  <text x="397" y="195" text-anchor="middle" font-size="10" fill="#0A5F5E" font-weight="700">数据质控</text>
+  <text x="438" y="195" font-size="11" font-weight="700" fill="#16406D">BseQC</text>
+
+  <rect x="366" y="212" width="62" height="18" rx="9" fill="#E0F0EF"/>
+  <text x="397" y="225" text-anchor="middle" font-size="10" fill="#0A5F5E" font-weight="700">序列比对</text>
+  <text x="438" y="225" font-size="11" font-weight="700" fill="#16406D">RRBSMAP</text>
+
+  <rect x="366" y="242" width="76" height="18" rx="9" fill="#E0F0EF"/>
+  <text x="404" y="255" text-anchor="middle" font-size="10" fill="#0A5F5E" font-weight="700">定量与差异</text>
+  <text x="452" y="255" font-size="11" font-weight="700" fill="#16406D">MOABS · Libis</text>
+
+  <rect x="366" y="272" width="76" height="18" rx="9" fill="#E0F0EF"/>
+  <text x="404" y="285" text-anchor="middle" font-size="10" fill="#0A5F5E" font-weight="700">特征挖掘</text>
+  <text x="452" y="285" font-size="11" font-weight="700" fill="#16406D">OUMR · MMINT</text>
+
+  <line x1="366" y1="302" x2="644" y2="302" stroke="#D9E8E7" stroke-width="1"/>
+  <text x="366" y="324" font-size="10" fill="#7A8FA0">MOABS 发表于 Nucleic Acids Research</text>
+  <text x="366" y="342" font-size="10" fill="#7A8FA0">Libis / OUMR / MMINT 为自主研发工具</text>
+  <text x="366" y="368" font-size="10.5" fill="#4A5A6A">针对重亚硫酸盐测序数据深度优化，</text>
+  <text x="366" y="384" font-size="10.5" fill="#4A5A6A">支撑大规模样本队列的稳定分析。</text>
+  <text x="366" y="408" font-size="10.5" font-weight="700" fill="#0E7C7B">✓ 双维度输出：甲基化图谱 + 突变谱</text>
+
+  <!-- 卡片7：AI 早筛模型 -->
+  <rect x="350" y="432" width="310" height="238" rx="8" fill="#FFFFFF" stroke="#BFDAD9" stroke-width="1"/>
+  <rect x="362" y="444" width="8" height="8" fill="#0E7C7B"/>
+  <text x="376" y="453" font-size="13" font-weight="700" fill="#0A5F5E">AI 早筛模型（肝肺为主）</text>
+
+  <rect x="366" y="468" width="278" height="34" rx="6" fill="#F0F7F7"/>
+  <text x="380" y="482" font-size="11" font-weight="700" fill="#16406D">美甘鑫</text>
+  <text x="424" y="482" font-size="10.5" fill="#4A5A6A">肝癌 cfDNA 甲基化风险评估模型</text>
+  <text x="380" y="496" font-size="9.5" fill="#8AA0B5">【性能指标待补充：敏感性 / 特异性 / AUC】</text>
+
+  <rect x="366" y="510" width="278" height="34" rx="6" fill="#F0F7F7"/>
+  <text x="380" y="524" font-size="11" font-weight="700" fill="#16406D">美甘飞</text>
+  <text x="424" y="524" font-size="10.5" fill="#4A5A6A">肺癌 cfDNA 甲基化风险评估模型</text>
+  <text x="380" y="538" font-size="9.5" fill="#8AA0B5">与影像学互补，提升早期检出率</text>
+
+  <rect x="366" y="552" width="278" height="26" rx="6" fill="#F0F7F7"/>
+  <text x="380" y="569" font-size="11" font-weight="700" fill="#16406D">多模型融合</text>
+  <text x="452" y="569" font-size="10.5" fill="#4A5A6A">随机森林 / XGBoost 等集成学习</text>
+
+  <rect x="366" y="586" width="278" height="26" rx="6" fill="#F0F7F7"/>
+  <text x="380" y="603" font-size="11" font-weight="700" fill="#16406D">泛癌扩展</text>
+  <text x="432" y="603" font-size="10.5" fill="#4A5A6A">PanCancer 泛癌早筛模型研发中</text>
+
+  <text x="366" y="636" font-size="9.5" fill="#8AA0B5">模型输入：cfDNA 甲基化信号 + 突变特征</text>
+  <text x="366" y="654" font-size="9.5" fill="#8AA0B5">合规口径：统一使用「风险评估 / 辅助筛查」表述</text>
+
+  <!-- ================= 底部：全流程技术路线 ================= -->
+  <text x="20" y="706" font-size="14" font-weight="700" fill="#16406D">全流程技术路线</text>
+  <line x1="120" y1="702" x2="660" y2="702" stroke="#D9E2EC" stroke-width="1"/>
+
+  <!-- 节点 1-4：实验平台（蓝） -->
+  <rect x="26" y="722" width="76" height="44" rx="22" fill="#E3EEF8" stroke="#1D5A96" stroke-width="1"/>
+  <text x="64" y="749" text-anchor="middle" font-size="11" fill="#16406D" font-weight="700">外周血采集</text>
+
+  <rect x="118" y="722" width="76" height="44" rx="22" fill="#E3EEF8" stroke="#1D5A96" stroke-width="1"/>
+  <text x="156" y="749" text-anchor="middle" font-size="11" fill="#16406D" font-weight="700">cfDNA 提取</text>
+
+  <rect x="210" y="722" width="76" height="44" rx="22" fill="#E3EEF8" stroke="#1D5A96" stroke-width="1"/>
+  <text x="248" y="742" text-anchor="middle" font-size="11" fill="#16406D" font-weight="700">文库构建</text>
+  <text x="248" y="756" text-anchor="middle" font-size="8.5" fill="#5A7A9A">甲基化 / 突变</text>
+
+  <rect x="302" y="722" width="76" height="44" rx="22" fill="#E3EEF8" stroke="#1D5A96" stroke-width="1"/>
+  <text x="340" y="749" text-anchor="middle" font-size="11" fill="#16406D" font-weight="700">高通量测序</text>
+
+  <!-- 节点 5-6：计算平台（青） -->
+  <rect x="394" y="722" width="76" height="44" rx="22" fill="#E0F0EF" stroke="#0E7C7B" stroke-width="1"/>
+  <text x="432" y="749" text-anchor="middle" font-size="11" fill="#0A5F5E" font-weight="700">自研算法分析</text>
+
+  <rect x="486" y="722" width="76" height="44" rx="22" fill="#E0F0EF" stroke="#0E7C7B" stroke-width="1"/>
+  <text x="524" y="749" text-anchor="middle" font-size="11" fill="#0A5F5E" font-weight="700">AI 模型判读</text>
+
+  <!-- 节点 7：服务（金） -->
+  <rect x="578" y="722" width="76" height="44" rx="22" fill="#FFF8EA" stroke="#E8B84B" stroke-width="1.5"/>
+  <text x="616" y="749" text-anchor="middle" font-size="11" fill="#9A6A10" font-weight="700">风险评估报告</text>
+
+  <!-- 箭头 -->
+  <g stroke="#9AB0C4" stroke-width="1.5" fill="#9AB0C4">
+    <line x1="104" y1="744" x2="112" y2="744"/><path d="M112,740 L118,744 L112,748 Z" stroke="none"/>
+    <line x1="196" y1="744" x2="204" y2="744"/><path d="M204,740 L210,744 L204,748 Z" stroke="none"/>
+    <line x1="288" y1="744" x2="296" y2="744"/><path d="M296,740 L302,744 L296,748 Z" stroke="none"/>
+    <line x1="380" y1="744" x2="388" y2="744"/><path d="M388,740 L394,744 L388,748 Z" stroke="none"/>
+    <line x1="472" y1="744" x2="480" y2="744"/><path d="M480,740 L486,744 L480,748 Z" stroke="none"/>
+    <line x1="564" y1="744" x2="572" y2="744"/><path d="M572,740 L578,744 L572,748 Z" stroke="none"/>
+  </g>
+
+  <!-- 覆盖范围标注 -->
+  <path d="M26,784 L26,790 L378,790 L378,784" fill="none" stroke="#1D5A96" stroke-width="1.5"/>
+  <text x="202" y="808" text-anchor="middle" font-size="11" font-weight="700" fill="#1D5A96">实验技术平台覆盖</text>
+
+  <path d="M394,784 L394,790 L562,790 L562,784" fill="none" stroke="#0E7C7B" stroke-width="1.5"/>
+  <text x="478" y="808" text-anchor="middle" font-size="11" font-weight="700" fill="#0E7C7B">计算技术平台支撑</text>
+
+  <path d="M578,784 L578,790 L654,790 L654,784" fill="none" stroke="#E8B84B" stroke-width="1.5"/>
+  <text x="616" y="808" text-anchor="middle" font-size="11" font-weight="700" fill="#B07818">健康服务</text>
+
+  <!-- 页脚说明 -->
+  <text x="340" y="848" text-anchor="middle" font-size="9.5" fill="#8AA0B5">注：MOABS 已发表于 Nucleic Acids Research；Libis / OUMR / MMINT 为自主研发工具；TAPS 为无亚硫酸盐甲基化测序技术。本图为框架示意，性能指标以公司正式发布为准。</text>
+
+</svg>
+</div>
+</body>
+</html>

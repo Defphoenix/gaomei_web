@@ -24,10 +24,16 @@ company, _ = CompanyInfo.objects.get_or_create(
     id=1,
     defaults={
         "name": "浙江高美基因科技有限公司",
-        "slogan": "精准检测，赋能生命健康",
-        "description": "浙江高美基因科技有限公司是一家专注于基因组学研究和精准医学服务的高新技术企业。公司在DNA甲基化检测、基因突变分析、微卫星不稳定(MSI)检测和拷贝数变异(CNV)分析等领域拥有领先的技术平台和丰富的行业经验。我们致力于为医疗机构、科研院所和制药企业提供高质量的生物信息学分析服务。",
-        "mission": "以精准的基因组分析技术，推动精准医学发展，助力个体化诊疗。",
-        "vision": "成为国内领先的基因组学检测与生物信息分析服务平台。",
+        "slogan": "让天下无癌",
+        "description": (
+            "浙江高美基因科技有限公司以表观遗传学为核心、肿瘤基因组学为支柱，"
+            "构建了从全基因组突变到单细胞多组学、从组织样本到一管外周血的完整技术矩阵。"
+            "公司自主建设肿瘤突变分析（WES / 靶向 Panel / TAPS）、表观多组学、"
+            "cfDNA 甲基化检测实验平台与全流程生信算法体系，"
+            "以多模型融合 AI 将技术转化为可落地的肿瘤早筛与精准医学方案。"
+        ),
+        "mission": "让天下无癌",
+        "vision": "世界一流的泛癌早筛、早诊",
         "email": "contact@gomicsgene.com",
         "phone": "",
         "address": "浙江省杭州市余杭区仓前街道留泽街110号4幢-201-2",
@@ -39,9 +45,11 @@ print(f"公司信息: {company.name}")
 
 # ============ 团队成员 ============
 team_data = [
-    {"name": "孙德强", "position": "创始人 & CEO", "bio": "北京大学生命科学博士，前华大基因高级研究员，专注基因组学研究15年。", "order": 1},
-    {"name": "林芳赋", "position": "首席技术官", "bio": "中科院生物信息学博士后，擅长NGS数据分析流程开发和甲基化算法设计。", "order": 2},
-    {"name": "郭峰华", "position": "研发总监", "bio": "浙江大学生物医学工程硕士，负责检测平台技术优化和产品开发。", "order": 3},
+    {"name": "孙德强", "position": "董事长 / 创始人", "bio": "高美基因创始人，长期深耕肿瘤基因组学与精准医学方向。", "expertise": "肿瘤基因组学，精准医学，临床转化", "order": 1},
+    {"name": "熊晶", "position": "总经理", "bio": "负责公司整体运营管理，统筹科研服务、临床检测与产品化落地。", "expertise": "运营管理，产品开发，检测服务", "order": 2},
+    {"name": "张旭丹", "position": "董事会秘书", "bio": "负责公司治理、对外沟通与战略协同。", "expertise": "公司治理，战略协同，对外合作", "order": 3},
+    {"name": "陈润生", "position": "生物信息学专家顾问", "bio": "中国科学院院士，著名生物信息学家。", "expertise": "生物信息学，基因组学，科学顾问", "order": 4},
+    {"name": "Margaret A. Goodell", "position": "表观遗传学专家顾问", "bio": "贝勒医学院教授，国际表观遗传与干细胞研究领域专家。", "expertise": "表观遗传学，干细胞，科学顾问", "order": 5},
 ]
 for td in team_data:
     TeamMember.objects.get_or_create(name=td["name"], defaults=td)
@@ -49,10 +57,10 @@ print(f"团队成员: {len(team_data)} 人")
 
 # ============ 服务项目 ============
 services_data = [
-    {"title": "DNA甲基化检测", "description": "基于亚硫酸氢盐测序(WGBS)和甲基化芯片平台的全面甲基化分析服务，覆盖全基因组CpG位点。", "icon": "fas fa-dna", "order": 1},
-    {"title": "基因突变分析", "description": "利用全外显子组测序(WES)和靶向Panel测序，精准检测SNV、InDel等多种类型的基因突变。", "icon": "fas fa-microscope", "order": 2},
-    {"title": "MSI检测", "description": "微卫星不稳定性(MSI)高精度检测，支持肿瘤免疫治疗疗效评估和 Lynch 综合征筛查。", "icon": "fas fa-chart-bar", "order": 3},
-    {"title": "CNV分析", "description": "基于测序数据的拷贝数变异(CNV)全基因组分析，检测基因扩增、缺失等结构变异。", "icon": "fas fa-project-diagram", "order": 4},
+    {"title": "肿瘤突变分析", "description": "WES、靶向 Panel 与 TAPS，解析 SNV、InDel、CNV 等变异。", "icon": "fas fa-dna", "order": 1},
+    {"title": "cfDNA 甲基化早筛", "description": "基于外周血 cfDNA 甲基化信号的风险评估，聚焦肝癌、肺癌等癌种。", "icon": "fas fa-vial", "order": 2},
+    {"title": "表观基因组检测", "description": "WGBS、RRBS、ATAC-seq、ChIP-seq 等平台服务。", "icon": "fas fa-microscope", "order": 3},
+    {"title": "单细胞多组学", "description": "scRNA-seq、scWGBS、scATAC-seq 单细胞分辨率分析。", "icon": "fas fa-project-diagram", "order": 4},
 ]
 for sd in services_data:
     Service.objects.get_or_create(title=sd["title"], defaults=sd)

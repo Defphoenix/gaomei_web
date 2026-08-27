@@ -8,42 +8,48 @@ import { featuredNewsFallback } from "../components/newsAssets";
 const VIDEO_SRC = "/assets/media/gomics-hero.mp4";
 
 const fallbackServices: ServiceItem[] = [
-  { id: 1, title: "全外显子组测序", description: "肿瘤-正常配对分析，覆盖 SNV、Indel、CNV 与 SV。", icon: "dna" },
-  { id: 2, title: "精准肿瘤诊断", description: "整合临床证据、变异审核和中文报告交付。", icon: "target" },
-  { id: 3, title: "表观遗传研究", description: "甲基化、染色质可及性与单细胞多组学研究。", icon: "microscope" },
-  { id: 4, title: "生信协作平台", description: "参数、任务、审核、版本与操作记录全程可追溯。", icon: "network" },
+  { id: 1, title: "肿瘤突变分析", description: "WES、靶向 Panel 与 TAPS，解析 SNV、InDel、CNV，支持突变与甲基化双维度分析。", icon: "dna" },
+  { id: 2, title: "cfDNA 甲基化早筛", description: "基于外周血 cfDNA 甲基化信号的风险评估，聚焦肝癌、肺癌等癌种辅助筛查。", icon: "target" },
+  { id: 3, title: "表观基因组检测", description: "WGBS、RRBS、ATAC-seq、ChIP-seq 等，覆盖 DNA 甲基化与染色质修饰研究。", icon: "microscope" },
+  { id: 4, title: "单细胞多组学", description: "scRNA-seq、scWGBS、scATAC-seq，在单细胞分辨率解析肿瘤异质性。", icon: "network" },
 ];
 
+const teamPhotoByName: Record<string, string> = {
+  孙德强: "/assets/images/team_male_2.jpg",
+  熊晶: "/assets/images/team_male_1.jpg",
+  张旭丹: "/assets/images/team_female.jpg",
+};
+
 const fallbackTeam: TeamMember[] = [
-  { id: 1, name: "孙德强", position: "创始人 & CEO", bio: "北京大学生命科学博士，前华大基因高级研究员，专注基因组学研究15年。", expertise: "肿瘤基因组学，精准医学，临床转化", photo: "/assets/images/team_male_2.jpg" },
-  { id: 2, name: "林芳赋", position: "首席技术官", bio: "中科院生物信息学博士后，擅长NGS数据分析流程开发和甲基化算法设计。", expertise: "生物信息，甲基化算法，多组学", photo: "/assets/images/team_female.jpg" },
-  { id: 3, name: "郭峰华", position: "研发总监", bio: "浙江大学生物医学工程硕士，负责检测平台技术优化和产品开发。", expertise: "检测平台，产品研发，工程转化", photo: "/assets/images/team_male_1.jpg" },
+  { id: 1, name: "孙德强", position: "董事长 / 创始人", bio: "高美基因创始人，长期深耕肿瘤基因组学与精准医学方向，推动实验平台、算法体系与临床转化能力建设。", expertise: "肿瘤基因组学，精准医学，临床转化", photo: teamPhotoByName["孙德强"] },
+  { id: 2, name: "熊晶", position: "总经理", bio: "负责公司整体运营管理，统筹科研服务、临床检测与产品化落地。", expertise: "运营管理，产品开发，检测服务", photo: teamPhotoByName["熊晶"] },
+  { id: 3, name: "张旭丹", position: "董事会秘书", bio: "负责公司治理、对外沟通与战略协同，连接科研、产业与资本资源。", expertise: "公司治理，战略协同，对外合作", photo: teamPhotoByName["张旭丹"] },
 ];
 
 const iconVariants = ["dna", "target", "microscope", "network"] as const;
 const capabilityDetails = [
   {
-    label: "WES / PAIRED ANALYSIS", title: "全外显子组测序与配对分析",
-    intro: "面向肿瘤-正常配对样本的标准化分析，从原始 FASTQ 到最终可审核变异结果，全过程质量可追溯。",
-    points: ["支持肿瘤样本与一个或多个正常样本配对", "覆盖 SNV、Indel、CNV 与结构变异分析", "基于 GRCh38 的统一注释与证据分级", "交付结构化结果、中文报告、PDF 与小 BAM"],
+    label: "SOMATIC GENOMICS", title: "肿瘤突变分析平台",
+    intro: "从全外显子组到靶向 Panel，从组织样本到血液 cfDNA，以高深度测序解析体细胞突变与拷贝数变异。",
+    points: ["WES 覆盖约 2 万个基因外显子区域", "靶向 Panel 数百至上千×深度检测", "TAPS 一次测序同时获取甲基化与突变信息", "适合分子分型、用药参考与疗效监测"],
     icon: "dna" as const,
   },
   {
-    label: "PRECISION ONCOLOGY", title: "精准肿瘤诊断",
-    intro: "围绕个体化用药、复发风险和临床证据整合，为每一个最终报告突变建立清晰的解释链路。",
-    points: ["体细胞与胚系变异联合解读", "靶向、免疫及临床试验相关证据", "分析员审核与管理员审核双重控制", "突变表与 Tumor / Normal IGV 证据联动"],
+    label: "LIQUID BIOPSY", title: "cfDNA 甲基化早筛",
+    intro: "面向无创早筛的核心平台，从一管外周血完成 cfDNA 提取、甲基化文库构建与测序检测。",
+    points: ["美甘鑫 · 肝癌风险评估模型", "美甘飞 · 肺癌风险评估模型", "全流程质控，低起始量样本稳定检测", "辅助筛查表述，合规风险评估"],
     icon: "target" as const,
   },
   {
-    label: "EPIGENETICS", title: "表观遗传研究",
-    intro: "从 DNA 甲基化、染色质可及性到 RNA 修饰，提供覆盖实验与生物信息分析的表观组学解决方案。",
-    points: ["全基因组与目标区域甲基化分析", "单细胞表观组学图谱构建", "染色质开放性与调控网络分析", "多组学联合与功能通路解释"],
+    label: "EPIGENOMICS", title: "表观基因组",
+    intro: "以 WGBS、RRBS 等行业金标准技术为核心，系统检测 DNA 甲基化与染色质修饰。",
+    points: ["WGBS 单碱基分辨率全基因组甲基化", "RRBS 聚焦 CpG 富集调控区域", "ATAC-seq 与 ChIP-seq 解析染色质状态", "覆盖发现级研究与靶向验证"],
     icon: "microscope" as const,
   },
   {
-    label: "BIOINFORMATICS CLOUD", title: "生信协作平台",
-    intro: "连接云端管理与本地 Linux 计算，让项目创建、参数确认、运行监控、审核和报告发布形成完整闭环。",
-    points: ["管理员、生信分析员、审核员和客户权限隔离", "网页端参数确认、任务运行和状态同步", "本地节点资源、日志、失败重试与续跑管理", "报告版本、下载水印与操作审计"],
+    label: "SINGLE CELL", title: "单细胞多组学",
+    intro: "在单个细胞分辨率下解析基因表达、DNA 甲基化与染色质状态，揭示组织异质性与稀有细胞群体。",
+    points: ["scRNA-seq 绘制单细胞表达图谱", "scWGBS 追踪甲基化异质性", "scATAC-seq 刻画调控元件激活", "支撑肿瘤微环境与谱系研究"],
     icon: "network" as const,
   },
 ];
@@ -98,15 +104,15 @@ const Home: React.FC = () => {
         <div className="hero-tech-lines" />
         <div className="site-container home-hero-grid">
           <div className="hero-copy motion-hero">
-            <span className="eyebrow dark"><i /> PRECISION GENOMICS · GRCh38</span>
-            <h1>让生命数据<br /><span>转化为临床答案</span></h1>
-            <p>高美基因以全外显子组测序、肿瘤早筛与生物信息分析为核心，为临床与科研团队提供可追溯、可审核、可持续更新的一体化解决方案。</p>
+            <span className="eyebrow dark"><i /> TUMOR GENOMICS × EPIGENETICS × AI</span>
+            <h1>让天下无癌<br /><span>用真实数据守护生命</span></h1>
+            <p>高美基因以表观遗传学为核心、肿瘤基因组学为支柱，构建从突变分析到 cfDNA 甲基化早筛的完整技术体系，为临床与科研提供可落地的精准医学方案。</p>
             <div className="hero-actions">
-              <Link className="button button-primary magnetic-button" to="/products">探索解决方案 <i className="fas fa-arrow-right" /></Link>
+              <Link className="button button-primary magnetic-button" to="/products">探索产品方案 <i className="fas fa-arrow-right" /></Link>
               <Link className="button button-ghost" to="/contact">预约技术咨询</Link>
             </div>
             <div className="hero-proof">
-              <span><b>50,000+</b> 样本处理</span><span><b>99.9%</b> 数据准确率</span><span><b>48h</b> 快速响应</span>
+              <span><b>7,000+</b> 累计样本</span><span><b>40+</b> 合作机构</span><span><b>12</b> 覆盖癌种</span>
             </div>
           </div>
           <div className="hero-video-shell ambient-float">
@@ -190,11 +196,11 @@ const Home: React.FC = () => {
           <div className="algorithm-visual motion-reveal">
             <div className="data-core"><MotionIcon variant="network" /><span>GOMICS AI</span></div>
             <div className="data-ring ring-one svg-orbit" /><div className="data-ring ring-two svg-orbit-reverse" />
-            <div className="algorithm-note note-one"><code>// AI DISCOVERY</code><p>识别稳定的甲基化特征信号</p></div>
-            <div className="algorithm-note note-two"><code>// PIPELINE</code><p>标准化 WES 全链路质控</p></div>
+            <div className="algorithm-note note-one"><code>// AI SCREENING</code><p>美甘鑫 / 美甘飞 风险评估模型</p></div>
+            <div className="algorithm-note note-two"><code>// PIPELINE</code><p>BseQC · RRBSMAP · MOABS 自研算法</p></div>
           </div>
-          <div className="motion-reveal"><span className="eyebrow dark">ALGORITHM LAB</span><h2>AI 驱动的生信洞察</h2><p className="lead">数据不仅是代码，更是生命的答案。算法实验室融合机器学习与临床证据，为复杂数据建立可解释、可追溯的分析路径。</p>
-            <ul className="check-list"><li>自主研发多组学分析框架</li><li>高通量生物信息计算集群</li><li>生产级数据审计与可追溯</li></ul>
+          <div className="motion-reveal"><span className="eyebrow dark">COMPUTING PLATFORM</span><h2>自主算法与 AI 早筛模型</h2><p className="lead">覆盖质控、比对、定量与特征挖掘的全流程生信体系，融合随机森林、XGBoost 等多模型框架，将 cfDNA 甲基化与突变信号转化为风险评估结果。</p>
+            <ul className="check-list"><li>MOABS 等算法发表于 Nucleic Acids Research</li><li>国人专属 cfDNA 甲基化数据库</li><li>肝癌、肺癌早筛模型持续向泛癌种拓展</li></ul>
             <Link className="text-link light-link" to="/about#technology-platform">了解算法实验室 <i className="fas fa-arrow-right" /></Link>
           </div>
         </div>
@@ -204,10 +210,10 @@ const Home: React.FC = () => {
         <div className="site-container">
           <div className="section-heading centered motion-reveal"><span className="eyebrow">OUR IMPACT</span><h2>以可信数据支持每一次判断</h2></div>
           <div className="impact-numbers motion-stagger">
-            <div><b data-count="50000" data-suffix="+">0</b><span>累计样本</span></div>
-            <div><b data-count="120" data-suffix="+">0</b><span>合作机构</span></div>
-            <div><b data-count="200" data-suffix="+">0</b><span>科研项目</span></div>
-            <div><b data-count="99" data-suffix=".9%">0</b><span>数据准确率</span></div>
+            <div><b data-count="7000" data-suffix="+">0</b><span>累计样本</span></div>
+            <div><b data-count="40" data-suffix="+">0</b><span>合作机构</span></div>
+            <div><b data-count="12" data-suffix="">0</b><span>覆盖癌种</span></div>
+            <div><b data-count="5" data-suffix="">0</b><span>实验技术平台</span></div>
           </div>
         </div>
       </section>
@@ -219,7 +225,7 @@ const Home: React.FC = () => {
             {team.slice(0, 3).map((member, index) => (
               <button type="button" className={`team-card team-flip-card ${flippedMember === member.id ? "is-flipped" : ""}`} key={member.id} aria-pressed={flippedMember === member.id} onClick={() => setFlippedMember(flippedMember === member.id ? null : member.id)}>
                 <span className="team-flip-inner">
-                  <span className="team-face team-front"><span className="team-photo"><img src={member.photo || fallbackTeam[index]?.photo || "/assets/images/team_male_2.jpg"} alt={member.name} /><span className="team-index">0{index + 1}</span><span className="flip-hint"><i className="fas fa-sync-alt" /> 点击了解更多</span></span><strong>{member.name}</strong><em>{member.position}</em></span>
+                  <span className="team-face team-front"><span className="team-photo"><img src={member.photo || teamPhotoByName[member.name] || fallbackTeam[index]?.photo || "/assets/images/team_male_2.jpg"} alt={member.name} /><span className="team-index">0{index + 1}</span><span className="flip-hint"><i className="fas fa-sync-alt" /> 点击了解更多</span></span><strong>{member.name}</strong><em>{member.position}</em></span>
                   <span className="team-face team-back"><MotionIcon variant="network" /><small>CORE TEAM · 0{index + 1}</small><strong>{member.name}</strong><em>{member.position}</em><p>{member.bio || fallbackTeam[index]?.bio}</p><span className="expertise-tags">{(member.expertise || fallbackTeam[index]?.expertise || "精准医学，多组学，临床转化").split(/[，,]/).slice(0, 3).map((tag) => <b key={tag}>{tag.trim()}</b>)}</span><span className="flip-back-hint"><i className="fas fa-undo" /> 点击返回</span></span>
                 </span>
               </button>
