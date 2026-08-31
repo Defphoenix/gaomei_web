@@ -1948,10 +1948,13 @@ html { scroll-behavior:smooth; }
 .products-kit {
   position: relative;
   z-index: 1;
-  width: min(88%, 560px);
-  max-height: 78%;
-  object-fit: contain;
-  filter: drop-shadow(0 28px 40px rgba(20, 45, 90, .18));
+  width: min(96%, 720px);
+  max-height: 90%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.72);
+  box-shadow: 0 28px 60px color-mix(in srgb, var(--product-accent) 24%, rgba(20,45,90,.16));
   user-select: none;
   pointer-events: none;
 }
