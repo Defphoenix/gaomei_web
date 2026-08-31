@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import gsap from "gsap";
+import "./PartnerLogoMarquee.css";
 
-const PARTNER_LOGOS = [
-  ...Array.from({ length: 12 }, (_, i) => `/assets/images/partners/h_${String(i).padStart(2, "0")}.webp`),
-  ...Array.from({ length: 7 }, (_, i) => `/assets/images/partners/p_${String(i).padStart(2, "0")}.png`),
-];
+const PARTNER_LOGOS = Array.from(
+  { length: 12 },
+  (_, i) => `/assets/images/partners/h_${String(i).padStart(2, "0")}.webp`,
+);
 
 const PartnerLogoMarquee: React.FC = () => {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -53,9 +54,13 @@ const PartnerLogoMarquee: React.FC = () => {
       <div className="partner-marquee">
         <div className="partner-marquee-track" ref={trackRef}>
           {logos.map((src, i) => (
-            <div className="partner-logo-card" key={`${src}-${i}`}>
-              <img src={src} alt="合作单位" loading="eager" />
-            </div>
+            <img
+              className="partner-logo-image"
+              src={src}
+              alt="合作单位"
+              loading="eager"
+              key={`${src}-${i}`}
+            />
           ))}
         </div>
       </div>

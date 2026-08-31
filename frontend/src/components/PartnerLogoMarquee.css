@@ -1,0 +1,13 @@
+.partner-logo-image {
+  flex: 0 0 auto;
+  display: block;
+  width: 220px;
+  height: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 720px) {
+  .partner-logo-image {
+    width: 180px;
+  }
+}
