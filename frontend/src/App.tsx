@@ -18,7 +18,11 @@ import BioBlogList from "./pages/BioBlogList";
 import BioBlogDetail from "./pages/BioBlogDetail";
 import BioBlogManage from "./pages/BioBlogManage";
 import BioBlogEditor from "./pages/BioBlogEditor";
-import { AboutPage, ContactPage, ProductsPage, TechPage } from "./pages/OfficialPages";
+import { AboutPage, ContactPage } from "./pages/OfficialPages";
+import ProductsPage from "./pages/ProductsPage";
+import TechSectionLayout from "./components/TechSectionLayout";
+import TechHubPage from "./pages/tech/TechHubPage";
+import TechArticlePage from "./pages/tech/TechArticlePage";
 import PersonalReports from "./pages/PersonalReports";
 import ScrollManager from "./components/ScrollManager";
 import ResetPassword from "./pages/ResetPassword";
@@ -32,18 +36,23 @@ const AppShell: React.FC = () => {
     || location.pathname === "/db-browser";
   const isReportDetail = location.pathname.startsWith("/reports/");
   const isAuthPage = ["/login", "/register", "/reset-password"].includes(location.pathname);
+  const isProducts = location.pathname.startsWith("/products");
   const hidePublicChrome = isPortal || isReportDetail || isAuthPage;
 
   return (
     <>
         <ScrollManager />
         {!hidePublicChrome && <Header />}
-        <main>
+        <main className={isProducts ? "main-products" : undefined}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<AboutPage />} />
-            <Route path="/tech" element={<TechPage />} />
+            <Route path="/tech" element={<TechSectionLayout />}>
+              <Route index element={<TechHubPage />} />
+              <Route path=":slug" element={<TechArticlePage />} />
+            </Route>
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:slug" element={<ProductsPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -67,7 +76,7 @@ const AppShell: React.FC = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-        {!hidePublicChrome && <Footer />}
+        {!hidePublicChrome && !isProducts && <Footer />}
     </>
   );
 };
