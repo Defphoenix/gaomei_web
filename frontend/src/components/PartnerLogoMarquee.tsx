@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import gsap from "gsap";
 
 const PARTNER_LOGOS = [
-  ...Array.from({ length: 12 }, (_, i) => `/assets/images/partners/h_${String(i).padStart(2, "0")}.png`),
+  ...Array.from({ length: 12 }, (_, i) => `/assets/images/partners/h_${String(i).padStart(2, "0")}.webp`),
   ...Array.from({ length: 7 }, (_, i) => `/assets/images/partners/p_${String(i).padStart(2, "0")}.png`),
 ];
 

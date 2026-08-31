@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import gsap from "gsap";
 
-const CERTS = Array.from({ length: 24 }, (_, i) => `/assets/images/honors/cert_${String(i).padStart(2, "0")}.png`);
+const CERTS = Array.from({ length: 25 }, (_, i) => `/assets/images/honors/cert_${String(i).padStart(2, "0")}.webp`);
 
 const HONOR_TAGS = [
   "国家高新技术企业",
