@@ -2,7 +2,7 @@
 
 declare module "igv" {
   export interface BrowserOptions {
-    genome?: string;
+    genome?: string | Record<string, unknown>;
     locus?: string;
     tracks?: any[];
     showNavigation?: boolean;
