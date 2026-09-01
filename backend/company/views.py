@@ -1,9 +1,16 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import CompanyInfo, TeamMember, Service
-from .serializers import CompanyInfoSerializer, TeamMemberSerializer, ServiceSerializer
+from .models import CompanyInfo, TeamMember, Service, ContactMessage
+from .serializers import (
+    CompanyInfoSerializer,
+    TeamMemberSerializer,
+    ServiceSerializer,
+    ContactMessageCreateSerializer,
+    ContactMessageAdminSerializer,
+)
 
 
 class CompanyInfoView(generics.RetrieveAPIView):
@@ -26,6 +33,63 @@ class ServiceListView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     queryset = Service.objects.filter(is_active=True)
     pagination_class = None
+
+
+class IsStaffUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_staff:
+            return True
+        role = getattr(getattr(user, "profile", None), "role", "")
+        return role in {"admin", "analyst", "reviewer"}
+
+
+class ContactMessageCreateView(generics.CreateAPIView):
+    """Public leave-a-message endpoint."""
+    serializer_class = ContactMessageCreateSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message = serializer.save()
+        return Response(
+            {"ok": True, "id": message.id, "detail": "留言已提交，我们将尽快电话联系您。"},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ContactMessageListView(generics.ListAPIView):
+    serializer_class = ContactMessageAdminSerializer
+    permission_classes = [IsStaffUser]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = ContactMessage.objects.all()
+        status_filter = self.request.query_params.get("status")
+        if status_filter in {"new", "read", "done"}:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+
+class ContactMessageDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = ContactMessageAdminSerializer
+    permission_classes = [IsStaffUser]
+    queryset = ContactMessage.objects.all()
+
+
+class ContactMessageStatsView(APIView):
+    permission_classes = [IsStaffUser]
+
+    def get(self, request):
+        return Response({
+            "total": ContactMessage.objects.count(),
+            "new": ContactMessage.objects.filter(status="new").count(),
+            "read": ContactMessage.objects.filter(status="read").count(),
+            "done": ContactMessage.objects.filter(status="done").count(),
+        })
 
 
 @api_view(["GET"])

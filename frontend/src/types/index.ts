@@ -83,6 +83,7 @@ export interface ReportItem {
 
 export interface ReportDetail extends Report {
   items: ReportItem[];
+  wes_report?: Record<string, unknown> | null;
 }
 
 export interface TherapyEvidence {
@@ -114,6 +115,9 @@ export interface AnnotationSource {
 
 export interface WesAnalysisData {
   is_demo?: boolean;
+  schema_version?: string;
+  document_type?: string;
+  wes_report_id?: string;
   pipeline_version?: string;
   analysis_date?: string;
   assay?: string;
@@ -171,6 +175,38 @@ export interface WesAnalysisData {
     label: string;
     status: "pending" | "running" | "completed" | "failed" | "skipped";
   }>;
+  igv_tracks?: {
+    tumor_bam?: string;
+    tumor_bai?: string;
+    normal_bam?: string;
+    normal_bai?: string;
+    default_locus?: string;
+  };
+  sample?: {
+    sample_id?: string;
+    name?: string;
+    sex?: string;
+    age?: string;
+    specimen_type?: string;
+    clinical_diagnosis?: string;
+  };
+  portal_modules?: Record<string, {
+    number?: string;
+    title?: string;
+    subtitle?: string;
+    sections?: Array<{
+      section_id?: string;
+      number?: string;
+      title?: string;
+      paragraphs?: string[];
+      tables?: Array<{ title?: string; columns?: string[]; rows?: string[][]; note?: string }>;
+      notes?: string[];
+    }>;
+    samples?: Array<Record<string, unknown>>;
+    table?: { title?: string; columns?: string[]; rows?: string[][] };
+  }>;
+  notices?: string[];
+  limitations?: string[];
 }
 
 export interface BlogPost {

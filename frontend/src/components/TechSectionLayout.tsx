@@ -37,7 +37,7 @@ const TechSectionLayout: React.FC = () => {
             <a href="/assets/tech-platform-architecture.html" target="_blank" rel="noreferrer">
               架构图 <i className="fas fa-external-link-alt" />
             </a>
-            <Link to="/contact#consultation-form">预约咨询</Link>
+            <Link to="/contact?intent=consult#consultation-form">发起咨询</Link>
           </div>
         </aside>
         <div className="tech-hub-main">

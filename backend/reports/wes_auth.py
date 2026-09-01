@@ -118,17 +118,30 @@ def wrap_wes_views():
         response = gated_save(request, report_id, *args, **kwargs)
         if getattr(response, "status_code", 500) == 200:
             try:
+                import json
+                from pathlib import Path
+
                 from .models import SampleBundle
                 from .wes_storage import generate_outputs_for_bundle
+                from .wes_portal_sync import sync_portal_from_wes_payload
 
                 bundle = (
                     SampleBundle.objects.filter(
                         wes_report_id=report_id, status=SampleBundle.Status.ACTIVE,
                     )
+                    .select_related("slot", "slot__report")
                     .order_by("-created_at")
                     .first()
                 )
                 if bundle:
+                    payload = json.loads(request.body.decode("utf-8"))
+                    if bundle.slot.report_id:
+                        sync_portal_from_wes_payload(
+                            bundle.slot.report,
+                            payload,
+                            Path(bundle.root_dir),
+                            wes_report_id=report_id,
+                        )
                     generate_outputs_for_bundle(bundle)
             except Exception:
                 pass

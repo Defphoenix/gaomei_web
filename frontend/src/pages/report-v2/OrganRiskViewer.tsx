@@ -16,9 +16,11 @@ export interface OrganRisk {
 interface Props {
   risks: OrganRisk[];
   simulated?: boolean;
+  onOpenOrgan?: (risk: OrganRisk) => void;
 }
 
 const organOrder = [
+  "lung",
   "liver",
   "prostate",
   "pancreas",
@@ -31,6 +33,7 @@ const organOrder = [
 
 const calloutLayout: Record<string, { side: "left" | "right"; top: number }> = {
   trachea: { side: "left", top: 18 },
+  lung: { side: "right", top: 17 },
   liver: { side: "left", top: 32 },
   kidney: { side: "left", top: 54 },
   prostate: { side: "left", top: 74 },
@@ -43,6 +46,7 @@ const calloutLayout: Record<string, { side: "left" | "right"; top: number }> = {
 function classifyOrgan(name = "") {
   const value = name.toLowerCase();
   if (value.includes("skin")) return "skin";
+  if (value.includes("lung")) return "lung";
   if (value.includes("prostate")) return "prostate";
   if (value.includes("liver")) return "liver";
   if (value.includes("pancreas")) return "pancreas";
@@ -76,7 +80,7 @@ function scoreColor(score: number) {
 const colorCss = (score: number) => `#${scoreColor(score).getHexString()}`;
 const riskLevel = (score: number) => score >= 7 ? "重点关注" : score >= 5 ? "疑似关注" : "低关注";
 
-const OrganRiskViewer: React.FC<Props> = ({ risks, simulated = false }) => {
+const OrganRiskViewer: React.FC<Props> = ({ risks, simulated = false, onOpenOrgan }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const calloutLayerRef = useRef<HTMLDivElement>(null);
@@ -263,7 +267,10 @@ const OrganRiskViewer: React.FC<Props> = ({ risks, simulated = false }) => {
     };
     const onClick = (event: PointerEvent) => {
       const key = hitOrgan(event);
-      if (key && riskMap[key]) setSelectedKey(key);
+      if (key && riskMap[key]) {
+        setSelectedKey(key);
+        onOpenOrgan?.(riskMap[key]);
+      }
     };
     const onPointerDown = () => {
       controls.autoRotate = false;
@@ -307,7 +314,7 @@ const OrganRiskViewer: React.FC<Props> = ({ risks, simulated = false }) => {
       renderer.dispose();
       draco.dispose();
     };
-  }, [riskMap]);
+  }, [onOpenOrgan, riskMap]);
 
   useEffect(() => {
     const rotate = runtimeRef.current.rotate as ((value: boolean) => void) | undefined;
@@ -348,7 +355,10 @@ const OrganRiskViewer: React.FC<Props> = ({ risks, simulated = false }) => {
                 data-organ={key}
                 className={`${layout.side} ${selectedKey === key ? "active" : ""}`}
                 style={{ top: `${layout.top}%`, "--organ-color": colorCss(risk.score) } as React.CSSProperties}
-                onClick={() => setSelectedKey(key)}
+                onClick={() => {
+                  setSelectedKey(key);
+                  onOpenOrgan?.(risk);
+                }}
               >
                 <span>{risk.name}<small>{riskLevel(risk.score)}</small></span>
                 <strong>{risk.score.toFixed(1)}</strong>
@@ -395,6 +405,9 @@ const OrganRiskViewer: React.FC<Props> = ({ risks, simulated = false }) => {
         <div className="report-v2-model-note">
           {simulated ? "当前器官分值为界面回退数据，正式发布前必须由分析规则和人工审核结果替换。" : "器官分值来自本报告JSON；它表示证据关注度，不等同于患病概率。"}
         </div>
+        <button type="button" className="report-v2-organ-open" onClick={() => onOpenOrgan?.(selected)}>
+          查看{selected.name}专题数据 <span>→</span>
+        </button>
       </aside>
     </section>
   );

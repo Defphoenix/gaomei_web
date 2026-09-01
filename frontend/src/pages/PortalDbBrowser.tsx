@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import PortalSidebar from "../components/PortalSidebar";
@@ -105,6 +105,8 @@ const PortalDbBrowser: React.FC = () => {
   const currentMeta = catalog.find((t) => t.key === tableKey);
   const isAdmin = user?.role === "admin" || !!user?.is_staff;
   const canEditUsers = tableKey === "users" && isAdmin && (currentMeta?.editable ?? true);
+  const showReportActions = tableKey === "reports" || tableKey === "patient_slots";
+  const actionColumn = canEditUsers || showReportActions;
 
   const loadCatalog = useCallback(() => {
     api.get("/reports/db-browser/")
@@ -292,7 +294,7 @@ const PortalDbBrowser: React.FC = () => {
                   <thead>
                     <tr>
                       {columns.map((col) => <th key={col}>{col}</th>)}
-                      {canEditUsers && <th>操作</th>}
+                      {actionColumn && <th>操作</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -319,6 +321,33 @@ const PortalDbBrowser: React.FC = () => {
                             <div className="row-actions">
                               <button type="button" className="button button-small button-outline" onClick={() => openEdit(row as unknown as UserRow)}>编辑</button>
                               <button type="button" className="button button-small button-outline" onClick={() => deleteUser(row as unknown as UserRow)}>删除</button>
+                            </div>
+                          </td>
+                        )}
+                        {showReportActions && !canEditUsers && (
+                          <td>
+                            <div className="row-actions report-slot-actions">
+                              {(row.portal_report_url || row.report_id || row.id) ? (
+                                <Link
+                                  className="button button-small button-primary"
+                                  to={String(row.portal_report_url || `/reports/${row.report_id || row.id}`)}
+                                >
+                                  <i className="fas fa-cube" /> 3D报告
+                                </Link>
+                              ) : null}
+                              {(row.portal_igv_url || row.report_id || row.id) ? (
+                                <Link
+                                  className="button button-small button-outline"
+                                  to={String(row.portal_igv_url || `/browser?report=${row.report_id || row.id}`)}
+                                >
+                                  <i className="fas fa-dna" /> IGV
+                                </Link>
+                              ) : null}
+                              {row.has_pdf && row.pdf_url ? (
+                                <a className="button button-small button-outline" href={String(row.pdf_url)} target="_blank" rel="noreferrer">
+                                  <i className="fas fa-file-pdf" /> PDF
+                                </a>
+                              ) : null}
                             </div>
                           </td>
                         )}

@@ -1,10 +1,42 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ReactECharts from "echarts-for-react";
 import api from "../api/client";
 import type { ReportDetail as ReportDetailType, ReportItem } from "../types";
+import {
+  flattenModuleSections,
+  igvLocusForItem,
+  isClinicalV2Report,
+  moduleTables,
+  type WesReportModule,
+  type WesReportPayload,
+  type WesReportTable,
+} from "../lib/clinicalV2Portal";
 import OrganRiskViewer, { type OrganRisk } from "./report-v2/OrganRiskViewer";
 import "./report-detail.css";
+
+function renderTables(tables: WesReportTable[], keyPrefix: string) {
+  if (!tables.length) return null;
+  return (
+    <div className="report-v2-table-wrap">
+      {tables.map((table, index) => (
+        <table key={`${keyPrefix}-${index}`}>
+          {table.title ? <caption>{table.title}</caption> : null}
+          <thead><tr>{(table.columns || []).map((col) => <th key={col}>{col}</th>)}</tr></thead>
+          <tbody>
+            {(table.rows || []).map((row, rowIndex) => (
+              <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell || "-"}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+      ))}
+    </div>
+  );
+}
+
+function moduleAsWes(module?: WesReportModule | null): WesReportModule | null {
+  return module || null;
+}
 
 type Workspace = "overview" | "professional" | "qc" | "germline";
 
@@ -101,6 +133,7 @@ const workspaceConfig: Record<Workspace, {
 };
 
 const fallbackOrganRisks: OrganRisk[] = [
+  { key: "lung", name: "肺部", score: 6.4, genes: ["EGFR", "KRAS", "ALK"], evidence: "界面回退数据", recommendation: "正式报告需由肺部相关证据与人工审核结果替换当前回退分值。" },
   { key: "liver", name: "肝脏", score: 8.7, genes: ["TP53", "CTNNB1"], evidence: "界面回退数据", recommendation: "正式报告需由器官证据聚合规则和人工审核结果替换当前回退分值。" },
   { key: "prostate", name: "前列腺", score: 7.6, genes: ["AR", "PTEN"], evidence: "界面回退数据", recommendation: "当前仅展示交互结构，不代表患者存在前列腺疾病或风险。" },
   { key: "pancreas", name: "胰腺", score: 6.8, genes: ["KRAS", "SMAD4"], evidence: "界面回退数据", recommendation: "当前仅展示交互结构，正式分值需由报告JSON提供。" },
@@ -134,14 +167,24 @@ const annotationValue = (item: ReportItem, keys: string[]) => {
 const ReportDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedWorkspace = searchParams.get("workspace") as Workspace | null;
+  const initialWorkspace = requestedWorkspace && workspaceConfig[requestedWorkspace] ? requestedWorkspace : "overview";
+  const requestedSection = searchParams.get("section");
   const [report, setReport] = useState<ReportDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [workspace, setWorkspace] = useState<Workspace>("overview");
-  const [activeSection, setActiveSection] = useState("overview-summary");
+  const [workspace, setWorkspace] = useState<Workspace>(initialWorkspace);
+  const [activeSection, setActiveSection] = useState(
+    requestedSection && workspaceConfig[initialWorkspace].sections.some(([sectionId]) => sectionId === requestedSection)
+      ? requestedSection
+      : workspaceConfig[initialWorkspace].sections[0][0],
+  );
   const [query, setQuery] = useState("");
   const [significance, setSignificance] = useState("all");
   const [selected, setSelected] = useState<ReportItem | null>(null);
+  const [variantOpen, setVariantOpen] = useState(false);
+  const [selectedOrganKey, setSelectedOrganKey] = useState<string | null>(searchParams.get("organ"));
 
   useEffect(() => {
     if (!id) return;
@@ -156,21 +199,38 @@ const ReportDetail: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    const sections = workspaceConfig[workspace].sections
-      .map(([sectionId]) => document.getElementById(sectionId))
-      .filter(Boolean) as HTMLElement[];
-    const update = () => {
-      const positions = sections.map((section) => ({ id: section.id, top: section.getBoundingClientRect().top }));
-      const passed = positions.filter((item) => item.top <= 130);
-      const current = passed.length
-        ? passed.sort((a, b) => b.top - a.top)[0]
-        : positions.sort((a, b) => Math.abs(a.top - 130) - Math.abs(b.top - 130))[0];
-      if (current) setActiveSection(current.id);
-    };
-    window.addEventListener("scroll", update, { passive: true });
-    update();
-    return () => window.removeEventListener("scroll", update);
-  }, [workspace]);
+    const nextWorkspace = searchParams.get("workspace") as Workspace | null;
+    if (!nextWorkspace || !workspaceConfig[nextWorkspace]) return;
+    const nextSection = searchParams.get("section");
+    const safeSection = nextSection && workspaceConfig[nextWorkspace].sections.some(([sectionId]) => sectionId === nextSection)
+      ? nextSection
+      : workspaceConfig[nextWorkspace].sections[0][0];
+    setWorkspace(nextWorkspace);
+    setActiveSection(safeSection);
+    setSelectedOrganKey(searchParams.get("organ"));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (loading) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelectorAll<HTMLElement>(".report-v2-workspace > .report-v2-anchor").forEach((section) => {
+        section.hidden = section.id !== activeSection;
+      });
+      window.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeSection, loading, workspace]);
+
+  useEffect(() => {
+    if (!report) return;
+    const variantId = searchParams.get("variant");
+    if (!variantId) return;
+    const item = report.items.find((candidate) => String(candidate.id) === variantId);
+    if (item) {
+      setSelected(item);
+      setVariantOpen(true);
+    }
+  }, [report, searchParams]);
 
   const filteredItems = useMemo(() => {
     if (!report) return [];
@@ -221,12 +281,24 @@ const ReportDetail: React.FC = () => {
   }
 
   const data = report.analysis_data || {};
+  const wesReport = (report.wes_report || null) as WesReportPayload | null;
+  const portalModules = data.portal_modules || {};
+  const clinicalV2 = isClinicalV2Report(data, wesReport) || data.document_type === "clinical_v2";
+  const sampleInfo = wesReport?.sample || data.sample;
+  const overviewModule = moduleAsWes((wesReport?.overview as WesReportModule | undefined) || (portalModules.overview as WesReportModule | undefined));
+  const therapyModule = moduleAsWes((wesReport?.targeted_therapy as WesReportModule | undefined) || (portalModules.targeted_therapy as WesReportModule | undefined));
+  const immunoModule = moduleAsWes((wesReport?.immunotherapy as WesReportModule | undefined) || (portalModules.immunotherapy as WesReportModule | undefined));
+  const somaticModule = moduleAsWes((wesReport?.somatic_variants as WesReportModule | undefined) || (portalModules.somatic_variants as WesReportModule | undefined));
+  const qcModule = moduleAsWes((wesReport?.quality_control as WesReportModule | undefined) || (portalModules.quality_control as WesReportModule | undefined));
+  const hereditaryModule = moduleAsWes((wesReport?.hereditary_risk as WesReportModule | undefined) || (portalModules.hereditary_risk as WesReportModule | undefined));
+  const pgxModule = moduleAsWes((wesReport?.pharmacogenomics as WesReportModule | undefined) || (portalModules.pharmacogenomics as WesReportModule | undefined));
   const qc = data.qc || {};
   const biomarkers = data.biomarkers || {};
   const counts = data.counts || {};
   const patient = report.patient_info || {};
-  const organRisks: OrganRisk[] = data.organ_risks?.length
-    ? data.organ_risks.map((risk) => ({
+  const hasOrganRisks = Boolean(data.organ_risks?.length);
+  const organRisks: OrganRisk[] = hasOrganRisks
+    ? data.organ_risks!.map((risk) => ({
         key: risk.key,
         name: risk.name,
         score: risk.score,
@@ -236,7 +308,35 @@ const ReportDetail: React.FC = () => {
       }))
     : fallbackOrganRisks;
   const highestOrgan = [...organRisks].sort((a, b) => b.score - a.score)[0];
+  const selectedOrgan = selectedOrganKey ? organRisks.find((risk) => risk.key === selectedOrganKey) || null : null;
+  const organItems = selectedOrgan
+    ? report.items.filter((item) => selectedOrgan.genes.includes(item.gene))
+    : [];
   const strongNeoantigens = allNeoantigens.filter((item) => item.consensus.includes("strong"));
+
+  const organComparisonOption = {
+    grid: { left: 56, right: 28, top: 24, bottom: 34 },
+    tooltip: { trigger: "axis" },
+    xAxis: {
+      type: "category",
+      data: organRisks.map((risk) => risk.name),
+      axisLabel: { color: "#65758b", interval: 0 },
+    },
+    yAxis: {
+      type: "value",
+      min: 0,
+      max: 10,
+      splitLine: { lineStyle: { color: "#e9eff7" } },
+    },
+    series: [{
+      type: "bar",
+      data: organRisks.map((risk) => ({
+        value: risk.score,
+        itemStyle: { color: risk.key === selectedOrgan?.key ? "#ef5b5b" : "#5a91e8", borderRadius: [8, 8, 2, 2] },
+      })),
+      barMaxWidth: 34,
+    }],
+  };
 
   const consequenceOption = {
     tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
@@ -328,18 +428,51 @@ const ReportDetail: React.FC = () => {
     }],
   };
 
-  const jumpToIgv = (item: ReportItem) => navigate(`/browser?report=${report.id}&locus=${encodeURIComponent(item.locus)}`);
+  const jumpToIgv = (item: ReportItem) =>
+    navigate(`/browser?report=${report.id}&locus=${encodeURIComponent(igvLocusForItem(item))}`);
+
+  const updateViewParams = (nextWorkspace: Workspace, nextSection: string, extras?: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("workspace", nextWorkspace);
+    params.set("section", nextSection);
+    Object.entries(extras || {}).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    });
+    setSearchParams(params);
+  };
 
   const switchWorkspace = (next: Workspace) => {
-    setWorkspace(next);
     const first = workspaceConfig[next].sections[0][0];
+    setWorkspace(next);
     setActiveSection(first);
-    window.setTimeout(() => document.getElementById(first)?.scrollIntoView({ behavior: "auto", block: "start" }), 0);
+    updateViewParams(next, first, { organ: null, variant: null });
   };
 
   const jumpToSection = (sectionId: string) => {
     setActiveSection(sectionId);
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    updateViewParams(workspace, sectionId, { organ: null, variant: null });
+  };
+
+  const openOrgan = (risk: OrganRisk) => {
+    setSelectedOrganKey(risk.key);
+    updateViewParams("overview", "organ-risk", { organ: risk.key, variant: null });
+  };
+
+  const closeOrgan = () => {
+    setSelectedOrganKey(null);
+    updateViewParams(workspace, activeSection, { organ: null });
+  };
+
+  const openVariant = (item: ReportItem) => {
+    setSelected(item);
+    setVariantOpen(true);
+    updateViewParams(workspace, activeSection, { variant: String(item.id) });
+  };
+
+  const closeVariant = () => {
+    setVariantOpen(false);
+    updateViewParams(workspace, activeSection, { variant: null });
   };
 
   const downloadPdf = () => {
@@ -371,8 +504,16 @@ const ReportDetail: React.FC = () => {
       <aside className="report-v2-sidebar">
         <section className="report-v2-case">
           <small>患者全外显子组报告</small>
-          <h2>{report.tumor_sample_id || report.sample_id}</h2>
-          <p>{displayValue(patient.name)} · {displayValue(patient.sex)} · {displayValue(patient.age)}岁<br />肿瘤/正常配对 · {report.genome_build}</p>
+          <h2>{report.tumor_sample_id || sampleInfo?.sample_id || report.sample_id}</h2>
+          <p>
+            {displayValue(sampleInfo?.name || patient.name)}
+            · {displayValue(sampleInfo?.sex || patient.sex)}
+            · {displayValue(sampleInfo?.age || patient.age)}
+            <br />
+            {displayValue(sampleInfo?.clinical_diagnosis || patient.clinical_diagnosis)}
+            · {displayValue(sampleInfo?.specimen_type || patient.specimen_type || "肿瘤/正常配对")}
+            · {report.genome_build}
+          </p>
         </section>
         <nav className="report-v2-side-nav">
           {workspaceConfig[workspace].sections.map(([sectionId, label, icon]) => (
@@ -393,73 +534,104 @@ const ReportDetail: React.FC = () => {
             <section id="overview-summary" className="report-v2-anchor">
               <header className="report-v2-page-head">
                 <div>
-                  <div className="eyebrow">HEALTH OVERVIEW · 交互式器官证据地图</div>
+                  <div className="eyebrow">{clinicalV2 ? "WES CLINICAL V2 · 来自 current.json" : "HEALTH OVERVIEW · 交互式器官证据地图"}</div>
                   <h1>{report.title}</h1>
-                  <p>{report.summary}</p>
+                  <p>{report.summary || overviewModule?.sections?.[0]?.paragraphs?.[0]}</p>
+                  {clinicalV2 && (
+                    <div className="report-v2-source-chips" style={{ marginTop: 12 }}>
+                      <span>{displayValue(sampleInfo?.clinical_diagnosis || patient.clinical_diagnosis || "临床诊断待补充")}</span>
+                      <span>样本 {displayValue(sampleInfo?.sample_id || report.sample_id)}</span>
+                      <span>{displayValue(data.assay || "WES")}</span>
+                      <span>{hasOrganRisks ? "器官风险：正式数据" : "器官风险：演示回退"}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="report-v2-source-chips">
                   {report.annotation_sources.slice(0, 6).map((source) => <span key={source.name}>{source.name} {source.version}</span>)}
+                  {clinicalV2 && !report.annotation_sources.length && <span>clinical_v2 · {data.wes_report_id || report.sample_id}</span>}
                 </div>
               </header>
               <section className="report-v2-kpis">
                 <article style={{ "--accent": "#c8324b" } as React.CSSProperties}><span>最高器官关注度</span><strong>{highestOrgan.score.toFixed(1)} <small>/ 10</small></strong><small>{highestOrgan.name} · 需结合专业审核</small></article>
-                <article style={{ "--accent": "#1769c2" } as React.CSSProperties}><span>最终报告变异</span><strong>{counts.reportable ?? report.items.length} <small>项</small></strong><small>人工审核结果</small></article>
-                <article style={{ "--accent": "#178865" } as React.CSSProperties}><span>强结合新抗原</span><strong>{strongNeoantigens.length} <small>条</small></strong><small>候选肽共 {allNeoantigens.length} 条</small></article>
+                <article style={{ "--accent": "#1769c2" } as React.CSSProperties}><span>最终报告变异</span><strong>{counts.reportable ?? report.items.length} <small>项</small></strong><small>portal_variants</small></article>
+                <article style={{ "--accent": "#178865" } as React.CSSProperties}><span>TMB</span><strong>{formatNumber(biomarkers.tmb, 2)} <small>{biomarkers.tmb_unit || "mut/Mb"}</small></strong><small>{biomarkers.tmb_class || "未分级"}</small></article>
                 <article style={{ "--accent": "#16a6b6" } as React.CSSProperties}><span>检测质量等级</span><strong>{qc.status || "-"}</strong><small>20×覆盖 {formatNumber(qc.target_20x)}%</small></article>
               </section>
+              {clinicalV2 && renderTables(moduleTables(overviewModule), "overview")}
             </section>
 
             <section id="organ-risk" className="report-v2-anchor">
-              <OrganRiskViewer risks={organRisks} simulated={Boolean(data.is_demo) || !data.organ_risks?.length} />
+              <OrganRiskViewer
+                risks={organRisks}
+                simulated={Boolean(data.is_demo) || (!hasOrganRisks && !clinicalV2)}
+                onOpenOrgan={openOrgan}
+              />
             </section>
 
             <section id="somatic-findings" className="report-v2-section report-v2-anchor">
-              <SectionHead title="重点体细胞发现" subtitle="报告变异构成、VAF和临床审核摘要" color="#1769c2" />
+              <SectionHead title="重点体细胞发现" subtitle={clinicalV2 ? "来自 portal_variants / somatic_variants" : "报告变异构成、VAF和临床审核摘要"} color="#1769c2" />
               <div className="report-v2-chart-grid">
                 <ChartCard title="报告变异类型" subtitle="按VEP consequence汇总"><ReactECharts option={consequenceOption} style={{ height: 250 }} /></ChartCard>
                 <ChartCard title="肿瘤等位基因频率" subtitle="最终报告候选变异"><ReactECharts option={vafOption} style={{ height: 250 }} /></ChartCard>
               </div>
               <div className="report-v2-finding-grid">
-                {report.items.slice(0, 3).map((item) => (
-                  <article key={item.id} style={{ "--finding": item.significance.includes("pathogenic") ? "#c8324b" : "#e4a21c" } as React.CSSProperties}>
+                {report.items.slice(0, 6).map((item) => (
+                  <article
+                    key={item.id}
+                    className="report-v2-clickable-finding"
+                    style={{ "--finding": item.significance.includes("pathogenic") ? "#c8324b" : "#e4a21c" } as React.CSSProperties}
+                    onClick={() => openVariant(item)}
+                  >
                     <span>{significanceLabels[item.significance] || "待审核"}</span>
                     <h3>{item.gene} {item.hgvs_p || item.hgvs_c}</h3>
-                    <p>{item.annotation || "等待专业审核意见。"}</p>
+                    <p>{item.annotation || item.locus} · AF {percent(item.af)}</p>
+                    <button type="button" className="button button-small button-outline" onClick={(event) => { event.stopPropagation(); jumpToIgv(item); }}>
+                      <i className="fas fa-microscope" /> IGV
+                    </button>
                   </article>
                 ))}
+                {!report.items.length && <EmptyState text="当前报告尚无 portal_variants。" />}
               </div>
+              {clinicalV2 && renderTables(moduleTables(somaticModule), "somatic")}
             </section>
 
             <section id="immune-summary" className="report-v2-section report-v2-anchor">
-              <SectionHead title="免疫与新抗原摘要" subtitle="TMB、MSI、HLA分型与双预测器结果" color="#178865" />
+              <SectionHead title="免疫与新抗原摘要" subtitle="TMB、MSI 与免疫相关解读" color="#178865" />
               <div className="report-v2-metrics">
                 <Metric label="TMB" value={formatNumber(biomarkers.tmb)} note={biomarkers.tmb_unit || "mut/Mb"} />
                 <Metric label="MSI状态" value={biomarkers.msi_status || "未检测"} note={`MSI score ${formatNumber(biomarkers.msi_score)}`} />
                 <Metric label="HLA-I分型" value={String(biomarkers.hla_class_i?.length || 0)} note="A/B/C binding等位基因" />
                 <Metric label="共识强结合肽" value={String(strongNeoantigens.length)} note="MHCflurry / NetMHCpan" />
               </div>
-              <div className="report-v2-chart-grid">
-                <ChartCard title="新抗原候选优先级" subtitle="结合强度的界面化摘要"><ReactECharts option={neoOption} style={{ height: 250 }} /></ChartCard>
-                <article className="report-v2-card">
-                  <h3>HLA-I 等位基因</h3>
-                  <div className="report-v2-tag-cloud">
-                    {(biomarkers.hla_class_i || []).map((hla) => <span key={hla}>{hla}</span>)}
-                    {!biomarkers.hla_class_i?.length && <p>尚未获得HLA分型结果。</p>}
-                  </div>
-                </article>
-              </div>
+              {clinicalV2 && renderTables(moduleTables(immunoModule), "immuno")}
+              {!clinicalV2 && (
+                <div className="report-v2-chart-grid">
+                  <ChartCard title="新抗原候选优先级" subtitle="结合强度的界面化摘要"><ReactECharts option={neoOption} style={{ height: 250 }} /></ChartCard>
+                  <article className="report-v2-card">
+                    <h3>HLA-I 等位基因</h3>
+                    <div className="report-v2-tag-cloud">
+                      {(biomarkers.hla_class_i || []).map((hla) => <span key={hla}>{hla}</span>)}
+                      {!biomarkers.hla_class_i?.length && <p>尚未获得HLA分型结果。</p>}
+                    </div>
+                  </article>
+                </div>
+              )}
             </section>
 
             <section id="action-plan" className="report-v2-section report-v2-anchor">
               <SectionHead title="药物线索与行动建议" subtitle="患者视图仅展示已审核证据" color="#e4a21c" />
-              <div className="report-v2-finding-grid">
-                {allTherapies.slice(0, 3).map((therapy, index) => (
-                  <article key={`${therapy.gene}-${therapy.drug}-${index}`} style={{ "--finding": "#e4a21c" } as React.CSSProperties}>
-                    <span>{therapy.level || "证据线索"}</span><h3>{therapy.gene} · {therapy.drug}</h3><p>{therapy.response}；{therapy.status || "需专业审核"}。</p>
-                  </article>
-                ))}
-                {!allTherapies.length && <EmptyState text="当前报告没有已审核的药物证据。" />}
-              </div>
+              {clinicalV2 && moduleTables(therapyModule).length > 0 ? (
+                renderTables(moduleTables(therapyModule), "therapy")
+              ) : (
+                <div className="report-v2-finding-grid">
+                  {allTherapies.slice(0, 3).map((therapy, index) => (
+                    <article key={`${therapy.gene}-${therapy.drug}-${index}`} style={{ "--finding": "#e4a21c" } as React.CSSProperties}>
+                      <span>{therapy.level || "证据线索"}</span><h3>{therapy.gene} · {therapy.drug}</h3><p>{therapy.response}；{therapy.status || "需专业审核"}。</p>
+                    </article>
+                  ))}
+                  {!allTherapies.length && <EmptyState text="当前报告没有已审核的药物证据。" />}
+                </div>
+              )}
             </section>
 
             <section id="quality-summary" className="report-v2-section report-v2-anchor">
@@ -470,6 +642,7 @@ const ReportDetail: React.FC = () => {
                 <Metric label="20×覆盖率" value={`${formatNumber(qc.target_20x)}%`} note="目标区域" />
                 <Metric label="肿瘤重复率" value={`${formatNumber(qc.tumor_duplication_rate)}%`} note="MarkDuplicates" />
               </div>
+              {clinicalV2 && renderTables(moduleTables(qcModule), "qc-overview")}
             </section>
 
             <section id="report-notes" className="report-v2-section report-v2-anchor">
@@ -505,7 +678,7 @@ const ReportDetail: React.FC = () => {
                   <thead><tr><th>基因</th><th>坐标</th><th>HGVS.c</th><th>HGVS.p</th><th>后果</th><th>Tumor AF</th><th>Normal ALT</th><th>TLOD</th><th>临床意义</th><th>IGV</th></tr></thead>
                   <tbody>
                     {filteredItems.map((item) => (
-                      <tr key={item.id} className={selected?.id === item.id ? "selected" : ""} onClick={() => setSelected(item)}>
+                      <tr key={item.id} className={selected?.id === item.id ? "selected" : ""} onClick={() => openVariant(item)}>
                         <td><strong>{item.gene}</strong></td><td>{item.locus}</td><td>{item.hgvs_c || "-"}</td><td>{item.hgvs_p || "-"}</td>
                         <td>{consequenceLabels[item.consequence] || item.consequence}</td><td>{percent(item.af)}</td><td>{item.normal_alt_reads ?? "-"}</td><td>{formatNumber(item.tlod, 2)}</td>
                         <td><span className={`report-v2-badge ${item.significance}`}>{significanceLabels[item.significance] || item.significance}</span></td>
@@ -698,26 +871,151 @@ const ReportDetail: React.FC = () => {
 
         {workspace === "germline" && (
           <div className="report-v2-workspace">
-            <WorkspaceIntro kicker="GERMLINE & MONOGENIC" title="遗传与单基因病" text="该工作区保留未来胚系分析、ACMG审核、罕见病表型匹配、携带者状态和药物基因组学的接口。" badge="尚未启用正式胚系流程" warning />
-            <div className="report-v2-notice warning">当前Tumor/Normal体细胞流程不能直接生成正式单基因病结论。以下章节仅说明计划接入的数据，不展示模拟患者阳性结果。</div>
-            {[
-              ["germline-summary", "模块状态", "需要独立胚系calling、变异质控、ACMG规则和人工遗传审核。"],
-              ["germline-pathogenic", "致病与可能致病变异", "接入ClinVar、ClinGen、OMIM授权数据及ACMG证据条目后展示。"],
-              ["germline-carrier", "携带者状态", "隐性遗传病需要覆盖评估、第二等位基因检查和生育咨询边界。"],
-              ["germline-vus", "意义未明变异", "VUS必须独立展示，不能直接用于临床决策。"],
-              ["germline-phenotype", "表型与罕见病匹配", "接入HPO、Orphanet与患者表型后进行候选疾病排序。"],
-              ["germline-pharmaco", "药物基因组学", "接入CPIC和PharmGKB后展示可行动等级与用药提示。"],
-              ["germline-traits", "趣味遗传与PGS", "PGS当前暂停接入，未来需人群适配、权重版本和非诊断用途声明。"],
-              ["germline-methods", "方法与限制", "WES不能可靠覆盖所有重复序列、动态重复扩增、甲基化改变及复杂结构变异。"],
-            ].map(([sectionId, title, text]) => (
-              <section id={sectionId} key={sectionId} className="report-v2-section report-v2-anchor">
-                <SectionHead title={title} subtitle={text} color="#6b7280" />
-                <EmptyState text="当前报告无正式胚系结果。" />
+            <WorkspaceIntro
+              kicker="GERMLINE & MONOGENIC"
+              title="遗传与单基因病"
+              text={clinicalV2
+                ? "以下内容来自 WES 正式报告 JSON 中的遗传性肿瘤风险评估模块。"
+                : "该工作区保留未来胚系分析、ACMG审核、罕见病表型匹配、携带者状态和药物基因组学的接口。"}
+              badge={clinicalV2 ? "clinical_v2 · hereditary_risk" : "尚未启用正式胚系流程"}
+              warning={!clinicalV2}
+            />
+            {!clinicalV2 && (
+              <>
+                <div className="report-v2-notice warning">当前Tumor/Normal体细胞流程不能直接生成正式单基因病结论。以下章节仅说明计划接入的数据，不展示模拟患者阳性结果。</div>
+                {[
+                  ["germline-summary", "模块状态", "需要独立胚系calling、变异质控、ACMG规则和人工遗传审核。"],
+                  ["germline-pathogenic", "致病与可能致病变异", "接入ClinVar、ClinGen、OMIM授权数据及ACMG证据条目后展示。"],
+                  ["germline-carrier", "携带者状态", "隐性遗传病需要覆盖评估、第二等位基因检查和生育咨询边界。"],
+                  ["germline-vus", "意义未明变异", "VUS必须独立展示，不能直接用于临床决策。"],
+                  ["germline-phenotype", "表型与罕见病匹配", "接入HPO、Orphanet与患者表型后进行候选疾病排序。"],
+                  ["germline-pharmaco", "药物基因组学", "接入CPIC和PharmGKB后展示可行动等级与用药提示。"],
+                  ["germline-traits", "趣味遗传与PGS", "PGS当前暂停接入，未来需人群适配、权重版本和非诊断用途声明。"],
+                  ["germline-methods", "方法与限制", "WES不能可靠覆盖所有重复序列、动态重复扩增、甲基化改变及复杂结构变异。"],
+                ].map(([sectionId, title, text]) => (
+                  <section id={sectionId} key={sectionId} className="report-v2-section report-v2-anchor">
+                    <SectionHead title={title} subtitle={text} color="#6b7280" />
+                    <EmptyState text="当前报告无正式胚系结果。" />
+                  </section>
+                ))}
+              </>
+            )}
+            {clinicalV2 && flattenModuleSections(hereditaryModule).map((section) => (
+              <section id={`germline-${section.section_id || section.number}`} key={section.section_id || section.number} className="report-v2-section report-v2-anchor">
+                <SectionHead title={section.title || "遗传性肿瘤风险评估"} subtitle={section.subtitle || section.paragraphs?.[0] || ""} color="#6b7280" />
+                {(section.paragraphs || []).map((paragraph) => <p key={paragraph.slice(0, 24)}>{paragraph}</p>)}
+                {renderTables(section.tables || [], `hereditary-${section.section_id}`)}
               </section>
             ))}
+            {clinicalV2 && moduleTables(pgxModule).length > 0 && (
+              <section id="germline-pharmaco" className="report-v2-section report-v2-anchor">
+                <SectionHead title="药物基因组学" subtitle={pgxModule?.subtitle || "PHARMACOGENOMICS"} color="#805ad5" />
+                {renderTables(moduleTables(pgxModule), "pgx")}
+              </section>
+            )}
           </div>
         )}
       </main>
+
+      {selectedOrgan && (
+        <div className="report-v2-overlay" role="presentation" onClick={closeOrgan}>
+          <section className="report-v2-drilldown" role="dialog" aria-modal="true" aria-label={`${selectedOrgan.name}专题数据`} onClick={(event) => event.stopPropagation()}>
+            <header className="report-v2-drilldown-head">
+              <div>
+                <span>ORGAN INTELLIGENCE · JSON DRIVEN</span>
+                <h1>{selectedOrgan.name}专题数据</h1>
+                <p>{selectedOrgan.recommendation}</p>
+              </div>
+              <button type="button" onClick={closeOrgan} aria-label="关闭器官专题">×</button>
+            </header>
+            <div className="report-v2-organ-hero">
+              <article><span>证据关注度</span><strong>{selectedOrgan.score.toFixed(1)}</strong><small>/ 10</small></article>
+              <article><span>关联基因</span><strong>{selectedOrgan.genes.length}</strong><small>{selectedOrgan.genes.join(" · ") || "暂无"}</small></article>
+              <article><span>命中报告突变</span><strong>{organItems.length}</strong><small>来自 portal_variants</small></article>
+              <article><span>证据状态</span><strong className="text">{selectedOrgan.evidence}</strong><small>需结合专业审核</small></article>
+            </div>
+            <div className="report-v2-drilldown-grid">
+              <ChartCard title="全器官关注度对比" subtitle={`当前突出显示：${selectedOrgan.name}`}>
+                <ReactECharts option={organComparisonOption} style={{ height: 320 }} />
+              </ChartCard>
+              <article className="report-v2-card report-v2-organ-story">
+                <h3>{selectedOrgan.name}证据链</h3>
+                <p>该页面完全由报告 JSON 中的 organ_risks、portal_variants 和人工审核字段生成。</p>
+                <div>{selectedOrgan.genes.map((gene) => <span key={gene}>{gene}</span>)}</div>
+                <ol>
+                  <li>器官证据聚合与评分</li>
+                  <li>关联基因及最终报告突变交叉匹配</li>
+                  <li>临床数据库、药物与测序证据复核</li>
+                </ol>
+              </article>
+            </div>
+            <section className="report-v2-organ-variants">
+              <div><h2>{selectedOrgan.name}相关突变</h2><p>点击任意突变打开完整资料卡。</p></div>
+              {organItems.length ? (
+                <div className="report-v2-table-wrap">
+                  <table>
+                    <thead><tr><th>基因</th><th>HGVS</th><th>坐标</th><th>VAF</th><th>临床意义</th><th>证据</th></tr></thead>
+                    <tbody>{organItems.map((item) => (
+                      <tr key={item.id} onClick={() => openVariant(item)}>
+                        <td><strong>{item.gene}</strong></td><td>{item.hgvs_p || item.hgvs_c || "-"}</td><td>{item.locus}</td><td>{percent(item.af)}</td>
+                        <td><span className={`report-v2-badge ${item.significance}`}>{significanceLabels[item.significance] || item.significance}</span></td>
+                        <td>查看详情 →</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              ) : <EmptyState text={`当前最终报告突变中未命中${selectedOrgan.name}关联基因。`} />}
+            </section>
+          </section>
+        </div>
+      )}
+
+      {variantOpen && selected && (
+        <div className="report-v2-overlay report-v2-variant-overlay" role="presentation" onClick={closeVariant}>
+          <section className="report-v2-variant-modal" role="dialog" aria-modal="true" aria-label={`${selected.gene}突变详情`} onClick={(event) => event.stopPropagation()}>
+            <header>
+              <div>
+                <span className={`report-v2-badge ${selected.significance}`}>{significanceLabels[selected.significance] || selected.significance}</span>
+                <h1>{selected.gene} <small>{selected.hgvs_p || selected.hgvs_c}</small></h1>
+                <p>{selected.annotation || "该变异的解释信息来自后端报告 JSON。"}</p>
+              </div>
+              <button type="button" onClick={closeVariant} aria-label="关闭突变详情">×</button>
+            </header>
+            <div className="report-v2-variant-evidence">
+              <article><span>基因组坐标</span><strong>{selected.locus}</strong></article>
+              <article><span>肿瘤 VAF</span><strong>{percent(selected.af)}</strong></article>
+              <article><span>肿瘤深度</span><strong>{selected.tumor_depth ?? "-"}×</strong></article>
+              <article><span>TLOD</span><strong>{formatNumber(selected.tlod, 2)}</strong></article>
+            </div>
+            <div className="report-v2-variant-columns">
+              <section>
+                <h2>测序与注释证据</h2>
+                <dl>
+                  <div><dt>转录本</dt><dd>{selected.transcript || "-"}</dd></div>
+                  <div><dt>HGVS.c</dt><dd>{selected.hgvs_c || "-"}</dd></div>
+                  <div><dt>HGVS.p</dt><dd>{selected.hgvs_p || "-"}</dd></div>
+                  <div><dt>功能后果</dt><dd>{consequenceLabels[selected.consequence] || selected.consequence}</dd></div>
+                  <div><dt>正常样本</dt><dd>DP {selected.normal_depth ?? "-"} · ALT {selected.normal_alt_reads ?? "-"}</dd></div>
+                  <div><dt>过滤状态</dt><dd>{selected.filter_status || "-"}</dd></div>
+                </dl>
+              </section>
+              <section>
+                <h2>数据库原始字段</h2>
+                <div className="report-v2-annotation-list">
+                  {Object.entries(selected.annotations || {}).slice(0, 12).map(([key, value]) => (
+                    <div key={key}><span>{key}</span><strong>{displayValue(value)}</strong></div>
+                  ))}
+                  {!Object.keys(selected.annotations || {}).length && <p>当前 JSON 未提供扩展数据库字段。</p>}
+                </div>
+              </section>
+            </div>
+            <footer>
+              <button type="button" className="button button-outline" onClick={closeVariant}>返回报告</button>
+              <button type="button" className="button button-primary" onClick={() => jumpToIgv(selected)}><i className="fas fa-microscope" /> 打开 IGV 证据</button>
+            </footer>
+          </section>
+        </div>
+      )}
     </div>
   );
 };

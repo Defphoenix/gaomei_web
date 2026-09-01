@@ -40,7 +40,13 @@ const PersonalReports: React.FC = () => {
             {isInternal && <p className="report-patient"><i className="fas fa-user" /> {report.patient_name}</p>}
             <div className="report-meta"><span><small>样本编号</small><b>{report.sample_id}</b></span><span><small>结果位点</small><b>{report.item_count} 个</b></span></div>
             <div className="report-status"><i /><span>报告已发布</span></div>
-            <div className="report-card-actions"><Link to={`/reports/${report.id}`}>查看报告 <i className="fas fa-arrow-right" /></Link><Link to={`/browser?report=${report.id}`}>IGV 证据</Link></div>
+            <div className="report-card-actions">
+              <Link to={`/reports/${report.id}`}>查看 3D 报告 <i className="fas fa-cube" /></Link>
+              <Link to={`/browser?report=${report.id}`}>IGV 证据</Link>
+              {(report.pdf_available || report.report_pdf_url) && (
+                <a href={report.report_pdf_download_url || report.report_pdf_url} target="_blank" rel="noreferrer">下载 PDF</a>
+              )}
+            </div>
           </article>)}
         </div>}
       </div>

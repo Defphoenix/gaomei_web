@@ -364,6 +364,32 @@ def build_report() -> dict:
                 "normal_dp": 88, "normal_alt_reads": 1, "tlod": 22.4, "significance": "likely_pathogenic",
             },
         ],
+        "portal_organ_risks": [
+            {
+                "key": "colon", "name": "结直肠", "score": 8.2,
+                "genes": ["TP53", "KRAS", "PIK3CA"],
+                "evidence": "胃腺癌背景 + Ⅲ类体细胞变异",
+                "recommendation": "结合内镜/影像与肿瘤标志物随访，需专业审核。",
+            },
+            {
+                "key": "pancreas", "name": "胰腺", "score": 7.1,
+                "genes": ["KRAS"],
+                "evidence": "KRAS 驱动相关信号",
+                "recommendation": "不等同于胰腺病变诊断，需临床综合判断。",
+            },
+            {
+                "key": "liver", "name": "肝脏", "score": 6.4,
+                "genes": ["TP53"],
+                "evidence": "TP53 体细胞变异",
+                "recommendation": "建议结合腹部影像与肝功能检查。",
+            },
+            {
+                "key": "trachea", "name": "气管", "score": 3.2,
+                "genes": [],
+                "evidence": "当前报告无直接相关变异",
+                "recommendation": "低关注度，常规随访。",
+            },
+        ],
     }
     return report
 
@@ -422,7 +448,10 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     payload = build_report()
     # Validate core report fields (igv_tracks/portal_variants are extra=ignore on ReportData)
-    core = {k: v for k, v in payload.items() if k not in {"igv_tracks", "portal_variants"}}
+    core = {
+        k: v for k, v in payload.items()
+        if k not in {"igv_tracks", "portal_variants", "portal_organ_risks"}
+    }
     ReportData.model_validate(core)
     json_path = OUT_DIR / "report.json"
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

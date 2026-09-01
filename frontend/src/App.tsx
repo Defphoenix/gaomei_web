@@ -21,12 +21,15 @@ import BioBlogEditor from "./pages/BioBlogEditor";
 import AboutPage from "./pages/AboutPage";
 import { ContactPage } from "./pages/OfficialPages";
 import ProductsPage from "./pages/ProductsPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import TechSectionLayout from "./components/TechSectionLayout";
 import TechHubPage from "./pages/tech/TechHubPage";
 import TechArticlePage from "./pages/tech/TechArticlePage";
 import PersonalReports from "./pages/PersonalReports";
+import ContactFloat from "./components/ContactFloat";
 import ScrollManager from "./components/ScrollManager";
 import ResetPassword from "./pages/ResetPassword";
+import ContactMessagesAdmin from "./pages/ContactMessagesAdmin";
 import PatientReportsAdmin from "./pages/PatientReportsAdmin";
 import PortalDbBrowser from "./pages/PortalDbBrowser";
 
@@ -34,11 +37,13 @@ const AppShell: React.FC = () => {
   const location = useLocation();
   const isPortal = location.pathname === "/dashboard"
     || location.pathname === "/patient-reports"
-    || location.pathname === "/db-browser";
+    || location.pathname === "/db-browser"
+    || location.pathname === "/contact-messages";
   const isReportDetail = location.pathname.startsWith("/reports/");
+  const isGenomeBrowser = location.pathname === "/browser";
   const isAuthPage = ["/login", "/register", "/reset-password"].includes(location.pathname);
   const isProducts = location.pathname.startsWith("/products");
-  const hidePublicChrome = isPortal || isReportDetail || isAuthPage;
+  const hidePublicChrome = isPortal || isReportDetail || isGenomeBrowser || isAuthPage;
 
   return (
     <>
@@ -53,6 +58,7 @@ const AppShell: React.FC = () => {
               <Route path=":slug" element={<TechArticlePage />} />
             </Route>
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:slug/guide" element={<ProductDetailPage />} />
             <Route path="/products/:slug" element={<ProductsPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/login" element={<Login />} />
@@ -71,6 +77,7 @@ const AppShell: React.FC = () => {
             <Route path="/my-reports" element={<ProtectedRoute><PersonalReports /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><Dashboard /></ProtectedRoute>} />
             <Route path="/patient-reports" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><PatientReportsAdmin /></ProtectedRoute>} />
+            <Route path="/contact-messages" element={<ProtectedRoute roles={["admin", "analyst", "reviewer"]}><ContactMessagesAdmin /></ProtectedRoute>} />
             <Route path="/db-browser" element={<ProtectedRoute roles={["admin"]}><PortalDbBrowser /></ProtectedRoute>} />
             <Route path="/reports/:id" element={<ProtectedRoute><ReportDetail /></ProtectedRoute>} />
             <Route path="/browser" element={<ProtectedRoute><GenomeBrowser /></ProtectedRoute>} />
@@ -78,6 +85,7 @@ const AppShell: React.FC = () => {
           </Routes>
         </main>
         {!hidePublicChrome && !isProducts && <Footer />}
+        {!hidePublicChrome && <ContactFloat />}
     </>
   );
 };

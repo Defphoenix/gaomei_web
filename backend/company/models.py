@@ -53,3 +53,37 @@ class Service(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ContactMessage(models.Model):
+    CATEGORY_CHOICES = [
+        ("research", "科研合作"),
+        ("product", "检测产品"),
+        ("interpret", "产品解读"),
+        ("deploy", "私有化部署"),
+        ("career", "加入我们"),
+        ("other", "其他留言"),
+    ]
+    STATUS_CHOICES = [
+        ("new", "未读"),
+        ("read", "已读"),
+        ("done", "已处理"),
+    ]
+
+    name = models.CharField("姓名", max_length=80)
+    phone = models.CharField("联系电话", max_length=40)
+    category = models.CharField("咨询类型", max_length=20, choices=CATEGORY_CHOICES, default="product")
+    product = models.CharField("产品方向", max_length=120, blank=True)
+    content = models.TextField("留言内容")
+    status = models.CharField("状态", max_length=10, choices=STATUS_CHOICES, default="new")
+    admin_note = models.CharField("处理备注", max_length=300, blank=True)
+    created_at = models.DateTimeField("提交时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "官网留言"
+        verbose_name_plural = "官网留言"
+
+    def __str__(self):
+        return f"{self.name} · {self.phone} · {self.get_category_display()}"

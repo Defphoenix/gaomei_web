@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import gsap from "gsap";
 import { Observer } from "gsap/Observer";
 import { MotionIcon } from "../components/PublicMotion";
@@ -10,6 +10,8 @@ import {
   getProduct,
   getProductIndex,
 } from "../content/productsCatalog";
+import { getProductManual, openProductGuideAccess } from "../content/productsManuals";
+import { supportInterpretHref } from "../content/siteContact";
 
 gsap.registerPlugin(Observer);
 
@@ -24,6 +26,7 @@ const ProductsPage: React.FC = () => {
 
 const ProductsExperience: React.FC<{ slug: string }> = ({ slug }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const index = getProductIndex(slug);
   const product = getProduct(slug);
   const [animating, setAnimating] = useState(false);
@@ -50,7 +53,15 @@ const ProductsExperience: React.FC<{ slug: string }> = ({ slug }) => {
     navigate(`/products/${PRODUCTS[clamped].slug}`);
   };
 
-  const consultHref = `/contact?service=${encodeURIComponent(product.title)}#consultation-form`;
+  const consultHref = `/contact?intent=consult&service=${encodeURIComponent(product.title)}#consultation-form`;
+  const interpretHref = supportInterpretHref(location.pathname, product.title);
+  const manual = getProductManual(product.slug);
+  const reportSample = manual?.reportSample;
+
+  const openGuide = () => {
+    openProductGuideAccess(product.slug);
+    navigate(`/products/${product.slug}/guide`);
+  };
 
   useLayoutEffect(() => {
     const rail = railRef.current;
@@ -246,18 +257,46 @@ const ProductsExperience: React.FC<{ slug: string }> = ({ slug }) => {
 
           <div className="products-purchase">
             <div className="products-cta-row">
-              <Link className="products-cta products-cta-primary" to={consultHref}>
-                {isFree ? "立即申请公益名额" : "立即咨询 / 购买"}
+              <button type="button" className="products-cta products-cta-primary" onClick={openGuide}>
+                查看页面详情
                 <i className="fas fa-arrow-right" />
-              </Link>
-              <button
-                type="button"
-                className="products-cta products-cta-secondary"
-                onClick={() => setQrOpen(true)}
-              >
-                扫码下单
               </button>
             </div>
+
+            <div className="products-extra-actions">
+              <button
+                type="button"
+                className="products-extra-card"
+                onClick={() => {
+                  openProductGuideAccess(product.slug);
+                  navigate(`/products/${product.slug}/guide#report-sample`);
+                }}
+              >
+                <i className="fas fa-file-medical" />
+                <span>
+                  <b>报告示例</b>
+                  <small>{reportSample?.title || "查看报告结构示意"}</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="products-extra-card"
+                onClick={() => setQrOpen(true)}
+              >
+                <i className="fas fa-qrcode" />
+                <span>
+                  <b>扫码下单</b>
+                  <small>{product.qrLabel}</small>
+                </span>
+              </button>
+            </div>
+
+            <p className="products-consult-hint">
+              需要方案沟通？
+              <Link to={interpretHref}>预约产品解读</Link>
+              <span aria-hidden="true"> · </span>
+              <Link to={consultHref}>发起咨询</Link>
+            </p>
           </div>
         </div>
       </div>

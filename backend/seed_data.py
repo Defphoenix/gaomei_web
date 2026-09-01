@@ -34,8 +34,8 @@ company, _ = CompanyInfo.objects.get_or_create(
         ),
         "mission": "让天下无癌",
         "vision": "世界一流的泛癌早筛、早诊",
-        "email": "contact@gomicsgene.com",
-        "phone": "",
+        "email": "",
+        "phone": "0571-88776688",
         "address": "浙江省杭州市余杭区仓前街道留泽街110号4幢-201-2",
         "wechat": "高美基因",
         "founded_year": 2018,
@@ -279,3 +279,13 @@ print(f"\n测试账号:")
 print(f"  管理员: admin / admin123")
 print(f"  用户1:  zhangsan / test123456")
 print(f"  用户2:  lisi / test123456")
+
+# ============ 生信 Wiki（内部知识库）============
+import subprocess
+import sys
+from pathlib import Path
+
+_biowiki = Path(__file__).resolve().parent / "scripts" / "seed_biowiki.py"
+if _biowiki.exists():
+    print("\n填充生信 Wiki…")
+    subprocess.run([sys.executable, str(_biowiki)], check=False)

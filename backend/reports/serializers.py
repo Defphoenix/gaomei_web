@@ -1,5 +1,7 @@
 from rest_framework import serializers
+
 from .models import Report, ReportItem
+from .wes_portal_sync import load_wes_report_json
 
 
 class ReportItemSerializer(serializers.ModelSerializer):
@@ -62,6 +64,7 @@ class ReportDetailSerializer(serializers.ModelSerializer):
     patient_email = serializers.CharField(source="user.email", read_only=True)
     pdf_available = serializers.SerializerMethodField()
     report_pdf_download_url = serializers.SerializerMethodField()
+    wes_report = serializers.SerializerMethodField()
 
     class Meta:
         model = Report
@@ -74,6 +77,7 @@ class ReportDetailSerializer(serializers.ModelSerializer):
             "pdf_available", "report_pdf_download_url", "report_pdf_sha256",
             "reviewed_by", "released_at",
             "created_at", "items", "patient_name", "patient_email",
+            "wes_report",
         ]
 
     def get_pdf_available(self, obj):
@@ -81,3 +85,9 @@ class ReportDetailSerializer(serializers.ModelSerializer):
 
     def get_report_pdf_download_url(self, obj):
         return f"/api/reports/{obj.pk}/pdf/" if obj.report_pdf_file else ""
+
+    def get_wes_report(self, obj):
+        wes_report_id = (obj.analysis_data or {}).get("wes_report_id")
+        if not wes_report_id:
+            return None
+        return load_wes_report_json(str(wes_report_id))

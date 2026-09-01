@@ -1,6 +1,13 @@
-import React, { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatedPage, MotionIcon } from "../components/PublicMotion";
+import api from "../api/client";
+import {
+  categoryFromConsultName,
+  phoneLabel,
+  phoneTelHref,
+} from "../content/siteContact";
+import type { CompanyInfo } from "../types";
 
 type MotionVariant = React.ComponentProps<typeof MotionIcon>["variant"];
 
@@ -25,7 +32,7 @@ const Cta: React.FC<{ title?: string; text?: string }> = ({
     <div className="site-container consultation-banner motion-reveal">
       <div className="consult-orbit"><MotionIcon variant="target" /></div>
       <div><span className="eyebrow">GOMICS CONSULTING</span><h2>{title}</h2><p>{text}</p></div>
-      <Link className="button button-primary" to="/contact#consultation-form">预约技术咨询</Link>
+      <Link className="button button-primary" to="/contact?intent=consult#consultation-form">发起咨询</Link>
     </div>
   </section>
 );
@@ -96,7 +103,7 @@ export const TechPage: React.FC = () => {
   return (
     <AnimatedPage className="tech-public-page">
       <PageHero eyebrow="PRECISION ONCOLOGY" title={<>肿瘤全周期<br /><span>精准检测服务</span></>} text="从 cfDNA 甲基化早筛、肿瘤突变分析到疗效监测，以五大多组学实验体系与自主算法支撑每个阶段的判断。">
-        <div className="hero-actions"><Link className="button button-primary" to="/contact#consultation-form">立即咨询</Link><a className="button button-ghost" href="#oncology-services">查看服务体系</a></div>
+        <div className="hero-actions"><Link className="button button-primary" to="/contact?intent=consult#consultation-form">发起咨询</Link><a className="button button-ghost" href="#oncology-services">查看服务体系</a></div>
       </PageHero>
 
       <section className="section section-light anchor-section" id="oncology-services">
@@ -131,7 +138,7 @@ export const TechPage: React.FC = () => {
               { label: "可用样本", value: sample, setter: setSample, items: ["组织 + 配对血液", "仅肿瘤组织", "连续血液样本"] },
               { label: "核心目的", value: goal, setter: setGoal, items: ["寻找治疗相关变异", "评估免疫标志物", "复发与疗效监测"] },
             ].map((group, index) => <div className="route-question motion-reveal" key={group.label}><small>STEP 0{index + 1}</small><h3>{group.label}</h3>{group.items.map((item) => <button type="button" className={group.value === item ? "is-active" : ""} onClick={() => group.setter(item)} key={item}>{item}<i className="fas fa-check" /></button>)}</div>)}
-            <div className="route-result motion-reveal"><MotionIcon variant="network" /><small>SUGGESTED ROUTE</small><h3>{recommendation}</h3><p>提交咨询后，由技术团队结合癌种、样本质量和研究设计进一步确认。</p><Link className="consult-round-link" to={`/contact?service=${encodeURIComponent(recommendation)}#consultation-form`}><span>咨询此方案</span><i className="fas fa-arrow-right" /></Link></div>
+            <div className="route-result motion-reveal"><MotionIcon variant="network" /><small>SUGGESTED ROUTE</small><h3>{recommendation}</h3><p>提交咨询后，由技术团队结合癌种、样本质量和研究设计进一步确认。</p><Link className="consult-round-link" to={`/contact?intent=consult&service=${encodeURIComponent(recommendation)}#consultation-form`}><span>咨询此方案</span><i className="fas fa-arrow-right" /></Link></div>
           </div>
         </div>
       </section>
@@ -177,55 +184,288 @@ const contactFaq = [
 ];
 
 export const ContactPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedService = searchParams.get("service") || "";
+  const intent = searchParams.get("intent") || "";
   const [consultType, setConsultType] = useState(requestedService ? 1 : 0);
-  const [openCareer, setOpenCareer] = useState<number | null>(0);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [openCareer, setOpenCareer] = useState<number | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [company, setCompany] = useState<CompanyInfo | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [product, setProduct] = useState("");
+  const [content, setContent] = useState(requestedService ? `咨询方案：${requestedService}\n` : "");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMsg, setSubmitMsg] = useState<string | null>(null);
+  const [submitErr, setSubmitErr] = useState<string | null>(null);
+  const [formNudge, setFormNudge] = useState(false);
   const selected = consultTypes[consultType];
+  const hotline = phoneLabel(company?.phone);
+  const telHref = phoneTelHref(company?.phone);
+
+  useEffect(() => {
+    api.get("/company/info/").then((res) => setCompany(res.data)).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (intent === "interpret") {
+      const next = new URLSearchParams();
+      next.set("support", "interpret");
+      if (requestedService) next.set("product", requestedService);
+      navigate({ pathname: "/contact", search: `?${next.toString()}` }, { replace: true });
+      return;
+    }
+
+    const hash = window.location.hash.replace("#", "");
+    if (intent !== "consult" && intent !== "focus" && hash !== "consultation-form") return;
+
+    setFormNudge(true);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(() => {
+      document.getElementById("consultation-form")?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    }, 80);
+    const clear = window.setTimeout(() => setFormNudge(false), 4200);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(clear);
+    };
+  }, [intent, requestedService, searchParams]);
+
+  const triggerConsultNudge = () => {
+    setFormNudge(true);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.setTimeout(() => {
+      document.getElementById("consultation-form")?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    }, 40);
+    window.setTimeout(() => setFormNudge(false), 4200);
+  };
+
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setSubmitMsg(null);
+    setSubmitErr(null);
+    try {
+      const res = await api.post("/company/messages/", {
+        name: name.trim(),
+        phone: phone.trim(),
+        category: categoryFromConsultName(selected.name),
+        product: selected.name === "检测产品" ? product : "",
+        content: content.trim(),
+      });
+      setSubmitMsg(res.data?.detail || "留言已提交，我们将尽快电话联系您。");
+      setName("");
+      setPhone("");
+      setProduct("");
+      setContent("");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string; phone?: string[]; content?: string[] } } })?.response?.data;
+      const msg = detail?.detail
+        || detail?.phone?.[0]
+        || detail?.content?.[0]
+        || "提交失败，请稍后重试或直接电话咨询。";
+      setSubmitErr(typeof msg === "string" ? msg : "提交失败，请稍后重试。");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <AnimatedPage className="contact-public-page">
-      <PageHero eyebrow="CONNECT WITH US" title="联系我们 / 加入我们" text="无论是检测项目、科研合作、平台部署还是职业选择，都可以从这里找到对应的沟通入口。">
-        <div className="hero-actions"><a className="button button-primary" href="#consultation-form">发起咨询</a><a className="button button-ghost" href="#careers">查看职位</a></div>
-      </PageHero>
+      <section className="inner-hero contact-hero-compact">
+        <div className="hero-tech-lines" />
+        <div className="site-container inner-hero-content motion-hero">
+          <span className="eyebrow dark">CONNECT WITH US</span>
+          <h1>联系我们 / 加入我们</h1>
+          <p>全部方案均为电话咨询；也可留言，我们会回电。招聘请电话沟通投递安排。</p>
+          <div className="hero-actions">
+            <a className="button button-primary" href={telHref}><i className="fas fa-phone" /> 电话咨询 {hotline}</a>
+            <a
+              className="button button-ghost"
+              href="#consultation-form"
+              onClick={(e) => {
+                e.preventDefault();
+                triggerConsultNudge();
+              }}
+            >
+              发起咨询
+            </a>
+          </div>
+        </div>
+      </section>
 
-      <section className="section section-light anchor-section" id="consultation-form">
-        <div className="site-container contact-intro motion-reveal"><span className="eyebrow">CONTACT INFORMATION</span><h2>选择您想讨论的方向</h2><p>不同类型的咨询会展示对应的信息准备建议，帮助双方更快进入有效沟通。</p></div>
-        <div className="site-container contact-type-tabs motion-stagger">{consultTypes.map((item, index) => <button type="button" className={consultType === index ? "is-active" : ""} onClick={() => setConsultType(index)} key={item.name}><MotionIcon variant={item.icon} /><span><b>{item.name}</b><small>{item.intro}</small></span></button>)}</div>
-        <div className="site-container contact-grid enhanced-contact-grid">
-          <div className="contact-direction motion-reveal" key={selected.name}><MotionIcon variant={selected.icon} /><small>SELECTED DIRECTION</small><h3>{selected.name}</h3><p>{selected.intro}</p><b>建议提前准备</b>{selected.details.map((item) => <span key={item}><i className="fas fa-check" />{item}</span>)}
-            <div className="contact-lines">
-              <p><i className="fas fa-building" /><span><b>公司名称</b>浙江高美基因科技有限公司</span></p>
-              <p><i className="fas fa-map-marker-alt" /><span><b>公司地址</b>浙江省杭州市余杭区仓前街道留泽街110号4幢-201-2</span></p>
-              <a href="mailto:contact@gomicsgene.com"><i className="fas fa-envelope" /><span><b>商务邮箱</b>contact@gomicsgene.com</span></a>
-              <p><i className="fab fa-weixin" /><span><b>微信公众号</b>高美基因</span></p>
-              <p><i className="fas fa-sitemap" /><span><b>旗下子公司</b>浙江高美生物科技有限公司</span></p>
+      <section className={`section section-light contact-section-compact anchor-section ${formNudge ? "is-form-nudge" : ""}`} id="consultation-form">
+        <div className="site-container">
+          <div className="contact-compact-head motion-reveal">
+            <div>
+              <span className="eyebrow">CONTACT</span>
+              <h2>电话咨询 / 留言回电</h2>
             </div>
-            <div className="contact-wechat-card">
-              <img src="/assets/images/wechat_qrcode.jpg" alt="高美基因微信公众号二维码" />
-              <span>扫码关注微信公众号</span>
+            <p>留下姓名与电话，管理员可在门户后台查看留言并回电。</p>
+          </div>
+          {formNudge && (
+            <div className="interpret-nudge-tip contact-nudge-tip" role="status">
+              <i className="fas fa-hand-point-down" /> 请在高亮输入框填写姓名与手机号
+            </div>
+          )}
+
+          <div className="contact-type-pills motion-stagger">
+            {consultTypes.map((item, index) => (
+              <button
+                type="button"
+                className={consultType === index ? "is-active" : ""}
+                onClick={() => setConsultType(index)}
+                key={item.name}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="contact-compact-grid">
+            <aside className="contact-side-card motion-reveal" key={selected.name}>
+              <div className="contact-side-top">
+                <MotionIcon variant={selected.icon} />
+                <div>
+                  <small>SELECTED</small>
+                  <h3>{selected.name}</h3>
+                </div>
+              </div>
+              <p>{selected.intro}</p>
+              <b>建议提前准备</b>
+              <ul>
+                {selected.details.map((item) => (
+                  <li key={item}><i className="fas fa-check" />{item}</li>
+                ))}
+              </ul>
+              <div className="contact-side-meta">
+                <p><i className="fas fa-phone" /><a href={telHref}>{hotline}</a>（电话咨询）</p>
+                <p><i className="fas fa-map-marker-alt" />杭州市余杭区仓前街道留泽街110号</p>
+                <p><i className="fab fa-weixin" />微信公众号：高美基因</p>
+              </div>
+              <div className="contact-side-actions">
+                <a className="contact-call-btn" href={telHref}>
+                  <i className="fas fa-phone-alt" /> 立即拨打
+                </a>
+                <div className="contact-wechat-inline">
+                  <img src="/assets/images/wechat_qrcode.jpg" alt="高美基因微信公众号二维码" />
+                  <span>扫码关注公众号</span>
+                </div>
+              </div>
+            </aside>
+
+            <form className={`consult-form contact-form-compact motion-reveal ${formNudge ? "is-nudge" : ""}`} onSubmit={onSubmit}>
+              <small>LEAVE A MESSAGE · WE WILL CALL BACK</small>
+              <h3>{selected.name} · 留言</h3>
+              <div className="form-row">
+                <input className="interpret-nudge-target" aria-label="姓名" placeholder="您的姓名" value={name} onChange={(e) => setName(e.target.value)} required />
+                <input className="interpret-nudge-target" aria-label="联系电话" placeholder="联系电话（必填）" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              </div>
+              <select
+                aria-label="咨询类型"
+                value={selected.name}
+                onChange={(event) => setConsultType(Math.max(0, consultTypes.findIndex((item) => item.name === event.target.value)))}
+              >
+                {consultTypes.map((item) => <option key={item.name}>{item.name}</option>)}
+              </select>
+              <select
+                aria-label="产品方向"
+                className={selected.name === "检测产品" ? undefined : "is-slot-placeholder"}
+                value={selected.name === "检测产品" ? product : ""}
+                onChange={(e) => setProduct(e.target.value)}
+                required={selected.name === "检测产品"}
+                disabled={selected.name !== "检测产品"}
+              >
+                <option value="" disabled>
+                  {selected.name === "检测产品" ? "请选择产品方向" : "产品方向（选择「检测产品」后填写）"}
+                </option>
+                <option>美甘鑫 · 肝癌风险评估</option>
+                <option>美甘飞 · 肺癌风险评估</option>
+                <option>肿瘤精准检测</option>
+                <option>科研合作方案</option>
+              </select>
+              <textarea
+                aria-label="留言内容"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={`请描述${selected.details.join("、")}等信息，我们会电话联系您…`}
+                rows={4}
+                required
+              />
+              <button className="button button-primary" type="submit" disabled={submitting}>
+                {submitting ? "提交中…" : "提交留言"}
+              </button>
+              {submitMsg && <p className="contact-form-ok">{submitMsg}</p>}
+              {submitErr && <p className="contact-form-err">{submitErr}</p>}
+              <p className="contact-form-hint">也可直接拨打 <a href={telHref}>{hotline}</a> 电话咨询。</p>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section className="section section-tint contact-section-compact anchor-section" id="careers">
+        <div className="site-container">
+          <div className="contact-compact-head motion-reveal">
+            <div>
+              <span className="eyebrow">CAREERS</span>
+              <h2>加入我们</h2>
+            </div>
+            <p>三个方向，展开查看职责；投递与面试安排请电话咨询 {hotline}，或留言注明应聘岗位。</p>
+          </div>
+          <div className="career-compact-grid motion-stagger">
+            {careers.map((item, index) => {
+              const open = openCareer === index;
+              return (
+                <article className={`career-compact-card ${open ? "is-open" : ""}`} key={item.title}>
+                  <button type="button" className="career-compact-toggle" aria-expanded={open} onClick={() => setOpenCareer(open ? null : index)}>
+                    <MotionIcon variant={(["microscope", "network", "report"] as MotionVariant[])[index]} />
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.brief}</small>
+                    </span>
+                    <i className={`fas fa-chevron-${open ? "up" : "down"}`} />
+                  </button>
+                  {open && (
+                    <div className="career-compact-body">
+                      <p>{item.detail}</p>
+                      <div>{item.skills.map((skill) => <span key={skill}>{skill}</span>)}</div>
+                      <a href={telHref}>电话咨询投递 <i className="fas fa-phone" /></a>
+                      <a href="#consultation-form" onClick={() => setConsultType(3)}>留言应聘意向 <i className="fas fa-arrow-right" /></a>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="section section-light contact-section-compact contact-faq-compact">
+        <div className="site-container">
+          <div className="contact-compact-head motion-reveal">
+            <div>
+              <span className="eyebrow">FAQ</span>
+              <h2>咨询前常见问题</h2>
             </div>
           </div>
-          <form className="consult-form motion-reveal" onSubmit={(event) => event.preventDefault()}>
-            <div className="form-tech-icon"><MotionIcon variant="network" /></div><small>RESPONSE WITHIN 1 BUSINESS DAY</small><h3>发送{selected.name}咨询</h3>
-            <div className="form-row"><input aria-label="姓名" placeholder="您的姓名" /><input type="email" aria-label="电子邮箱" placeholder="电子邮箱" /></div>
-            <select aria-label="咨询类型" value={selected.name} onChange={(event) => setConsultType(Math.max(0, consultTypes.findIndex((item) => item.name === event.target.value)))}>{consultTypes.map((item) => <option key={item.name}>{item.name}</option>)}</select>
-            {selected.name === "检测产品" && <select aria-label="产品方向" defaultValue=""><option value="" disabled>请选择产品方向</option><option>美甘鑫 · 肝癌风险评估</option><option>美甘飞 · 肺癌风险评估</option><option>肿瘤精准检测</option><option>科研合作方案</option></select>}
-            <textarea aria-label="咨询内容" defaultValue={requestedService ? `咨询方案：${requestedService}\n` : undefined} placeholder={`请描述${selected.details.join("、")}等信息…`} rows={6} /><button className="button button-primary" type="submit">提交咨询</button>
-          </form>
-        </div>
-      </section>
-
-      <section className="section section-tint anchor-section" id="careers">
-        <div className="site-container"><div className="section-heading centered motion-reveal"><span className="eyebrow">CAREERS AT GOMICS</span><h2>加入我们的创新旅程</h2><p>点击岗位方向查看工作内容与能力关键词。</p></div>
-          <div className="career-grid motion-stagger">{careers.map((item, index) => <article className={`career-expand-card ${openCareer === index ? "is-open" : ""}`} key={item.title}><MotionIcon variant={(["microscope", "network", "report"] as MotionVariant[])[index]} /><h3>{item.title}</h3><p>{item.brief}</p><button type="button" className="button button-outline" aria-expanded={openCareer === index} onClick={() => setOpenCareer(openCareer === index ? null : index)}>{openCareer === index ? "收起职位" : "查看职位"}</button><div className="career-extra"><p>{item.detail}</p><div>{item.skills.map((skill) => <span key={skill}>{skill}</span>)}</div><a href="mailto:contact@gomicsgene.com">发送简历 <i className="fas fa-arrow-right" /></a></div><div className="card-scan-line" /></article>)}</div>
-        </div>
-      </section>
-
-      <section className="section section-light">
-        <div className="site-container faq-layout"><div className="motion-reveal"><span className="eyebrow">FREQUENTLY ASKED</span><h2>咨询前常见问题</h2><p>关于样本、周期、数据安全与报告获取。</p></div>
-          <div className="faq-list motion-stagger">{contactFaq.map(([question, answer], index) => <article className={openFaq === index ? "is-open" : ""} key={question}><button type="button" aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? null : index)}><span>{question}</span><i className="fas fa-plus" /></button><div><p>{answer}</p></div></article>)}</div>
+          <div className="faq-list contact-faq-dense motion-stagger">
+            {contactFaq.map(([question, answer], index) => (
+              <article className={openFaq === index ? "is-open" : ""} key={question}>
+                <button type="button" aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? null : index)}>
+                  <span>{question}</span>
+                  <i className="fas fa-plus" />
+                </button>
+                <div><p>{answer}</p></div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
     </AnimatedPage>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import PortalSidebar from "../components/PortalSidebar";
@@ -17,15 +18,26 @@ type PatientSlot = {
   updated_at: string;
   preview_url: string;
   edit_url: string;
+  portal_report_url?: string;
+  portal_igv_url?: string;
   download_url: string;
   file_count: number;
   bundle_count: number;
 };
 
 function openWes(path: string) {
+  if (!path) return;
   const token = localStorage.getItem("access_token") || "";
   const url = token ? `${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(token)}` : path;
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function wesPreviewUrl(row: PatientSlot) {
+  return row.preview_url || (row.wes_report_id ? `/wes/reports/${row.wes_report_id}/` : "");
+}
+
+function wesEditUrl(row: PatientSlot) {
+  return row.edit_url || (row.wes_report_id ? `/wes/reports/${row.wes_report_id}/edit/` : "");
 }
 
 const PatientReportsAdmin: React.FC = () => {
@@ -89,7 +101,7 @@ const PatientReportsAdmin: React.FC = () => {
             <div className="panel-head">
               <div>
                 <h2>患者编号台账</h2>
-                <p>查看 HTML 预览或编辑报告；患者端仅可下载 PDF</p>
+                <p>HTML / PDF / 3D 互动报告 / IGV 同一份 current.json 数据</p>
               </div>
               <div className="project-search">
                 <i className="fas fa-search" />
@@ -108,8 +120,8 @@ const PatientReportsAdmin: React.FC = () => {
                     <th>患者编号</th>
                     <th>当前样本</th>
                     <th>上传版本</th>
+                    <th>状态</th>
                     <th>PDF</th>
-                    <th>文件数</th>
                     <th>更新时间</th>
                     <th>操作</th>
                   </tr>
@@ -128,6 +140,11 @@ const PatientReportsAdmin: React.FC = () => {
                         </span>
                       </td>
                       <td>
+                        <span className={`status-pill ${row.report_status === "released" ? "green" : "blue"}`}>
+                          {row.report_status || "—"}
+                        </span>
+                      </td>
+                      <td>
                         {row.pdf_ready ? (
                           <span className="status-pill green">已生成</span>
                         ) : (
@@ -136,38 +153,54 @@ const PatientReportsAdmin: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td>{row.file_count} / {row.bundle_count} 版</td>
                       <td>{row.updated_at ? new Date(row.updated_at).toLocaleString("zh-CN") : "—"}</td>
                       <td>
-                        <div className="row-actions">
-                          <button
-                            type="button"
-                            className="icon-action"
-                            disabled={!row.preview_url}
-                            title="查看 HTML"
-                            onClick={() => openWes(row.preview_url)}
-                          >
-                            <i className="fas fa-eye" />
-                          </button>
-                          <button
-                            type="button"
-                            className="icon-action"
-                            disabled={!row.edit_url}
-                            title="编辑正式报告"
-                            onClick={() => openWes(row.edit_url)}
-                          >
-                            <i className="fas fa-edit" />
-                          </button>
-                          {row.download_url && row.pdf_ready && (
-                            <button
-                              type="button"
-                              className="icon-action"
-                              title="下载 PDF"
-                              onClick={() => downloadPdf(row)}
+                        <div className="row-actions report-slot-actions">
+                          {row.report_id ? (
+                            <Link
+                              className="button button-small button-primary"
+                              to={row.portal_report_url || `/reports/${row.report_id}`}
+                              title="打开带 3D 模型的互动报告页"
                             >
-                              <i className="fas fa-file-pdf" />
-                            </button>
+                              <i className="fas fa-cube" /> 3D报告
+                            </Link>
+                          ) : (
+                            <button type="button" className="button button-small" disabled>3D报告</button>
                           )}
+                          {row.report_id ? (
+                            <Link
+                              className="button button-small button-outline"
+                              to={row.portal_igv_url || `/browser?report=${row.report_id}`}
+                            >
+                              <i className="fas fa-dna" /> IGV
+                            </Link>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="button button-small button-outline"
+                            disabled={!wesPreviewUrl(row)}
+                            title={wesPreviewUrl(row) || "暂无 HTML 预览"}
+                            onClick={() => openWes(wesPreviewUrl(row))}
+                          >
+                            <i className="fas fa-eye" /> HTML
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-small button-outline"
+                            disabled={!wesEditUrl(row)}
+                            title={wesEditUrl(row) || "暂无编辑页"}
+                            onClick={() => openWes(wesEditUrl(row))}
+                          >
+                            <i className="fas fa-edit" /> 编辑
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-small button-outline"
+                            disabled={!row.download_url || !row.pdf_ready}
+                            onClick={() => downloadPdf(row)}
+                          >
+                            <i className="fas fa-file-pdf" /> PDF
+                          </button>
                         </div>
                       </td>
                     </tr>

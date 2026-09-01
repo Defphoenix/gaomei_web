@@ -7,7 +7,7 @@ const TechHubPage: React.FC = () => (
   <AnimatedPage className="tech-hub-overview">
     <div className="tech-hub-intro">
       <div className="tech-hub-intro-copy">
-        <span className="eyebrow dark">TECHNOLOGY PLATFORM</span>
+        <span className="eyebrow">TECHNOLOGY PLATFORM</span>
         <p className="tech-hub-tagline">
           肿瘤基因组 · 表观遗传 · AI 模型
           <em>突变与甲基化双维度 · 实验—计算—临床全链条</em>
@@ -17,7 +17,7 @@ const TechHubPage: React.FC = () => (
         <a className="button button-small button-primary" href="/assets/tech-platform-architecture.html" target="_blank" rel="noreferrer">
           架构图
         </a>
-        <Link className="button button-small button-outline" to="/contact#consultation-form">预约咨询</Link>
+        <Link className="button button-small button-outline" to="/contact?intent=consult#consultation-form">发起咨询</Link>
       </div>
     </div>
 

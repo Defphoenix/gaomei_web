@@ -73,6 +73,3 @@ class BioComment(models.Model):
 
     def __str__(self):
         return f"{self.author.username}: {self.content[:30]}"
-from django.db import models
-
-# Create your models here.

@@ -20,6 +20,7 @@ const PortalSidebar: React.FC = () => {
   const path = location.pathname;
   const onDashboard = path === "/dashboard";
   const onPatientReports = path === "/patient-reports";
+  const onContactMessages = path === "/contact-messages";
   const onDbBrowser = path === "/db-browser";
   const [dbOpen, setDbOpen] = useState(onDbBrowser);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -51,6 +52,11 @@ const PortalSidebar: React.FC = () => {
         {canOperate && (
           <Link className={onPatientReports ? "active" : undefined} to="/patient-reports" title="患者报告">
             <i className="fas fa-file-medical" />患者报告
+          </Link>
+        )}
+        {canOperate && (
+          <Link className={onContactMessages ? "active" : undefined} to="/contact-messages" title="官网留言">
+            <i className="fas fa-comments" />官网留言
           </Link>
         )}
         {canOperate && (

@@ -47,7 +47,7 @@ const TechArticlePage: React.FC = () => {
             );
           })}
         </div>
-        <Link className="button button-primary" to="/contact#consultation-form">
+        <Link className="button button-primary" to="/contact?intent=consult#consultation-form">
           咨询此技术方案
         </Link>
       </footer>

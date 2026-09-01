@@ -342,7 +342,7 @@ const AboutPage: React.FC = () => {
             <h2>准备好开启您的研究了吗？</h2>
             <p>从研究设计到数据交付，我们为每个项目匹配适合的技术路线。</p>
           </div>
-          <Link className="button button-primary" to="/contact#consultation-form">预约技术咨询</Link>
+          <Link className="button button-primary" to="/?support=interpret">预约产品解读</Link>
         </div>
       </section>
     </AnimatedPage>

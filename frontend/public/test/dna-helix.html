@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test · Gene Helix (DNA Capsules)</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; }
+    body {
+      background: radial-gradient(ellipse at 28% 18%, #f6efff 0%, #cbb6ea 45%, #6a4a9c 100%);
+      font-family: "Segoe UI", system-ui, "PingFang SC", sans-serif;
+    }
+    #app { position: fixed; inset: 0; }
+    .badge {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 2;
+      padding: 6px 10px;
+      color: #5b3d8a;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+    }
+    .hint {
+      position: fixed;
+      left: 24px;
+      bottom: 24px;
+      z-index: 2;
+      max-width: 320px;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 2px 14px rgba(40, 20, 70, 0.4);
+      pointer-events: none;
+    }
+    .hint strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .hint span { font-size: 13px; line-height: 1.45; opacity: 0.92; }
+  </style>
+</head>
+<body>
+  <div class="badge">Test page · not in main app</div>
+  <div id="app"></div>
+  <div class="hint">
+    <strong>Gene Helix</strong>
+    <span>悬停高亮碱基对 · 拖拽旋转视角 · 自动缓转<br />灵感：Codrops Xylophone → DNA 胶囊螺旋</span>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/test/vendor/three/three.module.js",
+      "three/addons/": "/test/vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    const app = document.getElementById("app");
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 200);
+    camera.position.set(0, 2.2, 11);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    app.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.minDistance = 6;
+    controls.maxDistance = 18;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.55;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 1.15);
+    key.position.set(5, 8, 6);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xb8a0ff, 0.45);
+    fill.position.set(-6, -2, -4);
+    scene.add(fill);
+    const rim = new THREE.PointLight(0x7ef0ff, 0.8, 30);
+    rim.position.set(0, 0, 4);
+    scene.add(rim);
+
+    const helix = new THREE.Group();
+    scene.add(helix);
+
+    const PAIRS = 36;
+    const RISE = 0.28;
+    const RADIUS = 1.55;
+    const TWIST = 0.42;
+
+    const matBase = () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color().setHSL(0.72 + Math.random() * 0.06, 0.25, 0.86),
+      roughness: 0.28,
+      metalness: 0.05,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.2,
+      sheen: 0.4,
+      sheenColor: new THREE.Color("#d8c4ff"),
+      iridescence: 0.55,
+      iridescenceIOR: 1.4,
+      iridescenceThicknessRange: [120, 420],
+      emissive: new THREE.Color(0x000000),
+    });
+
+    const matAccent = () => new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      roughness: 0.15,
+      metalness: 0.1,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
+      iridescence: 1,
+      iridescenceIOR: 1.5,
+      iridescenceThicknessRange: [80, 520],
+      sheen: 0.8,
+      sheenColor: new THREE.Color("#9ef0ff"),
+      emissive: new THREE.Color(0x000000),
+    });
+
+    const capsuleGeo = new THREE.CapsuleGeometry(0.11, 0.72, 6, 12);
+    const rungGeo = new THREE.CapsuleGeometry(0.07, 0.95, 4, 10);
+
+    /** @type {{ mesh: THREE.Mesh, phase: number, hover: number }[]} */
+    const interactives = [];
+
+    function addCapsule(mesh, phase) {
+      helix.add(mesh);
+      interactives.push({ mesh, phase, hover: 0 });
+    }
+
+    for (let i = 0; i < PAIRS; i++) {
+      const t = i * TWIST;
+      const y = (i - PAIRS / 2) * RISE;
+      const accent = Math.abs(i - PAIRS / 2) < 6;
+      const matA = accent ? matAccent() : matBase();
+      const matB = accent ? matAccent() : matBase();
+
+      const a = new THREE.Mesh(capsuleGeo, matA);
+      a.position.set(Math.cos(t) * RADIUS, y, Math.sin(t) * RADIUS);
+      a.lookAt(0, y, 0);
+      a.rotateX(Math.PI / 2);
+      addCapsule(a, i * 0.15);
+
+      const b = new THREE.Mesh(capsuleGeo, matB);
+      b.position.set(Math.cos(t + Math.PI) * RADIUS, y, Math.sin(t + Math.PI) * RADIUS);
+      b.lookAt(0, y, 0);
+      b.rotateX(Math.PI / 2);
+      addCapsule(b, i * 0.15 + 1);
+
+      const rung = new THREE.Mesh(rungGeo, accent ? matAccent() : matBase());
+      const ax = Math.cos(t) * RADIUS;
+      const az = Math.sin(t) * RADIUS;
+      const bx = Math.cos(t + Math.PI) * RADIUS;
+      const bz = Math.sin(t + Math.PI) * RADIUS;
+      rung.position.set((ax + bx) / 2, y, (az + bz) / 2);
+      rung.lookAt(ax, y, az);
+      rung.rotateX(Math.PI / 2);
+      addCapsule(rung, i * 0.2 + 2);
+    }
+
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(6, 48),
+      new THREE.MeshBasicMaterial({ color: 0x2a1848, transparent: true, opacity: 0.18 }),
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -5.2;
+    scene.add(floor);
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2(2, 2);
+    let hovered = null;
+
+    window.addEventListener("pointermove", (e) => {
+      pointer.x = (e.clientX / innerWidth) * 2 - 1;
+      pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+    });
+
+    window.addEventListener("resize", () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    const clock = new THREE.Clock();
+    const meshList = () => interactives.map((d) => d.mesh);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      helix.rotation.y = t * 0.12;
+
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(meshList(), false);
+      hovered = hits[0]?.object || null;
+
+      for (const d of interactives) {
+        const isHot = d.mesh === hovered;
+        d.hover += ((isHot ? 1 : 0) - d.hover) * 0.18;
+        const pulse = 1 + Math.sin(t * 3 + d.phase) * 0.02;
+        d.mesh.scale.setScalar((1 + d.hover * 0.45) * pulse);
+
+        const mat = d.mesh.material;
+        if (mat?.emissive) {
+          const e = d.hover * 0.35;
+          mat.emissive.setRGB(e * 0.4, e * 0.7, e);
+        }
+        if (isHot && "iridescence" in mat) {
+          mat.iridescence = 1;
+          mat.iridescenceThicknessRange = [60, 560];
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

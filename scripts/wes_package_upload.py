@@ -170,11 +170,21 @@ def main() -> int:
         return 5
 
     preview = payload.get("preview_url") or ""
+    portal = payload.get("portal_report_url") or ""
+    igv = payload.get("portal_igv_url") or ""
     print()
-    print("OK: PDF generated.")
+    print("OK: package ingested.")
+    if payload.get("pdf_ready"):
+        print("PDF generated.")
+    else:
+        print("PDF not ready — check pdf_error.", file=sys.stderr)
     if preview:
-        print(f"Preview (admin login): https://gomics.icu{preview}")
-    return 0
+        print(f"HTML preview (admin): https://gomics.icu{preview}")
+    if portal:
+        print(f"3D portal report:     https://gomics.icu{portal}")
+    if igv:
+        print(f"IGV evidence:         https://gomics.icu{igv}")
+    return 0 if payload.get("pdf_ready") else 5
 
 
 if __name__ == "__main__":

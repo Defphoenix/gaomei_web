@@ -135,6 +135,3 @@ class BioCommentListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         post = get_object_or_404(BioPost, slug=self.kwargs["slug"], status="published")
         serializer.save(author=self.request.user, post=post)
-from django.shortcuts import render
-
-# Create your views here.

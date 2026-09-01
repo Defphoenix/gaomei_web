@@ -8,6 +8,7 @@ import { featuredNewsFallback } from "../components/newsAssets";
 import PartnerCoverageMap from "../components/PartnerCoverageMap";
 import PartnerLogoMarquee from "../components/PartnerLogoMarquee";
 import HonorsCardSlider from "../components/HonorsCardSlider";
+import { CONTACT_CONSULT_HREF, supportInterpretHref } from "../content/siteContact";
 
 const VIDEO_SRC = "/assets/media/gomics-hero.mp4";
 
@@ -74,7 +75,8 @@ const Home: React.FC = () => {
               <MagneticButton className="button button-primary" to="/products">
                 探索产品方案 <i className="fas fa-arrow-right" />
               </MagneticButton>
-              <Link className="button button-ghost" to="/contact">预约技术咨询</Link>
+              <Link className="button button-ghost" to={supportInterpretHref("/")}>预约产品解读</Link>
+              <Link className="button button-ghost" to={CONTACT_CONSULT_HREF}>发起咨询</Link>
             </div>
             <div className="hero-proof">
               <span><b>7,000+</b> 累计样本</span><span><b>40+</b> 合作机构</span><span><b>12</b> 覆盖癌种</span>
@@ -173,8 +175,8 @@ const Home: React.FC = () => {
         <div className="site-container consultation-banner motion-reveal">
           <div className="consult-orbit"><MotionIcon variant="target" /></div>
           <div><span className="eyebrow">START A CONVERSATION</span><h2>准备好开启您的研究了吗？</h2><p>从科研方案、检测产品到私有化部署，我们会根据团队现状给出清晰的落地路径。</p></div>
-          <MagneticButton className="button button-primary" to="/contact">
-            联系技术顾问 <i className="fas fa-arrow-right" />
+          <MagneticButton className="button button-primary" to={supportInterpretHref("/")}>
+            预约产品解读 <i className="fas fa-arrow-right" />
           </MagneticButton>
         </div>
       </section>
