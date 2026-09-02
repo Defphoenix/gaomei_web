@@ -62,10 +62,10 @@ INSTALLED_APPS = [
     # Local
     "accounts",
     "reports",
+    "ingest",
     "blog",
     "bioblog",
     "company",
-    "bridge",
     "wes_report",
 ]
 
@@ -103,11 +103,34 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+#
+# Production releases symlink backend/db.sqlite3 -> shared/db.sqlite3.
+# Workspace must use the independent test copy (shared/db.test.sqlite3) unless
+# GAOMEI_WEB_ALLOW_PROD_DB=1 is explicitly set.
+
+_PROD_SQLITE = Path("/home/ubuntu/apps/gaomei_web/shared/db.sqlite3")
+_db_name = Path(os.environ.get("GAOMEI_WEB_DB_PATH", str(BASE_DIR / "db.sqlite3"))).expanduser()
+try:
+    _db_resolved = _db_name.resolve()
+except FileNotFoundError:
+    _db_resolved = _db_name
+
+_under_release = "apps/gaomei_web" in str(BASE_DIR.resolve()).replace("\\", "/")
+if (
+    _PROD_SQLITE.exists()
+    and _db_resolved == _PROD_SQLITE.resolve()
+    and not _under_release
+    and not env_bool("GAOMEI_WEB_ALLOW_PROD_DB", False)
+):
+    raise ImproperlyConfigured(
+        "Refusing to open production SQLite from the workspace. "
+        "Use shared/db.test.sqlite3 (workspace symlink) or set GAOMEI_WEB_ALLOW_PROD_DB=1."
+    )
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": _db_name,
     }
 }
 
@@ -176,9 +199,6 @@ CSRF_TRUSTED_ORIGINS = [
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = env_bool("GAOMEI_WEB_SECURE_COOKIES", False)
 CSRF_COOKIE_SECURE = env_bool("GAOMEI_WEB_SECURE_COOKIES", False)
-
-# SHA256 only. The raw node credential is stored on node9 and never committed.
-GAOMEI_BRIDGE_TOKEN_SHA256 = os.environ.get("GAOMEI_BRIDGE_TOKEN_SHA256", "")
 
 # Formal WES HTML/PDF report packages (node9 upload → cloud render).
 WES_BUNDLE_ROOT = Path(os.environ.get("GAOMEI_WES_BUNDLE_ROOT", MEDIA_ROOT / "wes_bundles"))

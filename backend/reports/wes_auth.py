@@ -1,10 +1,10 @@
-"""JWT / cookie gate for /wes/ HTML editor pages (internal roles only)."""
+"""JWT / cookie gate for /wes/ HTML editor pages (internal roles; released preview for patients)."""
 from __future__ import annotations
 
 from functools import wraps
 
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponseForbidden, HttpResponseRedirect
+from django.http import HttpResponseForbidden, HttpResponseRedirect, Http404
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
@@ -38,63 +38,73 @@ def _authenticate_jwt(raw_token: str):
 def resolve_wes_user(request):
     if getattr(request, "user", None) and request.user.is_authenticated:
         return request.user
-    auth = request.META.get("HTTP_AUTHORIZATION", "")
-    if auth.lower().startswith("bearer "):
-        user = _authenticate_jwt(auth.split(" ", 1)[1].strip())
-        if user:
-            return user
-    cookie = request.COOKIES.get(COOKIE_NAME, "").strip()
-    if cookie:
-        user = _authenticate_jwt(cookie)
-        if user:
-            return user
-    token = request.GET.get("access_token", "").strip()
-    if token:
-        return _authenticate_jwt(token)
-    return AnonymousUser()
+    raw = (
+        request.GET.get("access_token")
+        or request.META.get("HTTP_AUTHORIZATION", "").removeprefix("Bearer ").strip()
+        or request.COOKIES.get(COOKIE_NAME)
+    )
+    user = _authenticate_jwt(raw)
+    if user:
+        request.user = user
+    return user or AnonymousUser()
+
+
+def _patient_may_view_wes(user, report_id: str) -> bool:
+    """Customers may open HTML/PDF for their own released reports only."""
+    from .models import Report, ReportStatus
+
+    qs = Report.objects.filter(
+        status=ReportStatus.RELEASED,
+        patient__user=user,
+    )
+    return qs.filter(
+        models_q_wes_id(report_id)
+    ).exists()
+
+
+def models_q_wes_id(report_id: str):
+    from django.db.models import Q
+    return (
+        Q(analysis_data__wes_report_id=report_id)
+        | Q(sample_id=report_id)
+        | Q(report_number=report_id)
+    )
 
 
 def staff_wes_required(view_func):
-    """Allow admin/analyst/reviewer; strip access_token from URL into HttpOnly cookie."""
+    """Internal roles for all WES tools; customers get preview/pdf for own released only."""
 
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        query_token = request.GET.get("access_token", "").strip()
         user = resolve_wes_user(request)
-        request.user = user
-        if not is_internal(user):
-            return HttpResponseForbidden(
-                "需要管理员 / 分析员 / 审核员登录后才能访问正式报告编辑页。",
-                content_type="text/plain; charset=utf-8",
-            )
-        if query_token:
-            remaining = request.GET.copy()
-            remaining.pop("access_token", None)
-            target = request.path
-            if remaining:
-                target = f"{request.path}?{remaining.urlencode()}"
-            response = HttpResponseRedirect(target)
-            response.set_cookie(
-                COOKIE_NAME,
-                query_token,
-                httponly=True,
-                samesite="Lax",
-                secure=request.is_secure(),
-                max_age=60 * 60 * 8,
-                path="/",
-            )
+        report_id = kwargs.get("report_id") or ""
+        view_name = getattr(view_func, "__name__", "")
+
+        if is_internal(user):
+            response = view_func(request, *args, **kwargs)
+            token = request.GET.get("access_token")
+            if token and hasattr(response, "set_cookie"):
+                response.set_cookie(
+                    COOKIE_NAME, token, max_age=60 * 60 * 12, httponly=True, samesite="Lax",
+                )
             return response
-        return view_func(request, *args, **kwargs)
+
+        # Customer: only HTML preview + PDF for own released report
+        if user and user.is_authenticated and view_name in {"report_preview", "report_pdf"}:
+            if report_id and _patient_may_view_wes(user, report_id):
+                return view_func(request, *args, **kwargs)
+            raise Http404()
+
+        if not user or not user.is_authenticated:
+            return HttpResponseRedirect(f"/login?next={request.get_full_path()}")
+        return HttpResponseForbidden("需要内部角色或已发布报告权限才能访问 WES 报告页")
 
     return wrapper
 
 
 def wrap_wes_views():
-    """Apply staff gate + post-save PDF refresh to wes_report views."""
+    """Apply auth gate + post-save portal sync for V2 Report rows."""
     from wes_report import views as wes_views
-
-    if getattr(wes_views, "_gaomei_wes_wrapped", False):
-        return
 
     protected = [
         "home",
@@ -105,11 +115,21 @@ def wrap_wes_views():
         "report_render",
         "report_save",
         "report_pdf",
+        "report_pdf_regenerate",
+        "report_pdf_upload",
         "template_source",
         "template_source_raw",
     ]
     for name in protected:
-        setattr(wes_views, name, staff_wes_required(getattr(wes_views, name)))
+        view = getattr(wes_views, name)
+        if getattr(view, "_gaomei_wes_gated", False):
+            continue
+        wrapped = staff_wes_required(view)
+        wrapped._gaomei_wes_gated = True
+        setattr(wes_views, name, wrapped)
+
+    if getattr(wes_views, "_gaomei_wes_save_hooked", False):
+        return
 
     gated_save = wes_views.report_save
 
@@ -121,31 +141,51 @@ def wrap_wes_views():
                 import json
                 from pathlib import Path
 
-                from .models import SampleBundle
-                from .wes_storage import generate_outputs_for_bundle
-                from .wes_portal_sync import sync_portal_from_wes_payload
+                from django.conf import settings
 
-                bundle = (
-                    SampleBundle.objects.filter(
-                        wes_report_id=report_id, status=SampleBundle.Status.ACTIVE,
-                    )
-                    .select_related("slot", "slot__report")
-                    .order_by("-created_at")
+                from .models import Report, ReportAsset
+                from wes_report.services import write_pdf
+
+                payload = json.loads(request.body.decode("utf-8"))
+                report = (
+                    Report.objects.filter(models_q_wes_id(report_id))
+                    .order_by("-updated_at")
                     .first()
                 )
-                if bundle:
-                    payload = json.loads(request.body.decode("utf-8"))
-                    if bundle.slot.report_id:
-                        sync_portal_from_wes_payload(
-                            bundle.slot.report,
-                            payload,
-                            Path(bundle.root_dir),
-                            wes_report_id=report_id,
-                        )
-                    generate_outputs_for_bundle(bundle)
+                if report:
+                    data = report.analysis_data if isinstance(report.analysis_data, dict) else {}
+                    data = {**data, **payload} if isinstance(payload, dict) else data
+                    data["wes_report_id"] = report_id
+                    report.analysis_data = data
+                    report.save(update_fields=["analysis_data", "updated_at"])
+
+                    output = Path(settings.WES_REPORT_OUTPUT_DIR) / "pdf" / f"{report_id}.pdf"
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    manual_marker = output.with_name(f"{report_id}.pdf.manual")
+                    try:
+                        from wes_report.services import load_report_data, current_report_path
+                        wes_path = current_report_path(settings.WES_REPORT_DATA_DIR, report_id)
+                        # Respect manual PDF override until operator clicks regenerate.
+                        if wes_path.exists() and not manual_marker.is_file():
+                            write_pdf(load_report_data(wes_path), output)
+                            rel = str(output.relative_to(Path(settings.MEDIA_ROOT))) if str(output).startswith(str(settings.MEDIA_ROOT)) else str(output)
+                            ReportAsset.objects.update_or_create(
+                                report=report,
+                                asset_type="pdf",
+                                name=f"{report_id}.pdf",
+                                defaults={
+                                    "storage_backend": "local",
+                                    "file_path": rel,
+                                    "mime_type": "application/pdf",
+                                    "file_size": output.stat().st_size if output.exists() else None,
+                                },
+                            )
+                    except Exception:
+                        pass
             except Exception:
                 pass
         return response
 
+    save_and_refresh._gaomei_wes_gated = True
     wes_views.report_save = save_and_refresh
-    wes_views._gaomei_wes_wrapped = True
+    wes_views._gaomei_wes_save_hooked = True

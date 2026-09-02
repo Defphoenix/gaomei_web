@@ -266,7 +266,7 @@ TAPS 免亚硫酸盐转化，适合 **FFPE / cfDNA** 等低质量 DNA，一次�
         "tags": ["node9", "portal", "sop"],
         "summary": "临床 JSON / PDF / BAM 从 node9 同步到云门户的常见问题。",
         "content": """## 同步路径
-node9 → Bridge API (`/api/bridge/reports/import/`) → 患者报告包 → 门户发布
+node9 → Ingest API (`/api/v1/ingest/reports/package/`) → Patient/Report → 门户发布
 
 ## 必带文件
 - `report.json` / `clinical_v2` 结构

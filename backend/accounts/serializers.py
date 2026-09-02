@@ -67,11 +67,8 @@ class UserSerializer(serializers.ModelSerializer):
         return getattr(getattr(obj, "profile", None), "role", "customer")
 
     def get_report_count(self, obj):
-        role = self.get_role(obj)
-        if role in {"admin", "analyst", "reviewer"}:
-            from reports.models import Report
-            return Report.objects.count()
-        return obj.reports.count()
+        from reports.access import visible_reports_for_user
+        return visible_reports_for_user(obj).count()
 
 
 class GenomicTrackSerializer(serializers.ModelSerializer):

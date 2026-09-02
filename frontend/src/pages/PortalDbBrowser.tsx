@@ -4,7 +4,17 @@ import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import PortalSidebar from "../components/PortalSidebar";
 
-type TableKey = "users" | "patient_slots" | "sample_bundles" | "bundle_files" | "reports";
+type TableKey =
+  | "users"
+  | "patients"
+  | "reports"
+  | "assets"
+  | "variants"
+  | "access_logs"
+  | "ingest_events"
+  | "api_keys";
+
+type Mode = "list" | "create" | "edit" | "view";
 
 type CatalogTable = {
   key: TableKey;
@@ -14,24 +24,14 @@ type CatalogTable = {
   description: string;
 };
 
-type UserRow = {
-  id: number;
-  username: string;
-  email: string;
-  is_active: boolean;
-  is_staff: boolean;
-  role: string;
-  patient_no: string;
-  is_bioinfo: boolean;
-  date_joined: string;
-  last_login: string;
-};
-
-const TABLE_ENDPOINTS: Record<Exclude<TableKey, "users">, string> = {
-  patient_slots: "/reports/db-browser/patient-slots/",
-  sample_bundles: "/reports/db-browser/sample-bundles/",
-  bundle_files: "/reports/db-browser/bundle-files/",
-  reports: "/reports/db-browser/reports/",
+const ENDPOINTS: Record<Exclude<TableKey, "users">, string> = {
+  patients: "/v1/db-browser/patients/",
+  reports: "/v1/db-browser/reports/",
+  assets: "/v1/db-browser/assets/",
+  variants: "/v1/db-browser/variants/",
+  access_logs: "/v1/db-browser/access-logs/",
+  ingest_events: "/v1/db-browser/ingest-events/",
+  api_keys: "/v1/db-browser/api-keys/",
 };
 
 const ROLE_OPTIONS = [
@@ -41,167 +41,354 @@ const ROLE_OPTIONS = [
   { value: "admin", label: "管理员" },
 ];
 
-const emptyUserForm = {
-  username: "",
-  email: "",
-  password: "",
-  role: "customer",
-  patient_no: "",
-  is_active: true,
-  is_bioinfo: false,
+const STATUS_OPTIONS = [
+  { value: "draft", label: "分析中" },
+  { value: "review", label: "待审核" },
+  { value: "released", label: "已发布" },
+  { value: "void", label: "已作废" },
+];
+
+const SEX_OPTIONS = [
+  { value: "", label: "请选择" },
+  { value: "male", label: "男" },
+  { value: "female", label: "女" },
+  { value: "other", label: "其他" },
+  { value: "unknown", label: "未知" },
+];
+
+const PAGE_TIPS: Record<TableKey, string> = {
+  users: "创建登录账号、分配角色，并通过患者编号绑定受检者。",
+  patients: "维护受检者主数据；可用登录用户名绑定门户账号。",
+  reports: "管理报告状态与内容；附件在报告编辑页中统一维护。",
+  assets: "查看与维护报告附件元数据（PDF / BAM / BAI 等）。",
+  variants: "只读浏览报告位点索引；完整变异请走 WES JSON 导入。",
+  access_logs: "审计报告查看与下载行为。",
+  ingest_events: "查看节点机报告包导入结果与错误详情。",
+  api_keys: "管理导入鉴权 Key；明文仅在创建时显示一次。",
 };
 
-const PATH_COLUMNS = new Set(["abs_path", "root_dir", "pdf_url", "rel_path"]);
+const LIST_COLUMNS: Record<TableKey, { key: string; label: string }[]> = {
+  users: [
+    { key: "username", label: "用户名" },
+    { key: "role", label: "角色" },
+    { key: "patient_no", label: "绑定患者" },
+    { key: "email", label: "邮箱" },
+    { key: "is_active", label: "状态" },
+  ],
+  patients: [
+    { key: "patient_no", label: "患者编号" },
+    { key: "name", label: "姓名" },
+    { key: "sex", label: "性别" },
+    { key: "phone", label: "电话" },
+    { key: "username", label: "绑定账号" },
+    { key: "report_count", label: "报告数" },
+    { key: "updated_at", label: "更新时间" },
+  ],
+  reports: [
+    { key: "report_number", label: "报告编号" },
+    { key: "patient_no", label: "患者编号" },
+    { key: "patient_name", label: "患者" },
+    { key: "report_type", label: "类型" },
+    { key: "status", label: "状态" },
+    { key: "sample_id", label: "样本号" },
+    { key: "report_date", label: "报告日期" },
+  ],
+  assets: [
+    { key: "name", label: "文件名" },
+    { key: "asset_type", label: "类型" },
+    { key: "report_number", label: "报告编号" },
+    { key: "sample_id", label: "样本" },
+    { key: "file_size", label: "大小" },
+    { key: "created_at", label: "上传时间" },
+  ],
+  variants: [
+    { key: "gene", label: "基因" },
+    { key: "chromosome", label: "染色体" },
+    { key: "position", label: "位置" },
+    { key: "ref", label: "Ref" },
+    { key: "alt", label: "Alt" },
+    { key: "variant_type", label: "类型" },
+    { key: "report_number", label: "报告" },
+  ],
+  access_logs: [
+    { key: "created_at", label: "时间" },
+    { key: "username", label: "用户" },
+    { key: "action", label: "动作" },
+    { key: "report_number", label: "报告" },
+    { key: "ip_address", label: "IP" },
+    { key: "user_agent", label: "设备" },
+  ],
+  ingest_events: [
+    { key: "created_at", label: "时间" },
+    { key: "status", label: "状态" },
+    { key: "external_id", label: "外部 ID" },
+    { key: "report_number", label: "报告" },
+    { key: "api_key", label: "API Key" },
+    { key: "error_detail", label: "错误" },
+  ],
+  api_keys: [
+    { key: "name", label: "名称" },
+    { key: "key_prefix", label: "前缀" },
+    { key: "scope", label: "Scope" },
+    { key: "is_active", label: "状态" },
+    { key: "last_used_at", label: "最近使用" },
+    { key: "created_at", label: "创建时间" },
+  ],
+};
 
-function cell(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "boolean") return value ? "是" : "否";
-  return String(value);
+function sexLabel(v: string) {
+  return SEX_OPTIONS.find((o) => o.value === v)?.label || v || "—";
 }
-
-async function copyText(text: string): Promise<boolean> {
-  if (!text || text === "—") return false;
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    // fall through
+function roleLabel(v: string) {
+  return ROLE_OPTIONS.find((o) => o.value === v)?.label || v || "—";
+}
+function statusLabel(v: string) {
+  return STATUS_OPTIONS.find((o) => o.value === v)?.label || v || "—";
+}
+function statusClass(v: string) {
+  if (v === "released") return "ok";
+  if (v === "review") return "warn";
+  if (v === "void") return "bad";
+  return "muted";
+}
+function formatSize(n: unknown) {
+  const num = Number(n || 0);
+  if (!num) return "—";
+  if (num < 1024) return `${num} B`;
+  if (num < 1024 * 1024) return `${(num / 1024).toFixed(1)} KB`;
+  return `${(num / (1024 * 1024)).toFixed(1)} MB`;
+}
+function cellText(col: string, row: Record<string, unknown>) {
+  const v = row[col];
+  if (col === "sex") return sexLabel(String(v || ""));
+  if (col === "role") return roleLabel(String(v || ""));
+  if (col === "status" && typeof v === "string" && ["draft", "review", "released", "void"].includes(v)) {
+    return statusLabel(v);
   }
-  const area = document.createElement("textarea");
-  area.value = text;
-  area.style.position = "fixed";
-  area.style.left = "-9999px";
-  document.body.appendChild(area);
-  area.select();
-  const ok = document.execCommand("copy");
-  document.body.removeChild(area);
-  return ok;
+  if (col === "is_active") return v ? "启用" : "停用";
+  if (col === "file_size") return formatSize(v);
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "boolean") return v ? "是" : "否";
+  return String(v);
 }
+
+const emptyPatient = {
+  patient_no: "", name: "", sex: "", phone: "", email: "",
+  birth_date: "", id_card: "", address: "", remarks: "", username: "", is_active: true,
+};
+const emptyReport = {
+  patient_no: "", report_number: "", title: "", status: "draft",
+  product_code: "WES_TN", report_type: "mutation", sample_id: "",
+  wes_report_id: "", tumor_sample_id: "", normal_sample_id: "",
+  genome_build: "GRCh38", report_date: "", summary: "", conclusion: "",
+};
+const emptyUser = {
+  username: "", email: "", password: "", role: "customer",
+  patient_no: "", is_active: true, is_bioinfo: false,
+};
+const emptyAsset = {
+  name: "", asset_type: "other", file_path: "", external_url: "", mime_type: "",
+};
+const emptyKey = { name: "", scope: "wes_package", is_active: true };
 
 const PortalDbBrowser: React.FC = () => {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
-  const tableKey = (params.get("table") || "users") as TableKey;
+  const tableKey = (params.get("table") || "patients") as TableKey;
+  const mode = (params.get("mode") || "list") as Mode;
+  const editId = params.get("id");
 
   const [catalog, setCatalog] = useState<CatalogTable[]>([]);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
+  const [patientOptions, setPatientOptions] = useState<{ value: string; label: string }[]>([]);
+  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<UserRow | null>(null);
-  const [form, setForm] = useState({ ...emptyUserForm });
+  const [statusFilter, setStatusFilter] = useState("");
+  const [geneFilter, setGeneFilter] = useState("");
+  const [form, setForm] = useState<Record<string, unknown>>({});
+  const [formAssets, setFormAssets] = useState<Record<string, unknown>[]>([]);
   const [saving, setSaving] = useState(false);
-  const [copyHint, setCopyHint] = useState("");
+  const [rawKeyNotice, setRawKeyNotice] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  async function onPathDoubleClick(text: string) {
-    const ok = await copyText(text);
-    setCopyHint(ok ? `已复制：${text}` : "复制失败，请手动选中");
-    window.setTimeout(() => setCopyHint(""), 2500);
-  }
-
-  const currentMeta = catalog.find((t) => t.key === tableKey);
   const isAdmin = user?.role === "admin" || !!user?.is_staff;
-  const canEditUsers = tableKey === "users" && isAdmin && (currentMeta?.editable ?? true);
-  const showReportActions = tableKey === "reports" || tableKey === "patient_slots";
-  const actionColumn = canEditUsers || showReportActions;
+  const currentMeta = catalog.find((t) => t.key === tableKey)
+    || { key: tableKey, label: LIST_COLUMNS[tableKey] ? tableKey : "数据", model: "", editable: true, description: "" };
+  const editable = Boolean(isAdmin && (currentMeta.editable ?? true) && !["variants", "access_logs", "ingest_events"].includes(tableKey));
+  const onForm = mode === "create" || mode === "edit" || mode === "view";
+  const readOnlyForm = mode === "view" || !editable;
+
+  const goList = useCallback((table = tableKey) => {
+    setParams({ table });
+    setError("");
+    setRawKeyNotice("");
+  }, [setParams, tableKey]);
+
+  const goCreate = () => setParams({ table: tableKey, mode: "create" });
+  const goEdit = (id: number | string, viewOnly = false) => {
+    setParams({ table: tableKey, mode: viewOnly ? "view" : "edit", id: String(id) });
+  };
 
   const loadCatalog = useCallback(() => {
-    api.get("/reports/db-browser/")
+    api.get("/v1/db-browser/")
       .then((res) => setCatalog(res.data.tables || []))
       .catch(() => setCatalog([]));
   }, []);
+
+  const loadOptions = useCallback(() => {
+    if (!isAdmin) return;
+    Promise.all([
+      api.get("/auth/admin/users/").catch(() => ({ data: [] })),
+      api.get("/v1/db-browser/patients/").catch(() => ({ data: [] })),
+    ]).then(([u, p]) => {
+      setUserOptions((Array.isArray(u.data) ? u.data : []).map((x: Record<string, unknown>) => ({
+        value: String(x.username || ""),
+        label: roleLabel(String(x.role || "")),
+      })).filter((x: { value: string }) => x.value));
+      setPatientOptions((Array.isArray(p.data) ? p.data : []).map((x: Record<string, unknown>) => ({
+        value: String(x.patient_no || ""),
+        label: String(x.name || ""),
+      })).filter((x: { value: string }) => x.value));
+    });
+  }, [isAdmin]);
 
   const loadRows = useCallback(() => {
     setLoading(true);
     setError("");
     const req = tableKey === "users"
       ? api.get("/auth/admin/users/")
-      : api.get(TABLE_ENDPOINTS[tableKey as Exclude<TableKey, "users">]);
+      : api.get(ENDPOINTS[tableKey as Exclude<TableKey, "users">]);
     req
       .then((res) => setRows(Array.isArray(res.data) ? res.data : []))
       .catch((err) => {
         setRows([]);
-        setError(err.response?.data?.detail || "加载失败（需要内部账号）");
+        setError(err.response?.data?.detail || "加载失败");
       })
       .finally(() => setLoading(false));
   }, [tableKey]);
 
-  useEffect(() => { loadCatalog(); }, [loadCatalog]);
-  useEffect(() => { loadRows(); }, [loadRows]);
+  useEffect(() => { loadCatalog(); loadOptions(); }, [loadCatalog, loadOptions]);
+  useEffect(() => {
+    if (!onForm) {
+      loadRows();
+      setPage(1);
+      setQuery("");
+      setStatusFilter("");
+      setGeneFilter("");
+    }
+  }, [loadRows, onForm]);
 
-  const columns = useMemo(() => {
-    if (!rows.length) return [] as string[];
-    return Object.keys(rows[0]);
-  }, [rows]);
+  useEffect(() => {
+    if (!onForm) return;
+    setError("");
+    setRawKeyNotice("");
+    if (mode === "create") {
+      if (tableKey === "patients") setForm({ ...emptyPatient });
+      else if (tableKey === "reports") { setForm({ ...emptyReport }); setFormAssets([]); }
+      else if (tableKey === "users") setForm({ ...emptyUser });
+      else if (tableKey === "assets") setForm({ ...emptyAsset });
+      else if (tableKey === "api_keys") setForm({ ...emptyKey });
+      return;
+    }
+    if (!editId) return;
+    setLoading(true);
+    const load = async () => {
+      try {
+        if (tableKey === "patients") {
+          const res = await api.get(`/v1/db-browser/patients/${editId}/`);
+          setForm({ ...emptyPatient, ...res.data });
+        } else if (tableKey === "reports") {
+          const res = await api.get(`/v1/db-browser/reports/${editId}/`);
+          setForm({ ...emptyReport, ...res.data });
+          setFormAssets(Array.isArray(res.data.assets) ? res.data.assets : []);
+        } else if (tableKey === "users") {
+          const res = await api.get("/auth/admin/users/");
+          const row = (Array.isArray(res.data) ? res.data : []).find((x: Record<string, unknown>) => String(x.id) === String(editId));
+          if (!row) throw new Error("not found");
+          setForm({ ...emptyUser, ...row, password: "" });
+        } else if (tableKey === "assets") {
+          const res = await api.get("/v1/db-browser/assets/");
+          const row = (Array.isArray(res.data) ? res.data : []).find((x: Record<string, unknown>) => String(x.id) === String(editId));
+          if (!row) throw new Error("not found");
+          setForm({ ...emptyAsset, ...row });
+        } else if (tableKey === "api_keys") {
+          const res = await api.get("/v1/db-browser/api-keys/");
+          const row = (Array.isArray(res.data) ? res.data : []).find((x: Record<string, unknown>) => String(x.id) === String(editId));
+          if (!row) throw new Error("not found");
+          setForm({ ...emptyKey, ...row });
+        }
+      } catch (err: unknown) {
+        const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+        setError(detail || "加载详情失败");
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, [onForm, mode, editId, tableKey]);
 
   const filtered = useMemo(() => {
+    let list = rows;
+    if (statusFilter && (tableKey === "reports" || tableKey === "ingest_events" || tableKey === "api_keys" || tableKey === "users")) {
+      if (tableKey === "api_keys" || tableKey === "users") {
+        list = list.filter((r) => String(!!r.is_active) === (statusFilter === "active" ? "true" : "false"));
+      } else {
+        list = list.filter((r) => String(r.status || "") === statusFilter);
+      }
+    }
+    if (geneFilter && tableKey === "variants") {
+      const g = geneFilter.trim().toLowerCase();
+      list = list.filter((r) => String(r.gene || "").toLowerCase().includes(g));
+    }
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((row) =>
-      Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q)),
-    );
-  }, [rows, query]);
+    if (!q) return list;
+    return list.filter((row) => Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q)));
+  }, [rows, query, statusFilter, geneFilter, tableKey]);
 
-  function selectTable(key: TableKey) {
-    setParams({ table: key });
-    setQuery("");
-    setShowForm(false);
-    setEditing(null);
-  }
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  function openCreate() {
-    setEditing(null);
-    setForm({ ...emptyUserForm });
-    setShowForm(true);
-  }
-
-  function openEdit(row: UserRow) {
-    setEditing(row);
-    setForm({
-      username: row.username,
-      email: row.email || "",
-      password: "",
-      role: row.role || "customer",
-      patient_no: row.patient_no || "",
-      is_active: row.is_active,
-      is_bioinfo: row.is_bioinfo,
-    });
-    setShowForm(true);
-  }
-
-  async function saveUser(e: React.FormEvent) {
+  async function saveForm(e: React.FormEvent) {
     e.preventDefault();
-    if (!canEditUsers) return;
+    if (readOnlyForm) return;
     setSaving(true);
     setError("");
+    setRawKeyNotice("");
     try {
-      if (editing) {
-        const payload: Record<string, unknown> = {
-          email: form.email,
-          role: form.role,
-          patient_no: form.patient_no,
-          is_active: form.is_active,
-          is_bioinfo: form.is_bioinfo,
-        };
-        if (form.password.trim()) payload.password = form.password.trim();
-        await api.patch(`/auth/admin/users/${editing.id}/`, payload);
-      } else {
-        await api.post("/auth/admin/users/", {
-          username: form.username.trim(),
-          email: form.email,
-          password: form.password,
-          role: form.role,
-          patient_no: form.patient_no,
-          is_active: form.is_active,
-          is_bioinfo: form.is_bioinfo,
-        });
+      if (tableKey === "patients") {
+        if (mode === "edit" && editId) await api.patch(`/v1/db-browser/patients/${editId}/`, form);
+        else await api.post("/v1/db-browser/patients/", form);
+      } else if (tableKey === "reports") {
+        if (mode === "edit" && editId) await api.patch(`/v1/db-browser/reports/${editId}/`, form);
+        else await api.post("/v1/db-browser/reports/", form);
+      } else if (tableKey === "users") {
+        if (mode === "edit" && editId) {
+          const payload: Record<string, unknown> = {
+            email: form.email, role: form.role, patient_no: form.patient_no,
+            is_active: form.is_active, is_bioinfo: form.is_bioinfo,
+          };
+          if (String(form.password || "").trim()) payload.password = String(form.password).trim();
+          await api.patch(`/auth/admin/users/${editId}/`, payload);
+        } else {
+          await api.post("/auth/admin/users/", form);
+        }
+      } else if (tableKey === "assets" && editId) {
+        await api.patch(`/v1/db-browser/assets/${editId}/`, form);
+      } else if (tableKey === "api_keys") {
+        if (mode === "edit" && editId) await api.patch("/v1/db-browser/api-keys/", { id: Number(editId), ...form });
+        else {
+          const res = await api.post("/v1/db-browser/api-keys/", form);
+          if (res.data?.raw_key) {
+            setRawKeyNotice(`请立即保存明文 Key（仅此一次）：${res.data.raw_key}`);
+            setSaving(false);
+            return;
+          }
+        }
       }
-      setShowForm(false);
-      setEditing(null);
-      loadRows();
+      goList();
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(detail || "保存失败");
@@ -210,11 +397,15 @@ const PortalDbBrowser: React.FC = () => {
     }
   }
 
-  async function deleteUser(row: UserRow) {
-    if (!canEditUsers) return;
-    if (!window.confirm(`确认删除用户 ${row.username}？此操作不可恢复。`)) return;
+  async function deleteRow(row: Record<string, unknown>) {
+    if (!editable || !row.id) return;
+    const label = String(row.username || row.patient_no || row.report_number || row.name || row.id);
+    if (!window.confirm(`确认删除 ${label}？`)) return;
     try {
-      await api.delete(`/auth/admin/users/${row.id}/`);
+      if (tableKey === "users") await api.delete(`/auth/admin/users/${row.id}/`);
+      else if (tableKey === "patients") await api.delete(`/v1/db-browser/patients/${row.id}/`);
+      else if (tableKey === "reports") await api.delete(`/v1/db-browser/reports/${row.id}/`);
+      else if (tableKey === "assets") await api.delete(`/v1/db-browser/assets/${row.id}/`);
       loadRows();
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -222,212 +413,406 @@ const PortalDbBrowser: React.FC = () => {
     }
   }
 
+  async function deleteAsset(assetId: unknown) {
+    if (!editable || !assetId) return;
+    if (!window.confirm("确认删除该附件元数据？")) return;
+    try {
+      await api.delete(`/v1/db-browser/assets/${assetId}/`);
+      setFormAssets((prev) => prev.filter((a) => a.id !== assetId));
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      window.alert(detail || "删除失败");
+    }
+  }
+
+  const canCreate = editable && ["users", "patients", "reports", "api_keys"].includes(tableKey);
+  const title = currentMeta.label || "管理";
+  const formTitle = mode === "create" ? `新增${title.replace(/管理$/, "")}` : mode === "view" ? `查看${title.replace(/管理$/, "")}` : `编辑${title.replace(/管理$/, "")}`;
+
+  function setField(key: string, value: unknown) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function renderListCell(col: string, row: Record<string, unknown>) {
+    if (col === "status" && tableKey === "reports") {
+      const st = String(row.status || "");
+      return <span className={`admin-tag ${statusClass(st)}`}>{statusLabel(st)}</span>;
+    }
+    if (col === "is_active") {
+      return <span className={`admin-tag ${row.is_active ? "ok" : "muted"}`}>{row.is_active ? "启用" : "停用"}</span>;
+    }
+    if (col === "status" && tableKey === "ingest_events") {
+      const st = String(row.status || "");
+      return <span className={`admin-tag ${st === "ok" || st === "success" ? "ok" : st ? "warn" : "muted"}`}>{st || "—"}</span>;
+    }
+    return cellText(col, row);
+  }
+
+  function renderFormBody() {
+    if (tableKey === "patients") {
+      return (
+        <div className="admin-form-card">
+          <div className="admin-form-grid one-col">
+            <label>患者编号<span>*</span>
+              <input required disabled={mode === "edit" || readOnlyForm} value={String(form.patient_no || "")} onChange={(e) => setField("patient_no", e.target.value)} placeholder="唯一标识，如 GM-P-001" />
+            </label>
+            <label>姓名<span>*</span>
+              <input required disabled={readOnlyForm} value={String(form.name || "")} onChange={(e) => setField("name", e.target.value)} />
+            </label>
+            <label>性别
+              <select disabled={readOnlyForm} value={String(form.sex || "")} onChange={(e) => setField("sex", e.target.value)}>
+                {SEX_OPTIONS.map((o) => <option key={o.value || "empty"} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+            <label>出生日期
+              <input type="date" disabled={readOnlyForm} value={String(form.birth_date || "")} onChange={(e) => setField("birth_date", e.target.value)} />
+            </label>
+            <label>电话
+              <input disabled={readOnlyForm} value={String(form.phone || "")} onChange={(e) => setField("phone", e.target.value)} />
+            </label>
+            <label>身份证号
+              <input disabled={readOnlyForm} value={String(form.id_card || "")} onChange={(e) => setField("id_card", e.target.value)} />
+            </label>
+            <label>邮箱
+              <input disabled={readOnlyForm} value={String(form.email || "")} onChange={(e) => setField("email", e.target.value)} />
+            </label>
+            <label>地址
+              <input disabled={readOnlyForm} value={String(form.address || "")} onChange={(e) => setField("address", e.target.value)} />
+            </label>
+            <label>绑定登录账号
+              <select disabled={readOnlyForm} value={String(form.username || "")} onChange={(e) => setField("username", e.target.value)}>
+                <option value="">（未绑定）</option>
+                {userOptions.map((o) => <option key={o.value} value={o.value}>{o.value} · {o.label}</option>)}
+              </select>
+            </label>
+            <label>备注
+              <textarea disabled={readOnlyForm} rows={4} value={String(form.remarks || "")} onChange={(e) => setField("remarks", e.target.value)} />
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    if (tableKey === "reports") {
+      return (
+        <div className="admin-form-layout">
+          <div className="admin-form-main">
+            <section className="admin-form-card">
+              <h3>基本信息</h3>
+              <div className="admin-form-grid two-col">
+                <label>报告编号<span>*</span>
+                  <input required disabled={mode === "edit" || readOnlyForm} value={String(form.report_number || "")} onChange={(e) => setField("report_number", e.target.value)} />
+                </label>
+                <label>患者编号<span>*</span>
+                  <select required disabled={readOnlyForm} value={String(form.patient_no || "")} onChange={(e) => setField("patient_no", e.target.value)}>
+                    <option value="">请选择患者</option>
+                    {patientOptions.map((o) => <option key={o.value} value={o.value}>{o.value} · {o.label}</option>)}
+                  </select>
+                </label>
+                <label>报告类型
+                  <input disabled={readOnlyForm} value={String(form.report_type || "")} onChange={(e) => setField("report_type", e.target.value)} />
+                </label>
+                <label>标题
+                  <input disabled={readOnlyForm} value={String(form.title || "")} onChange={(e) => setField("title", e.target.value)} />
+                </label>
+                <label>报告日期
+                  <input type="date" disabled={readOnlyForm} value={String(form.report_date || "")} onChange={(e) => setField("report_date", e.target.value)} />
+                </label>
+                <label>状态
+                  <select disabled={readOnlyForm} value={String(form.status || "draft")} onChange={(e) => setField("status", e.target.value)}>
+                    {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </label>
+                <label>基因组版本
+                  <input disabled={readOnlyForm} value={String(form.genome_build || "")} onChange={(e) => setField("genome_build", e.target.value)} />
+                </label>
+                <label>样本号
+                  <input disabled={readOnlyForm} value={String(form.sample_id || "")} onChange={(e) => setField("sample_id", e.target.value)} />
+                </label>
+                <label>肿瘤样本
+                  <input disabled={readOnlyForm} value={String(form.tumor_sample_id || "")} onChange={(e) => setField("tumor_sample_id", e.target.value)} />
+                </label>
+                <label>对照样本
+                  <input disabled={readOnlyForm} value={String(form.normal_sample_id || "")} onChange={(e) => setField("normal_sample_id", e.target.value)} />
+                </label>
+                <label>WES 盘符
+                  <input disabled={readOnlyForm} value={String(form.wes_report_id || "")} onChange={(e) => setField("wes_report_id", e.target.value)} />
+                </label>
+                <label>产品码
+                  <input disabled={readOnlyForm} value={String(form.product_code || "")} onChange={(e) => setField("product_code", e.target.value)} />
+                </label>
+              </div>
+            </section>
+            <section className="admin-form-card">
+              <h3>报告内容</h3>
+              <div className="admin-form-grid one-col">
+                <label>摘要
+                  <textarea disabled={readOnlyForm} rows={5} value={String(form.summary || "")} onChange={(e) => setField("summary", e.target.value)} />
+                </label>
+                <label>结论
+                  <textarea disabled={readOnlyForm} rows={5} value={String(form.conclusion || "")} onChange={(e) => setField("conclusion", e.target.value)} />
+                </label>
+              </div>
+            </section>
+          </div>
+          <aside className="admin-form-side">
+            <section className="admin-form-card">
+              <div className="admin-side-head">
+                <h3>报告文件</h3>
+              </div>
+              {formAssets.length === 0 ? (
+                <p className="admin-empty-hint">暂无附件。请通过报告包导入上传 PDF/BAM。</p>
+              ) : (
+                <ul className="admin-file-list">
+                  {formAssets.map((a) => (
+                    <li key={String(a.id)}>
+                      <div>
+                        <b>{String(a.name || a.asset_type)}</b>
+                        <small>{String(a.asset_type || "")} · {formatSize(a.file_size)}</small>
+                      </div>
+                      <div className="admin-text-actions">
+                        {a.download_url ? <a href={String(a.download_url)} target="_blank" rel="noreferrer">下载</a> : null}
+                        {editable ? <button type="button" onClick={() => { void deleteAsset(a.id); }}>删除</button> : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {editId ? (
+                <div className="admin-side-links">
+                  <Link to={`/reports/${editId}`}>打开 3D 报告</Link>
+                  <Link to={`/browser?report=${editId}`}>打开 IGV</Link>
+                </div>
+              ) : null}
+            </section>
+          </aside>
+        </div>
+      );
+    }
+
+    if (tableKey === "users") {
+      return (
+        <div className="admin-form-card">
+          <div className="admin-form-grid one-col">
+            {mode === "create" && (
+              <label>用户名<span>*</span>
+                <input required value={String(form.username || "")} onChange={(e) => setField("username", e.target.value)} />
+              </label>
+            )}
+            <label>邮箱
+              <input type="email" disabled={readOnlyForm} value={String(form.email || "")} onChange={(e) => setField("email", e.target.value)} />
+            </label>
+            <label>{mode === "edit" ? "新密码（留空不改）" : "密码"}
+              <input type="password" required={mode === "create"} minLength={8} disabled={readOnlyForm} value={String(form.password || "")} onChange={(e) => setField("password", e.target.value)} />
+            </label>
+            <label>角色
+              <select disabled={readOnlyForm} value={String(form.role || "customer")} onChange={(e) => setField("role", e.target.value)}>
+                {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+            <label>绑定患者编号
+              <select disabled={readOnlyForm} value={String(form.patient_no || "")} onChange={(e) => setField("patient_no", e.target.value)}>
+                <option value="">（未绑定）</option>
+                {patientOptions.map((o) => <option key={o.value} value={o.value}>{o.value} · {o.label}</option>)}
+              </select>
+            </label>
+            <label>启用
+              <select disabled={readOnlyForm} value={form.is_active ? "1" : "0"} onChange={(e) => setField("is_active", e.target.value === "1")}>
+                <option value="1">启用</option>
+                <option value="0">停用</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    if (tableKey === "assets") {
+      return (
+        <div className="admin-form-card">
+          <div className="admin-form-grid one-col">
+            <label>名称<input disabled={readOnlyForm} value={String(form.name || "")} onChange={(e) => setField("name", e.target.value)} /></label>
+            <label>类型<input disabled={readOnlyForm} value={String(form.asset_type || "")} onChange={(e) => setField("asset_type", e.target.value)} /></label>
+            <label>file_path<input disabled={readOnlyForm} value={String(form.file_path || "")} onChange={(e) => setField("file_path", e.target.value)} /></label>
+            <label>external_url<input disabled={readOnlyForm} value={String(form.external_url || "")} onChange={(e) => setField("external_url", e.target.value)} /></label>
+            <label>mime_type<input disabled={readOnlyForm} value={String(form.mime_type || "")} onChange={(e) => setField("mime_type", e.target.value)} /></label>
+          </div>
+        </div>
+      );
+    }
+
+    if (tableKey === "api_keys") {
+      return (
+        <div className="admin-form-card">
+          <div className="admin-form-grid one-col">
+            <label>名称<span>*</span>
+              <input required disabled={mode === "edit" || readOnlyForm} value={String(form.name || "")} onChange={(e) => setField("name", e.target.value)} />
+            </label>
+            <label>scope
+              <input disabled={readOnlyForm} value={String(form.scope || "")} onChange={(e) => setField("scope", e.target.value)} />
+            </label>
+            <label>启用
+              <select disabled={readOnlyForm} value={form.is_active ? "1" : "0"} onChange={(e) => setField("is_active", e.target.value === "1")}>
+                <option value="1">启用</option>
+                <option value="0">停用</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    return <div className="admin-form-card"><p>该模块为只读列表。</p></div>;
+  }
+
   return (
-    <div className="portal-page">
+    <div className="portal-page admin-console">
       <PortalSidebar />
       <main className="portal-main">
-        <header className="portal-topbar">
+        <header className="portal-topbar admin-topbar">
           <div>
-            <h1>数据表浏览</h1>
-            <p>数据库记录 · {user?.username || "内部用户"}</p>
+            <h1>{onForm ? formTitle : title}</h1>
+            <p>{onForm ? "填写后点击右下角保存" : (currentMeta.description || "后台业务数据管理")}</p>
           </div>
           <div className="portal-top-actions">
-            <button type="button" className="button button-outline" onClick={loadRows}>刷新</button>
-            {canEditUsers && (
-              <button type="button" className="button button-primary" onClick={openCreate}>新建用户</button>
+            {onForm ? (
+              <button type="button" className="button button-outline" onClick={() => goList()}>返回列表</button>
+            ) : (
+              <>
+                {tableKey === "variants" && (
+                  <button type="button" className="button button-outline" onClick={() => {
+                    const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = "variants.json"; a.click();
+                    URL.revokeObjectURL(url);
+                  }}>导出</button>
+                )}
+                {canCreate && (
+                  <button type="button" className="button button-primary" onClick={goCreate}>+ 新增</button>
+                )}
+              </>
             )}
           </div>
         </header>
 
         <section className="portal-content">
-          <div className="db-table-tabs">
-            {(catalog.length ? catalog : [
-              { key: "users", label: "用户与权限", editable: isAdmin },
-              { key: "patient_slots", label: "患者报告台账", editable: false },
-              { key: "sample_bundles", label: "样本报告包", editable: false },
-              { key: "bundle_files", label: "报告包文件路径", editable: false },
-              { key: "reports", label: "门户报告", editable: false },
-            ] as CatalogTable[]).map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                className={tableKey === t.key ? "active" : undefined}
-                onClick={() => selectTable(t.key)}
-              >
-                {t.label}
-                <small>{t.editable ? "可编辑" : "只读"}</small>
-              </button>
-            ))}
-          </div>
+          {error && <div className="cloud-create-error">{error}</div>}
+          {rawKeyNotice && <div className="cloud-create-error" style={{ background: "#e8f7ee" }}>{rawKeyNotice}</div>}
 
-          <div className="portal-panel">
-            <div className="panel-head">
-              <div>
-                <h2>{currentMeta?.label || "数据表"}</h2>
-                <p>
-                  {currentMeta?.description || "查看数据库记录"}
-                  {currentMeta?.model ? ` · ${currentMeta.model}` : ""}
-                  {canEditUsers ? " · 管理员可增删改" : " · 仅查看"}
-                  {" · 路径列完整显示，双击复制"}
-                </p>
+          {!onForm && (
+            <>
+              <div className="admin-toolbar">
+                <div className="admin-filters">
+                  <label className="admin-search">
+                    <i className="fas fa-search" />
+                    <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="搜索…" />
+                  </label>
+                  {tableKey === "reports" && (
+                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+                      <option value="">全部状态</option>
+                      {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  )}
+                  {(tableKey === "users" || tableKey === "api_keys") && (
+                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+                      <option value="">全部状态</option>
+                      <option value="active">启用</option>
+                      <option value="inactive">停用</option>
+                    </select>
+                  )}
+                  {tableKey === "variants" && (
+                    <input className="admin-mini-input" value={geneFilter} onChange={(e) => { setGeneFilter(e.target.value); setPage(1); }} placeholder="基因筛选" />
+                  )}
+                </div>
               </div>
-              <div className="project-search">
-                <i className="fas fa-search" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="筛选当前表"
-                />
-              </div>
-            </div>
 
-            {error && <div className="cloud-create-error">{error}</div>}
-            {copyHint && <div className="path-copy-toast">{copyHint}</div>}
-
-            {loading ? (
-              <div className="empty-state">加载中…</div>
-            ) : filtered.length === 0 ? (
-              <div className="empty-state">暂无数据</div>
-            ) : (
-              <div className="table-wrap">
-                <table className="project-table db-browser-table">
-                  <thead>
-                    <tr>
-                      {columns.map((col) => <th key={col}>{col}</th>)}
-                      {actionColumn && <th>操作</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((row, idx) => (
-                      <tr key={String(row.id ?? idx)}>
-                        {columns.map((col) => {
-                          const text = cell(row[col]);
-                          const isPath = PATH_COLUMNS.has(col);
-                          return (
-                            <td
-                              key={col}
-                              className={isPath ? "path-td" : undefined}
-                              title={isPath ? "双击复制完整路径" : text}
-                              onDoubleClick={isPath ? () => { void onPathDoubleClick(text); } : undefined}
-                            >
-                              {isPath
-                                ? <code className="path-cell">{text}</code>
-                                : text}
+              <div className="admin-table-card">
+                {loading ? (
+                  <div className="empty-state">加载中…</div>
+                ) : pageRows.length === 0 ? (
+                  <div className="empty-state">暂无数据</div>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="project-table admin-table">
+                      <thead>
+                        <tr>
+                          {LIST_COLUMNS[tableKey].map((c) => <th key={c.key}>{c.label}</th>)}
+                          <th className="admin-ops-col">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pageRows.map((row, idx) => (
+                          <tr key={String(row.id ?? idx)}>
+                            {LIST_COLUMNS[tableKey].map((c) => (
+                              <td key={c.key}>{renderListCell(c.key, row)}</td>
+                            ))}
+                            <td className="admin-ops-col">
+                              <div className="admin-text-actions">
+                                {editable && (
+                                  <button type="button" onClick={() => goEdit(String(row.id))}>编辑</button>
+                                )}
+                                {tableKey === "reports" && (
+                                  <>
+                                    {!editable && (
+                                      <button type="button" onClick={() => goEdit(String(row.id), true)}>查看</button>
+                                    )}
+                                    <Link to={String(row.portal_report_url || `/reports/${row.id}`)}>打开报告</Link>
+                                  </>
+                                )}
+                                {tableKey === "assets" && row.download_url ? (
+                                  <a href={String(row.download_url)} target="_blank" rel="noreferrer">下载</a>
+                                ) : null}
+                                {editable && ["users", "patients", "reports", "assets"].includes(tableKey) && (
+                                  <button type="button" className="danger" onClick={() => { void deleteRow(row); }}>删除</button>
+                                )}
+                                {!editable && tableKey !== "reports" && tableKey !== "assets" && (
+                                  <span style={{ color: "#9aa8b8" }}>—</span>
+                                )}
+                              </div>
                             </td>
-                          );
-                        })}
-                        {canEditUsers && (
-                          <td>
-                            <div className="row-actions">
-                              <button type="button" className="button button-small button-outline" onClick={() => openEdit(row as unknown as UserRow)}>编辑</button>
-                              <button type="button" className="button button-small button-outline" onClick={() => deleteUser(row as unknown as UserRow)}>删除</button>
-                            </div>
-                          </td>
-                        )}
-                        {showReportActions && !canEditUsers && (
-                          <td>
-                            <div className="row-actions report-slot-actions">
-                              {(row.portal_report_url || row.report_id || row.id) ? (
-                                <Link
-                                  className="button button-small button-primary"
-                                  to={String(row.portal_report_url || `/reports/${row.report_id || row.id}`)}
-                                >
-                                  <i className="fas fa-cube" /> 3D报告
-                                </Link>
-                              ) : null}
-                              {(row.portal_igv_url || row.report_id || row.id) ? (
-                                <Link
-                                  className="button button-small button-outline"
-                                  to={String(row.portal_igv_url || `/browser?report=${row.report_id || row.id}`)}
-                                >
-                                  <i className="fas fa-dna" /> IGV
-                                </Link>
-                              ) : null}
-                              {row.has_pdf && row.pdf_url ? (
-                                <a className="button button-small button-outline" href={String(row.pdf_url)} target="_blank" rel="noreferrer">
-                                  <i className="fas fa-file-pdf" /> PDF
-                                </a>
-                              ) : null}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <div className="admin-pagination">
+                  <span>共 {filtered.length} 条</span>
+                  <div>
+                    <button type="button" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页</button>
+                    <b>{page} / {totalPages}</b>
+                    <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页</button>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
+
+              <div className="admin-tip-box">
+                <b>本页能做什么</b>
+                <p>{PAGE_TIPS[tableKey]}</p>
+              </div>
+            </>
+          )}
+
+          {onForm && (
+            loading ? (
+              <div className="empty-state">加载中…</div>
+            ) : (
+              <form className="admin-edit-page" onSubmit={saveForm}>
+                {renderFormBody()}
+                <div className="admin-form-footer">
+                  <button type="button" className="button button-outline" onClick={() => goList()} disabled={saving}>取消</button>
+                  {!readOnlyForm && (
+                    <button type="submit" className="button button-primary" disabled={saving}>
+                      {saving ? "保存中…" : "保存"}
+                    </button>
+                  )}
+                </div>
+              </form>
+            )
+          )}
         </section>
       </main>
-
-      {showForm && canEditUsers && (
-        <div className="portal-modal-backdrop" onClick={() => !saving && setShowForm(false)}>
-          <div className="portal-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="panel-head">
-              <div>
-                <h2>{editing ? `编辑用户 · ${editing.username}` : "新建用户"}</h2>
-                <p>写入 auth.User + accounts.UserProfile</p>
-              </div>
-              <button type="button" className="icon-action" onClick={() => setShowForm(false)} aria-label="关闭">
-                <i className="fas fa-times" />
-              </button>
-            </div>
-            <form className="cloud-project-form" onSubmit={saveUser}>
-              <div className="form-grid">
-                {!editing && (
-                  <label>
-                    用户名
-                    <input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-                  </label>
-                )}
-                <label>
-                  邮箱
-                  <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                </label>
-                <label>
-                  {editing ? "新密码（留空不改）" : "密码"}
-                  <input
-                    type="password"
-                    required={!editing}
-                    minLength={8}
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  />
-                </label>
-                <label>
-                  角色
-                  <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                    {ROLE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  患者编号（可选）
-                  <input value={form.patient_no} onChange={(e) => setForm({ ...form, patient_no: e.target.value })} placeholder="如 P20260824A" />
-                </label>
-                <label>
-                  启用
-                  <select
-                    value={form.is_active ? "1" : "0"}
-                    onChange={(e) => setForm({ ...form, is_active: e.target.value === "1" })}
-                  >
-                    <option value="1">是</option>
-                    <option value="0">否</option>
-                  </select>
-                </label>
-              </div>
-              <div className="modal-actions">
-                <button type="button" onClick={() => setShowForm(false)} disabled={saving}>取消</button>
-                <button type="submit" className="button button-primary" disabled={saving}>
-                  {saving ? "保存中…" : "保存"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

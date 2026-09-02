@@ -24,10 +24,12 @@ export interface Report {
   summary: string;
   conclusion: string;
   report_number: string;
-  status: "draft" | "review" | "released";
+  status: "draft" | "review" | "released" | "void";
   genome_build: string;
   tumor_sample_id: string;
   normal_sample_id: string;
+  product_code?: string;
+  patient_no?: string;
   patient_info: Record<string, string | number | null>;
   analysis_data: WesAnalysisData;
   annotation_sources: AnnotationSource[];

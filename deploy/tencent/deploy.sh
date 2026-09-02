@@ -121,8 +121,8 @@ db = Path(os.environ["GAOMEI_WEB_DB_PATH"])
 conn = sqlite3.connect(str(db))
 tables = {
     "users": "auth_user",
+    "patients": "reports_patient",
     "reports": "reports_report",
-    "bridge_projects": "bridge_bridgeproject",
 }
 for label, table in tables.items():
     try:

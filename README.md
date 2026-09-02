@@ -1,33 +1,29 @@
 # GAOMEI Web
 
-高美基因对外官网、患者报告门户和 WES 云桥接服务。项目采用 React + TypeScript 前端、
-Django REST Framework 后端，并包含独立的3D人体报告原型和腾讯云部署模板。
+高美基因对外官网与患者报告门户。React + TypeScript 前端、Django REST Framework 后端，
+含 3D 人体报告与腾讯云部署模板。
 
 本仓库与 `gaomei_wes` 分开维护：
 
-- `gaomei_web`：官网、登录、患者报告、云端任务页面和桥接API；
-- `gaomei_wes`：node9本地WES流程、内部任务门户和Linux分析Agent。
+- `gaomei_web`：官网、登录、患者报告、V2 Ingest（报告包/API Key）
+- `gaomei_wes`：node9 本地 WES 流程与分析 Agent
 
 ## 目录结构
 
 ```text
 gaomei_web/
 ├── frontend/               # React 18 + TypeScript + Vite正式前端
-│   ├── src/                # 页面、组件、路由、API客户端和样式
-│   └── public/assets/      # 官网图片、视频、3D模型和Draco解码器
 ├── backend/                # Django 4.2 REST API
-│   ├── accounts/           # 登录、角色和患者编号
-│   ├── reports/            # 患者报告、PDF和结构化报告数据
-│   ├── bridge/             # node9主动轮询桥接、任务和项目同步
-│   ├── blog/               # 官网新闻/文章
-│   ├── bioblog/            # 科普内容
-│   ├── company/            # 公司和团队内容
-│   └── config/             # Django设置与路由
+│   ├── accounts/           # 登录与角色
+│   ├── reports/            # Patient / Report / Asset / ACL
+│   ├── ingest/             # API Key 导入与报告包
+│   ├── wes_report/         # clinical_v2 HTML/PDF
+│   ├── blog/ bioblog/ company/
+│   └── config/
 ├── design/                 # 报告页面与3D人体交互原型
 ├── deploy/tencent/         # Apache、Gunicorn和systemd部署模板
-├── scripts/                # 本地与预览服务器启动脚本
-├── TENCENT_CLOUD_DEPLOY_zh.md
-└── SERVER09_PREVIEW_DEPLOY_zh.md
+├── scripts/                # 上传与启动脚本
+└── NODE9_REPORT_PACKAGE_zh.md
 ```
 
 ## 主要技术
@@ -117,9 +113,8 @@ bash scripts/local_web.sh stop
 | Draco资源 | `frontend/public/assets/draco/` |
 | 3D交互原型 | `design/report_v2_3d_prototype.html`、`design/report_v2_3d.js` |
 | 报告页面 | `frontend/src/pages/PersonalReports.tsx`及相关报告组件 |
-| 报告API | `backend/reports/` |
-| 云端任务页 | `frontend/src/pages/CloudJobs.tsx` |
-| node9桥接API | `backend/bridge/` |
+| 报告API | `backend/reports/` + `backend/ingest/` |
+| 报告包上传 | `POST /api/v1/ingest/reports/package/`（X-API-Key） |
 
 替换图片或模型后运行：
 
@@ -130,22 +125,16 @@ npm run build
 
 构建产物位于 `frontend/dist/`，不进入Git，由部署流程重新生成。
 
-## node9桥接边界
+## node9 → 云端报告包（Data V2）
 
-node9通过HTTPS主动访问：
-
-```text
-https://gomics.icu/api/bridge/
-```
-
-腾讯云不能直接SSH进入node9，也不能直接读取FASTQ、完整BAM、参考基因组或数据库。
-云端保存任务和项目元数据；node9主动领取白名单任务并上传状态、日志、报告JSON和PDF。
-
-桥接原理和生产安全建议保存在WES仓库：
+node9 / 本机通过 HTTPS 上传正式报告包：
 
 ```text
-docs/cloud_bridge_principles_and_security_zh.md
+POST https://gomics.icu/api/v1/ingest/reports/package/
+Header: X-API-Key: gm_...
 ```
+
+详见 `NODE9_REPORT_PACKAGE_zh.md`。旧 `/api/bridge/` 已按 V2 规格移除。
 
 ## 腾讯云部署
 
@@ -172,7 +161,6 @@ docs/cloud_bridge_principles_and_security_zh.md
 GAOMEI_WEB_DEBUG=false
 GAOMEI_WEB_SECRET_KEY=<随机长密钥>
 GAOMEI_WEB_SECURE_COOKIES=true
-GAOMEI_BRIDGE_TOKEN_SHA256=<node token的SHA256>
 ```
 
 真实环境变量文件不得提交到Git。
@@ -218,4 +206,3 @@ python manage.py migrate
 
 本项目当前用于研发和展示。正式医疗数据服务仍需完成权限审计、备份、密钥管理、
 日志脱敏、漏洞扫描和合规评估。
-

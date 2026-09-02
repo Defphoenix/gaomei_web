@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from copy import deepcopy
 from html import escape
 from pathlib import Path
@@ -105,6 +106,8 @@ def report_edit(request, report_id: str):
         "render": reverse("wes_report:render", kwargs={"report_id": report_id}),
         "save": reverse("wes_report:save", kwargs={"report_id": report_id}),
         "pdf": reverse("wes_report:pdf", kwargs={"report_id": report_id}),
+        "pdf_regenerate": reverse("wes_report:pdf_regenerate", kwargs={"report_id": report_id}),
+        "pdf_upload": reverse("wes_report:pdf_upload", kwargs={"report_id": report_id}),
         "design_cover": reverse("wes_report:design_page", kwargs={"report_id": report_id, "page_name": "cover"}),
         "design_message": reverse("wes_report:design_page", kwargs={"report_id": report_id, "page_name": "executive-message"}),
         "design_divider": reverse("wes_report:design_page", kwargs={"report_id": report_id, "page_name": "divider"}),
@@ -178,18 +181,75 @@ def report_save(request, report_id: str):
     )
 
 
+def _pdf_output_path(report_id: str) -> Path:
+    validate_report_id(report_id)
+    return Path(settings.WES_REPORT_OUTPUT_DIR) / "pdf" / f"{report_id}.pdf"
+
+
+def _pdf_manual_marker_path(report_id: str) -> Path:
+    return _pdf_output_path(report_id).with_name(f"{report_id}.pdf.manual")
+
+
+def _sync_portal_pdf_asset(report_id: str, output: Path) -> None:
+    """Best-effort: keep V2 ReportAsset pointing at the latest formal PDF."""
+    try:
+        from django.db.models import Q
+        from reports.models import Report, ReportAsset
+
+        report = (
+            Report.objects.filter(
+                Q(analysis_data__wes_report_id=report_id)
+                | Q(sample_id=report_id)
+                | Q(report_number=report_id)
+            )
+            .order_by("-updated_at")
+            .first()
+        )
+        if not report or not output.is_file():
+            return
+        media_root = Path(settings.MEDIA_ROOT)
+        if str(output).startswith(str(media_root)):
+            rel = str(output.relative_to(media_root))
+        else:
+            rel = str(output)
+        ReportAsset.objects.update_or_create(
+            report=report,
+            asset_type="pdf",
+            name=f"{report_id}.pdf",
+            defaults={
+                "storage_backend": "local",
+                "file_path": rel,
+                "mime_type": "application/pdf",
+                "file_size": output.stat().st_size,
+            },
+        )
+        data = report.analysis_data if isinstance(report.analysis_data, dict) else {}
+        if data.get("wes_report_id") != report_id:
+            data = {**data, "wes_report_id": report_id}
+            report.analysis_data = data
+            report.save(update_fields=["analysis_data", "updated_at"])
+    except Exception:
+        pass
+
+
 def report_pdf(request, report_id: str):
     data = _load_data(report_id)
-    output = Path(settings.WES_REPORT_OUTPUT_DIR) / "pdf" / f"{report_id}.pdf"
+    output = _pdf_output_path(report_id)
     source = _data_path(report_id)
     # PDF generation is expensive and may be unavailable in a restricted
     # Windows server process. Serve the last successful PDF until the report
     # JSON changes; generation itself is atomic, so a failed attempt can never
     # corrupt the existing download.
+    # Manual uploads set a .manual marker so auto-regen won't overwrite them
+    # until the editor explicitly clicks "重新生成 PDF".
+    manual = _pdf_manual_marker_path(report_id).is_file()
     stale = not output.exists() or output.stat().st_mtime < source.stat().st_mtime
-    if stale or request.GET.get("refresh") == "1":
+    force = request.GET.get("refresh") == "1"
+    if (stale and not manual) or force:
         try:
             write_pdf(data, output)
+            _pdf_manual_marker_path(report_id).unlink(missing_ok=True)
+            _sync_portal_pdf_asset(report_id, output)
         except RuntimeError as error:
             if not output.exists():
                 return HttpResponse(
@@ -202,6 +262,94 @@ def report_pdf(request, report_id: str):
         as_attachment=True,
         filename=f"{data.report.report_id}.pdf",
         content_type="application/pdf",
+    )
+
+
+@require_POST
+def report_pdf_regenerate(request, report_id: str):
+    """Force HTML→PDF from saved current.json (clears manual-upload lock)."""
+    try:
+        validate_report_id(report_id)
+        data = _load_data(report_id)
+        output = _pdf_output_path(report_id)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        write_pdf(data, output)
+        _pdf_manual_marker_path(report_id).unlink(missing_ok=True)
+        _sync_portal_pdf_asset(report_id, output)
+    except Http404:
+        raise
+    except (ValueError, RuntimeError) as error:
+        return JsonResponse({"ok": False, "errors": [{"msg": str(error)}]}, status=503)
+    except Exception as error:
+        return JsonResponse({"ok": False, "errors": [{"msg": f"PDF 生成失败：{error}"}]}, status=503)
+    return JsonResponse(
+        {
+            "ok": True,
+            "message": "已按当前保存的 JSON / HTML 模板重新生成 PDF。",
+            "pdf_url": reverse("wes_report:pdf", kwargs={"report_id": report_id}),
+            "file_size": output.stat().st_size if output.exists() else 0,
+            "manual": False,
+        },
+        json_dumps_params={"ensure_ascii": False},
+    )
+
+
+@require_POST
+def report_pdf_upload(request, report_id: str):
+    """Replace formal PDF with an operator-uploaded file (manual override)."""
+    try:
+        validate_report_id(report_id)
+        _data_path(report_id)  # ensure report exists
+    except (ValueError, Http404) as error:
+        if isinstance(error, Http404):
+            raise
+        return JsonResponse({"ok": False, "errors": [{"msg": str(error)}]}, status=400)
+
+    uploaded = request.FILES.get("file") or request.FILES.get("pdf")
+    if not uploaded:
+        return JsonResponse({"ok": False, "errors": [{"msg": "请选择要上传的 PDF 文件"}]}, status=400)
+
+    name = (getattr(uploaded, "name", "") or "").lower()
+    content_type = (getattr(uploaded, "content_type", "") or "").lower()
+    if not (name.endswith(".pdf") or "pdf" in content_type):
+        return JsonResponse({"ok": False, "errors": [{"msg": "仅支持 PDF 文件"}]}, status=400)
+
+    max_bytes = 50 * 1024 * 1024
+    size = int(getattr(uploaded, "size", 0) or 0)
+    if size <= 0 or size > max_bytes:
+        return JsonResponse(
+            {"ok": False, "errors": [{"msg": f"PDF 大小须在 1 字节～{max_bytes // (1024 * 1024)}MB 之间"}]},
+            status=400,
+        )
+
+    header = uploaded.read(5)
+    uploaded.seek(0)
+    if header != b"%PDF-":
+        return JsonResponse({"ok": False, "errors": [{"msg": "文件内容不是有效 PDF（缺少 %PDF- 头）"}]}, status=400)
+
+    output = _pdf_output_path(report_id)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_name(f"{report_id}.upload.tmp.pdf")
+    try:
+        with temporary.open("wb") as handle:
+            for chunk in uploaded.chunks():
+                handle.write(chunk)
+        os.replace(temporary, output)
+        marker = _pdf_manual_marker_path(report_id)
+        marker.write_text("manual_upload\n", encoding="utf-8")
+        _sync_portal_pdf_asset(report_id, output)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "message": "已用上传的 PDF 替换正式报告（手动锁定：保存 JSON 后不会自动覆盖，直到点「重新生成 PDF」）。",
+            "pdf_url": reverse("wes_report:pdf", kwargs={"report_id": report_id}),
+            "file_size": output.stat().st_size,
+            "manual": True,
+        },
+        json_dumps_params={"ensure_ascii": False},
     )
 
 

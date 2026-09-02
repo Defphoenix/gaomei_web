@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
 """Upload a clinical_v2 WES package to cloud (Windows / macOS / Linux / node9).
 
-Cloud generates HTML+PDF. Do NOT upload a PDF from the client.
+V2 auth: X-API-Key (IngestApiKey). Cloud generates HTML+PDF — do NOT upload a PDF.
 
-Examples (PowerShell / cmd / bash):
-
-  set GAOMEI_BRIDGE_TOKEN=your-plaintext-token
-  python scripts/wes_package_upload.py ^
-    --dir backend/wes_report_examples/clinical_v2_demo ^
-    --patient-no P20260001 ^
-    --patient-name 测试患者 ^
-    --sample-id SH05677
-
-  $env:GAOMEI_BRIDGE_TOKEN = "your-plaintext-token"
-  python scripts/wes_package_upload.py `
-    --dir backend/wes_report_examples/clinical_v2_demo `
-    --patient-no P20260001 `
-    --patient-name "测试患者" `
-    --sample-id SH05677
+  export GAOMEI_INGEST_API_KEY='gm_...'
+  python scripts/wes_package_upload.py \
+    --dir backend/wes_report_examples/clinical_v2_demo \
+    --patient-no GM-P-010 \
+    --patient-name 测试患者 \
+    --sample-id GM10
 """
 
 from __future__ import annotations
@@ -32,7 +23,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-DEFAULT_API = "https://gomics.icu/api/bridge/reports/package/"
+DEFAULT_API = "https://gomics.icu/api/v1/ingest/reports/package/"
 SKIP_NAMES = {"current.json"}
 
 
@@ -99,19 +90,24 @@ def build_manifest(patient_no: str, patient_name: str, sample_id: str, files: li
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Upload WES report package to Gaomei cloud")
+    parser = argparse.ArgumentParser(description="Upload WES report package to Gaomei cloud (V2 API Key)")
     parser.add_argument("--dir", required=True, help="Package directory containing report.json")
     parser.add_argument("--patient-no", required=True)
     parser.add_argument("--patient-name", default="")
     parser.add_argument("--sample-id", required=True)
+    parser.add_argument("--report-number", default="")
     parser.add_argument("--upload-id", default="")
     parser.add_argument("--node-id", default="node9-wes-executor")
+    parser.add_argument("--force", action="store_true", help="Overwrite even if released (danger)")
     parser.add_argument("--api", default=os.environ.get("GAOMEI_PACKAGE_API", DEFAULT_API))
     args = parser.parse_args()
 
-    token = os.environ.get("GAOMEI_BRIDGE_TOKEN", "").strip()
-    if not token:
-        print("Set env GAOMEI_BRIDGE_TOKEN to the plaintext Bridge token.", file=sys.stderr)
+    api_key = (
+        os.environ.get("GAOMEI_INGEST_API_KEY", "").strip()
+        or os.environ.get("GAOMEI_API_KEY", "").strip()
+    )
+    if not api_key:
+        print("Set env GAOMEI_INGEST_API_KEY to an Ingest API Key (gm_...).", file=sys.stderr)
         return 1
 
     package_dir = Path(args.dir).expanduser().resolve()
@@ -127,6 +123,11 @@ def main() -> int:
         "sample_id": args.sample_id,
         "manifest": manifest,
     }
+    if args.report_number:
+        fields["report_number"] = args.report_number
+    if args.force:
+        fields["force"] = "true"
+
     body, content_type = _multipart_encode(fields, [("files", p) for p in files])
 
     print(f"POST {args.api}")
@@ -138,7 +139,7 @@ def main() -> int:
         data=body,
         method="POST",
         headers={
-            "X-Gaomei-Bridge-Token": token,
+            "X-API-Key": api_key,
             "Content-Type": content_type,
             "Content-Length": str(len(body)),
         },
@@ -165,25 +166,24 @@ def main() -> int:
 
     if status >= 400:
         return 2
-    if not payload.get("pdf_ready"):
-        print("Upload ok but pdf_ready is not true — check pdf_error.", file=sys.stderr)
-        return 5
 
-    preview = payload.get("preview_url") or ""
-    portal = payload.get("portal_report_url") or ""
-    igv = payload.get("portal_igv_url") or ""
     print()
     print("OK: package ingested.")
     if payload.get("pdf_ready"):
         print("PDF generated.")
     else:
         print("PDF not ready — check pdf_error.", file=sys.stderr)
+    preview = payload.get("preview_url") or ""
+    portal = payload.get("portal_report_url") or ""
+    history = payload.get("history_url") or ""
     if preview:
-        print(f"HTML preview (admin): https://gomics.icu{preview}")
+        print(f"HTML preview: {preview}")
     if portal:
-        print(f"3D portal report:     https://gomics.icu{portal}")
-    if igv:
-        print(f"IGV evidence:         https://gomics.icu{igv}")
+        print(f"Portal report: {portal}")
+    if history:
+        print(f"Package history API: {history}")
+    if not payload.get("patient_bound_user"):
+        print("Note: Patient.user not bound yet — bind login in Admin before customer can see released report.")
     return 0 if payload.get("pdf_ready") else 5
 
 

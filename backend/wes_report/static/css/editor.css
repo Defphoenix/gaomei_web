@@ -119,10 +119,13 @@ button, input, textarea, select { font: inherit; }
   padding: 12px 16px; border-top: 1px solid #cbd6da; background: rgba(255,255,255,.97); box-shadow: 0 -4px 15px rgba(26,50,60,.08);
 }
 .action-row { display: flex; gap: 8px; }
+.action-row + .action-row { margin-top: 8px; }
 .action-row button { flex: 1; padding: 10px 8px; border: 0; border-radius: 5px; cursor: pointer; font-weight: 700; }
 .render-button { color: white; background: var(--editor-blue); }
 .save-button { color: white; background: var(--editor-teal); }
 .export-button { color: #39515b; background: #e6edef; }
+.regen-pdf-button { color: white; background: #0b6e99; }
+.upload-pdf-button { color: white; background: #8a5a1c; }
 .action-row button:disabled { cursor: wait; opacity: .55; }
 .status-line { min-height: 21px; margin-top: 7px; color: var(--editor-muted); font-size: 12px; }
 .status-line.success { color: #087a61; }

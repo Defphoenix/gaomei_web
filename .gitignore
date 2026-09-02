@@ -19,6 +19,7 @@ venv/
 # Django runtime and patient data
 backend/db.sqlite3
 backend/db.sqlite3-*
+backend/_v2_preserve_dump/
 backend/media/
 backend/staticfiles/
 *.log
@@ -52,6 +53,9 @@ temp/
 *.bak
 *.orig
 *~
+
+# Local working samples / non-repo media (not for deploy)
+data_use/
 
 # Duplicate local media copy; the deployed source is under frontend/public.
 /e290b9130d929414f139b195eb34932d.mp4

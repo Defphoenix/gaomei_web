@@ -1,13 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const DB_TABLES = [
-  { key: "users", label: "用户与权限", hint: "可编辑" },
-  { key: "patient_slots", label: "患者报告台账", hint: "只读" },
-  { key: "sample_bundles", label: "样本报告包", hint: "只读" },
-  { key: "bundle_files", label: "报告包文件路径", hint: "只读" },
-  { key: "reports", label: "门户报告", hint: "只读" },
+const ADMIN_MODULES = [
+  { key: "patients", label: "患者管理", icon: "fa-user-injured" },
+  { key: "reports", label: "报告管理", icon: "fa-file-medical" },
+  { key: "assets", label: "文件管理", icon: "fa-folder-open" },
+  { key: "variants", label: "变异管理", icon: "fa-dna" },
+  { key: "access_logs", label: "访问日志", icon: "fa-history" },
+  { key: "ingest_events", label: "导入管理", icon: "fa-cloud-upload-alt" },
+  { key: "users", label: "用户与权限", icon: "fa-users-cog" },
+  { key: "api_keys", label: "导入 API Key", icon: "fa-key" },
 ] as const;
 
 /** Shared left nav for internal portal pages. */
@@ -22,85 +25,46 @@ const PortalSidebar: React.FC = () => {
   const onPatientReports = path === "/patient-reports";
   const onContactMessages = path === "/contact-messages";
   const onDbBrowser = path === "/db-browser";
-  const [dbOpen, setDbOpen] = useState(onDbBrowser);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (onDbBrowser) setDbOpen(true);
-  }, [onDbBrowser]);
-
-  useEffect(() => {
-    function onDocClick(ev: MouseEvent) {
-      if (!menuRef.current?.contains(ev.target as Node)) {
-        if (!onDbBrowser) setDbOpen(false);
-      }
-    }
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, [onDbBrowser]);
+  const activeTable = onDbBrowser ? (new URLSearchParams(location.search).get("table") || "patients") : "";
 
   return (
     <aside className="portal-sidebar">
       <Link to="/" className="portal-logo">
         <img className="brand-mark-img" src="/assets/images/logo_mark.png" alt="高美基因" />
-        <span><b>Gomics</b><small>高美协作平台</small></span>
+        <span><b>Gomics</b><small>后台管理系统</small></span>
       </Link>
       <nav>
-        <Link className={onDashboard ? "active" : undefined} to="/dashboard" title="工作台">
-          <i className="fas fa-th-large" />工作台
+        <Link className={onDashboard ? "active" : undefined} to="/dashboard" title="仪表盘">
+          <i className="fas fa-th-large" />仪表盘
         </Link>
         {canOperate && (
           <Link className={onPatientReports ? "active" : undefined} to="/patient-reports" title="患者报告">
             <i className="fas fa-file-medical" />患者报告
           </Link>
         )}
+        {isAdmin && ADMIN_MODULES.map((m) => (
+          <Link
+            key={m.key}
+            className={onDbBrowser && activeTable === m.key ? "active" : undefined}
+            to={`/db-browser?table=${m.key}`}
+            title={m.label}
+          >
+            <i className={`fas ${m.icon}`} />{m.label}
+          </Link>
+        ))}
         {canOperate && (
           <Link className={onContactMessages ? "active" : undefined} to="/contact-messages" title="官网留言">
             <i className="fas fa-comments" />官网留言
           </Link>
         )}
-        {canOperate && (
-          <Link to="/dashboard#review" title="审核发布">
-            <i className="fas fa-clipboard-check" />审核发布
-          </Link>
-        )}
         <Link to="/browser" title="IGV 证据">
           <i className="fas fa-dna" />IGV 证据
         </Link>
-        {isAdmin && (
-          <div className={`portal-nav-group ${dbOpen || onDbBrowser ? "open" : ""}`} ref={menuRef}>
-            <button
-              type="button"
-              className={onDbBrowser ? "active" : undefined}
-              title="用户与权限 / 数据表"
-              onClick={() => setDbOpen((v) => !v)}
-            >
-              <i className="fas fa-users-cog" />
-              <span>用户与权限</span>
-              <i className={`fas fa-chevron-${dbOpen ? "up" : "down"} nav-caret`} />
-            </button>
-            {dbOpen && (
-              <div className="portal-nav-submenu">
-                {DB_TABLES.map((t) => (
-                  <Link
-                    key={t.key}
-                    to={`/db-browser?table=${t.key}`}
-                    className={onDbBrowser && new URLSearchParams(location.search).get("table") === t.key ? "active" : undefined}
-                    title={t.hint}
-                  >
-                    {t.label}
-                    <small>{t.hint}</small>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </nav>
       <div className="node-card">
-        <span><i className="fas fa-circle" /> 患者报告</span>
-        <b>云端排版与发布</b>
-        <small>node9 上传 JSON / 附属文件</small>
+        <span><i className="fas fa-circle" /> 数据导入</span>
+        <b>API Key + Package</b>
+        <small>POST /api/v1/ingest/reports/package/</small>
       </div>
     </aside>
   );

@@ -7,7 +7,7 @@ from typing import Any
 
 from django.conf import settings
 
-from .models import Report, ReportItem
+from .models import Report, ReportVariant
 
 CONSEQUENCE_LABELS = {
     "missense_variant": "错义突变",
@@ -346,7 +346,7 @@ def sync_portal_from_wes_payload(
     *,
     wes_report_id: str = "",
 ) -> None:
-    """Persist portal-facing analysis_data and ReportItem rows from WES JSON."""
+    """Persist portal-facing analysis_data and ReportVariant rows from WES JSON."""
     wes_report_id = wes_report_id or str((report.analysis_data or {}).get("wes_report_id") or "")
     analysis = build_portal_analysis_data(
         payload,
@@ -356,17 +356,20 @@ def sync_portal_from_wes_payload(
 
     sample = payload.get("sample") if isinstance(payload.get("sample"), dict) else {}
     report_meta = payload.get("report") if isinstance(payload.get("report"), dict) else {}
-    patient_info = dict(report.patient_info or {})
-    patient_info.update({
-        "name": sample.get("name") or patient_info.get("name"),
-        "sex": sample.get("sex") or patient_info.get("sex"),
-        "age": sample.get("age") or patient_info.get("age"),
-        "clinical_diagnosis": sample.get("clinical_diagnosis") or patient_info.get("clinical_diagnosis"),
-        "specimen_type": sample.get("specimen_type") or patient_info.get("specimen_type"),
+
+    # Keep a light patient snapshot for display (formal bind is Patient.user separately)
+    snap = dict(report.patient_snapshot or {})
+    snap.update({
+        "name": sample.get("name") or snap.get("name") or report.patient.name,
+        "sex": sample.get("sex") or snap.get("sex") or "",
+        "age": sample.get("age") or snap.get("age") or "",
+        "clinical_diagnosis": sample.get("clinical_diagnosis") or snap.get("clinical_diagnosis") or "",
+        "specimen_type": sample.get("specimen_type") or snap.get("specimen_type") or "",
+        "patient_no": report.patient.patient_no,
     })
 
     report.analysis_data = analysis
-    report.patient_info = patient_info
+    report.patient_snapshot = snap
     report.tumor_sample_id = str(sample.get("sample_id") or report.sample_id)[:100]
     report.title = str(report_meta.get("title") or report.title)[:200]
     report.summary = _overview_summary(payload)[:2000]
@@ -379,7 +382,7 @@ def sync_portal_from_wes_payload(
             report.normal_sample_id = str(item.get("sample_id") or "")[:100]
 
     report.save(update_fields=[
-        "analysis_data", "patient_info", "tumor_sample_id", "normal_sample_id",
+        "analysis_data", "patient_snapshot", "tumor_sample_id", "normal_sample_id",
         "title", "summary", "conclusion", "genome_build",
     ])
 
@@ -389,12 +392,10 @@ def sync_portal_from_wes_payload(
     normal_bam_url = igv.get("normal_bam") or ""
     normal_bai_url = igv.get("normal_bai") or ""
 
-    # Only replace ReportItem rows when portal_variants is explicitly present.
-    # Missing key keeps existing portal variants (legacy packages without the field).
     if "portal_variants" in payload:
         variants = payload.get("portal_variants") if isinstance(payload.get("portal_variants"), list) else []
-        report.items.all().delete()
-        items: list[ReportItem] = []
+        report.variants.all().delete()
+        rows: list[ReportVariant] = []
         for variant in variants:
             if not isinstance(variant, dict):
                 continue
@@ -410,43 +411,48 @@ def sync_portal_from_wes_payload(
                 significance = "vus"
             ref = str(variant.get("ref") or "N")
             alt = str(variant.get("alt") or "N")
-            items.append(ReportItem(
+            af = float(variant["tumor_af"]) if variant.get("tumor_af") is not None else None
+            rows.append(ReportVariant(
                 report=report,
-                gene=str(variant.get("gene") or "-")[:50],
-                chromosome=chrom[:10],
+                chromosome=chrom[:32],
                 position=pos,
-                end_position=pos + max(len(ref), 1) - 1,
-                ref_allele=ref[:500],
-                alt_allele=alt[:500],
+                ref=ref[:512],
+                alt=alt[:512],
+                gene=str(variant.get("gene") or "-")[:64],
                 variant_type="SNP" if len(ref) == 1 and len(alt) == 1 else "InDel",
-                significance=significance,
-                af=float(variant["tumor_af"]) if variant.get("tumor_af") is not None else None,
-                annotation=str(variant.get("clinical_summary") or variant.get("hgvsp") or ""),
-                transcript=str(variant.get("transcript") or "")[:100],
-                hgvs_c=str(variant.get("hgvsc") or "")[:200],
-                hgvs_p=str(variant.get("hgvsp") or "")[:200],
-                consequence=str(variant.get("consequence") or "")[:100],
-                tumor_depth=int(variant["tumor_dp"]) if variant.get("tumor_dp") is not None else None,
-                tumor_alt_reads=int(variant["tumor_alt_reads"]) if variant.get("tumor_alt_reads") is not None else None,
-                normal_depth=int(variant["normal_dp"]) if variant.get("normal_dp") is not None else None,
-                normal_alt_reads=int(variant["normal_alt_reads"]) if variant.get("normal_alt_reads") is not None else None,
-                tlod=float(variant["tlod"]) if variant.get("tlod") is not None else None,
-                filter_status="REPORTABLE",
-                bam_track_url=tumor_bam_url,
-                bam_index_url=tumor_bai_url,
-                annotations={
-                    "normal_bam_url": normal_bam_url,
-                    "normal_bam_index_url": normal_bai_url,
+                consequence=str(variant.get("consequence") or "")[:128],
+                allele_frequency=af,
+                data={
+                    "end_position": pos + max(len(ref), 1) - 1,
+                    "significance": significance,
+                    "annotation": str(variant.get("clinical_summary") or variant.get("hgvsp") or ""),
+                    "transcript": str(variant.get("transcript") or "")[:100],
+                    "hgvs_c": str(variant.get("hgvsc") or "")[:200],
+                    "hgvs_p": str(variant.get("hgvsp") or "")[:200],
+                    "tumor_depth": int(variant["tumor_dp"]) if variant.get("tumor_dp") is not None else None,
+                    "tumor_alt_reads": int(variant["tumor_alt_reads"]) if variant.get("tumor_alt_reads") is not None else None,
+                    "normal_depth": int(variant["normal_dp"]) if variant.get("normal_dp") is not None else None,
+                    "normal_alt_reads": int(variant["normal_alt_reads"]) if variant.get("normal_alt_reads") is not None else None,
+                    "tlod": float(variant["tlod"]) if variant.get("tlod") is not None else None,
+                    "filter_status": "REPORTABLE",
+                    "bam_track_url": tumor_bam_url,
+                    "bam_index_url": tumor_bai_url,
+                    "annotations": {
+                        "normal_bam_url": normal_bam_url,
+                        "normal_bam_index_url": normal_bai_url,
+                    },
                 },
             ))
-        if items:
-            ReportItem.objects.bulk_create(items)
+        if rows:
+            ReportVariant.objects.bulk_create(rows)
     elif tumor_bam_url:
-        # Refresh BAM URLs on existing items when variants were not re-sent.
-        report.items.filter(bam_track_url="").update(
-            bam_track_url=tumor_bam_url,
-            bam_index_url=tumor_bai_url,
-        )
+        for variant in report.variants.all():
+            data = dict(variant.data or {})
+            if not data.get("bam_track_url"):
+                data["bam_track_url"] = tumor_bam_url
+                data["bam_index_url"] = tumor_bai_url
+                variant.data = data
+                variant.save(update_fields=["data"])
 
 
 def load_wes_report_json(wes_report_id: str) -> dict[str, Any] | None:

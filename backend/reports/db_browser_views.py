@@ -1,191 +1,623 @@
-"""Read-only database browser APIs for portal admins / operators."""
+"""Portal DB browser — admin-facing CRUD for V2 business tables (no Django Admin required)."""
 from __future__ import annotations
 
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from django.contrib.auth.models import User
+from django.db import transaction
+from django.utils.dateparse import parse_date
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BundleFile, PatientReportSlot, Report, SampleBundle
+from .access import is_internal_operator, user_role
+from .models import Patient, Report, ReportAsset, ReportStatus, ReportVariant, SexChoices
 
 
-class IsInternalOperator(BasePermission):
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        if request.user.is_staff:
-            return True
-        role = getattr(getattr(request.user, "profile", None), "role", "customer")
-        return role in {"admin", "analyst", "reviewer"}
+class _BrowserGate(APIView):
+    """Internal can read; only admin/staff can write."""
+
+    permission_classes = [IsAuthenticated]
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if not is_internal_operator(request.user):
+            self.permission_denied(request)
+
+    def _require_admin(self, request):
+        role = user_role(request.user)
+        if not (request.user.is_staff or role == "admin" or request.user.is_superuser):
+            self.permission_denied(request)
 
 
-class IsPortalAdmin(BasePermission):
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        if request.user.is_staff:
-            return True
-        role = getattr(getattr(request.user, "profile", None), "role", "customer")
-        return role == "admin"
+def _patient_row(p: Patient) -> dict:
+    meta = p.metadata if isinstance(p.metadata, dict) else {}
+    return {
+        "id": p.id,
+        "patient_no": p.patient_no,
+        "name": p.name,
+        "sex": p.sex or "",
+        "birth_date": p.birth_date.isoformat() if p.birth_date else "",
+        "phone": p.phone or "",
+        "email": p.email or "",
+        "id_card": str(meta.get("id_card") or ""),
+        "address": str(meta.get("address") or ""),
+        "remarks": str(meta.get("remarks") or ""),
+        "username": p.user.username if p.user_id else "",
+        "user_id": p.user_id or "",
+        "is_active": p.is_active,
+        "report_count": p.reports.count(),
+        "updated_at": p.updated_at.isoformat() if p.updated_at else "",
+        "created_at": p.created_at.isoformat() if p.created_at else "",
+    }
 
 
-def _limit(request, default: int = 200) -> int:
-    try:
-        n = int(request.query_params.get("limit") or default)
-    except ValueError:
-        n = default
-    return max(1, min(n, 500))
+def _report_row(r: Report, *, detail: bool = False) -> dict:
+    analysis = r.analysis_data if isinstance(r.analysis_data, dict) else {}
+    wes_id = str(analysis.get("wes_report_id") or r.sample_id or "")
+    row = {
+        "id": r.id,
+        "report_number": r.report_number,
+        "title": r.title or "",
+        "patient_id": r.patient_id,
+        "patient_no": r.patient.patient_no,
+        "patient_name": r.patient.name,
+        "patient_username": r.patient.user.username if r.patient.user_id else "",
+        "status": r.status,
+        "product_code": r.product_code or "",
+        "report_type": r.report_type or "",
+        "sample_id": r.sample_id or "",
+        "tumor_sample_id": r.tumor_sample_id or "",
+        "normal_sample_id": r.normal_sample_id or "",
+        "wes_report_id": wes_id,
+        "genome_build": r.genome_build or "",
+        "report_date": r.report_date.isoformat() if r.report_date else "",
+        "released_at": r.released_at.isoformat() if r.released_at else "",
+        "asset_count": r.assets.count(),
+        "variant_count": r.variants.count(),
+        "portal_report_url": f"/reports/{r.id}/",
+        "portal_igv_url": f"/browser?report={r.id}",
+        "preview_url": f"/wes/reports/{wes_id}/" if wes_id else "",
+        "updated_at": r.updated_at.isoformat() if r.updated_at else "",
+    }
+    if detail:
+        row["summary"] = r.summary or ""
+        row["conclusion"] = r.conclusion or ""
+        row["assets"] = [_asset_row(a) for a in r.assets.all()[:50]]
+    return row
 
 
-class DbBrowserCatalogView(APIView):
-    """List available tables and edit policy for the portal DB browser."""
+def _asset_row(a: ReportAsset) -> dict:
+    return {
+        "id": a.id,
+        "report_id": a.report_id,
+        "report_number": a.report.report_number,
+        "sample_id": a.report.sample_id,
+        "asset_type": a.asset_type,
+        "name": a.name,
+        "file_path": a.file_path or "",
+        "external_url": a.external_url or "",
+        "sha256": a.sha256 or "",
+        "file_size": a.file_size,
+        "mime_type": a.mime_type or "",
+        "download_url": f"/api/v1/reports/{a.report_id}/assets/{a.id}/download/",
+        "created_at": a.created_at.isoformat() if a.created_at else "",
+    }
 
-    permission_classes = [IsAuthenticated, IsInternalOperator]
 
+class DbBrowserCatalogView(_BrowserGate):
     def get(self, request):
-        is_admin = IsPortalAdmin().has_permission(request, self)
-        tables = [
-            {
-                "key": "users",
-                "label": "用户与权限",
-                "model": "auth.User + accounts.UserProfile",
-                "editable": is_admin,
-                "description": "账号、角色、患者编号关联（仅管理员可增删改）",
-            },
-            {
-                "key": "patient_slots",
-                "label": "患者报告台账",
-                "model": "reports.PatientReportSlot",
-                "editable": False,
-                "description": "每个患者编号一行，指向当前报告与 active bundle",
-            },
-            {
-                "key": "sample_bundles",
-                "label": "样本报告包",
-                "model": "reports.SampleBundle",
-                "editable": False,
-                "description": "每次上传一个版本目录（active / superseded）",
-            },
-            {
-                "key": "bundle_files",
-                "label": "报告包文件路径",
-                "model": "reports.BundleFile",
-                "editable": False,
-                "description": "包内每个文件的路径映射（JSON / BAM / PDF 等）",
-            },
-            {
-                "key": "reports",
-                "label": "门户报告",
-                "model": "reports.Report",
-                "editable": False,
-                "description": "患者可见的报告记录与发布状态",
-            },
-        ]
-        return Response({"tables": tables})
+        return Response({
+            "tables": [
+                {
+                    "key": "users",
+                    "label": "用户与权限",
+                    "model": "auth.User",
+                    "editable": True,
+                    "description": "登录账号；可通过 patient_no 绑定受检者",
+                },
+                {
+                    "key": "patients",
+                    "label": "患者管理",
+                    "model": "reports.Patient",
+                    "editable": True,
+                    "description": "Patient 台账；可绑定登录用户",
+                },
+                {
+                    "key": "reports",
+                    "label": "报告管理",
+                    "model": "reports.Report",
+                    "editable": True,
+                    "description": "报告状态、样本、摘要结论与附件",
+                },
+                {
+                    "key": "assets",
+                    "label": "文件管理",
+                    "model": "reports.ReportAsset",
+                    "editable": True,
+                    "description": "PDF/BAM/BAI 等报告附件元数据",
+                },
+                {
+                    "key": "variants",
+                    "label": "变异管理",
+                    "model": "reports.ReportVariant",
+                    "editable": False,
+                    "description": "位点索引（只读；完整编辑请走 WES JSON）",
+                },
+                {
+                    "key": "access_logs",
+                    "label": "访问日志",
+                    "model": "reports.ReportAccessLog",
+                    "editable": False,
+                    "description": "报告查看与下载审计",
+                },
+                {
+                    "key": "ingest_events",
+                    "label": "导入管理",
+                    "model": "ingest.IngestEvent",
+                    "editable": False,
+                    "description": "API Key / 报告包导入审计",
+                },
+                {
+                    "key": "api_keys",
+                    "label": "导入 API Key",
+                    "model": "ingest.IngestApiKey",
+                    "editable": True,
+                    "description": "启停 Key；明文仅创建时可见",
+                },
+            ],
+            "notice": "Gomics 后台管理（V2）。admin 可写；analyst/reviewer 只读。",
+        })
 
 
-class PatientSlotDbView(APIView):
-    permission_classes = [IsAuthenticated, IsInternalOperator]
-
+class PatientDbView(_BrowserGate):
     def get(self, request):
-        rows = []
-        for slot in PatientReportSlot.objects.select_related(
-            "report", "active_bundle", "user",
-        ).order_by("-updated_at")[: _limit(request)]:
-            bundle = slot.active_bundle
-            rows.append({
-                "id": slot.id,
-                "patient_no": slot.patient_no,
-                "patient_name": slot.patient_name,
-                "user_id": slot.user_id,
-                "username": slot.user.username if slot.user_id else "",
-                "report_id": slot.report_id,
-                "report_status": slot.report.status if slot.report_id else "",
-                "portal_report_url": f"/reports/{slot.report_id}/" if slot.report_id else "",
-                "portal_igv_url": f"/browser?report={slot.report_id}" if slot.report_id else "",
-                "active_bundle_id": slot.active_bundle_id,
-                "sample_id": bundle.sample_id if bundle else "",
-                "upload_id": bundle.upload_id if bundle else "",
-                "root_dir": bundle.root_dir if bundle else "",
-                "bundle_status": bundle.status if bundle else "",
-                "updated_at": slot.updated_at.isoformat() if slot.updated_at else "",
-            })
-        return Response(rows)
+        qs = Patient.objects.select_related("user").order_by("-updated_at")[:500]
+        return Response([_patient_row(p) for p in qs])
+
+    @transaction.atomic
+    def post(self, request):
+        self._require_admin(request)
+        data = request.data if isinstance(request.data, dict) else {}
+        patient_no = str(data.get("patient_no") or "").strip().upper()
+        name = str(data.get("name") or "").strip()
+        if not patient_no or not name:
+            return Response({"detail": "patient_no and name are required"}, status=400)
+        if Patient.objects.filter(patient_no=patient_no).exists():
+            return Response({"detail": "patient_no already exists"}, status=400)
+        sex = str(data.get("sex") or "").strip()
+        if sex and sex not in {c.value for c in SexChoices}:
+            return Response({"detail": f"sex must be one of {[c.value for c in SexChoices]}"}, status=400)
+        patient = Patient.objects.create(
+            patient_no=patient_no,
+            name=name[:128],
+            sex=sex or "",
+            phone=str(data.get("phone") or "")[:32],
+            email=str(data.get("email") or "")[:254],
+            is_active=bool(data.get("is_active", True)),
+            metadata={
+                "id_card": str(data.get("id_card") or "").strip(),
+                "address": str(data.get("address") or "").strip(),
+                "remarks": str(data.get("remarks") or "").strip(),
+            },
+        )
+        bd = data.get("birth_date")
+        if bd:
+            patient.birth_date = parse_date(str(bd)) if isinstance(bd, str) else bd
+            patient.save(update_fields=["birth_date"])
+        err = self._bind_username(patient, data.get("username"))
+        if err:
+            return Response({"detail": err}, status=400)
+        return Response(_patient_row(patient), status=201)
+
+    @transaction.atomic
+    def patch(self, request):
+        """PATCH with body.id (also supports /patients/<id>/ via detail view)."""
+        self._require_admin(request)
+        data = request.data if isinstance(request.data, dict) else {}
+        pk = data.get("id")
+        if not pk:
+            return Response({"detail": "id is required"}, status=400)
+        return self._update(int(pk), data)
+
+    def _bind_username(self, patient: Patient, username) -> str:
+        username = str(username or "").strip()
+        if not username:
+            if patient.user_id:
+                patient.user = None
+                patient.save(update_fields=["user", "updated_at"])
+            return ""
+        user = User.objects.filter(username=username).first()
+        if not user:
+            return f"username '{username}' not found"
+        other = Patient.objects.filter(user=user).exclude(pk=patient.pk).first()
+        if other:
+            return f"username already linked to patient {other.patient_no}"
+        patient.user = user
+        patient.save(update_fields=["user", "updated_at"])
+        return ""
+
+    def _update(self, pk: int, data: dict):
+        patient = Patient.objects.select_related("user").filter(pk=pk).first()
+        if not patient:
+            return Response({"detail": "not found"}, status=404)
+        fields = []
+        if "patient_no" in data:
+            new_no = str(data.get("patient_no") or "").strip().upper()
+            if not new_no:
+                return Response({"detail": "patient_no cannot be empty"}, status=400)
+            if Patient.objects.filter(patient_no=new_no).exclude(pk=pk).exists():
+                return Response({"detail": "patient_no already exists"}, status=400)
+            patient.patient_no = new_no
+            fields.append("patient_no")
+        for key, attr, cast in [
+            ("name", "name", lambda v: str(v or "").strip()[:128]),
+            ("phone", "phone", lambda v: str(v or "")[:32]),
+            ("email", "email", lambda v: str(v or "")[:254]),
+            ("sex", "sex", lambda v: str(v or "").strip()),
+        ]:
+            if key in data:
+                val = cast(data.get(key))
+                if key == "sex" and val and val not in {c.value for c in SexChoices}:
+                    return Response({"detail": "invalid sex"}, status=400)
+                if key == "name" and not val:
+                    return Response({"detail": "name cannot be empty"}, status=400)
+                setattr(patient, attr, val)
+                fields.append(attr)
+        if "is_active" in data:
+            patient.is_active = bool(data.get("is_active"))
+            fields.append("is_active")
+        if "birth_date" in data:
+            raw = data.get("birth_date")
+            patient.birth_date = parse_date(str(raw)) if raw else None
+            fields.append("birth_date")
+        if any(k in data for k in ("id_card", "address", "remarks")):
+            meta = dict(patient.metadata or {})
+            for mk in ("id_card", "address", "remarks"):
+                if mk in data:
+                    meta[mk] = str(data.get(mk) or "").strip()
+            patient.metadata = meta
+            fields.append("metadata")
+        if fields:
+            patient.save(update_fields=list(dict.fromkeys(fields + ["updated_at"])))
+        if "username" in data:
+            err = self._bind_username(patient, data.get("username"))
+            if err:
+                return Response({"detail": err}, status=400)
+        patient.refresh_from_db()
+        return Response(_patient_row(patient))
 
 
-class SampleBundleDbView(APIView):
-    permission_classes = [IsAuthenticated, IsInternalOperator]
+class PatientDbDetailView(_BrowserGate):
+    def get(self, request, pk: int):
+        patient = Patient.objects.select_related("user").filter(pk=pk).first()
+        if not patient:
+            return Response({"detail": "not found"}, status=404)
+        return Response(_patient_row(patient))
 
+    def patch(self, request, pk: int):
+        self._require_admin(request)
+        data = request.data if isinstance(request.data, dict) else {}
+        return PatientDbView()._update(pk, data)
+
+    def delete(self, request, pk: int):
+        self._require_admin(request)
+        patient = Patient.objects.filter(pk=pk).first()
+        if not patient:
+            return Response({"detail": "not found"}, status=404)
+        if patient.reports.exists():
+            return Response(
+                {"detail": "patient has reports; reassign or void reports first"},
+                status=400,
+            )
+        patient.delete()
+        return Response(status=204)
+
+
+class ReportDbView(_BrowserGate):
     def get(self, request):
-        rows = []
-        for b in SampleBundle.objects.select_related("slot").order_by("-created_at")[: _limit(request)]:
-            rows.append({
-                "id": b.id,
-                "patient_no": b.slot.patient_no if b.slot_id else "",
-                "sample_id": b.sample_id,
-                "upload_id": b.upload_id,
-                "wes_report_id": b.wes_report_id,
-                "status": b.status,
-                "root_dir": b.root_dir,
-                "pdf_ready": b.pdf_ready,
-                "pdf_error": (b.pdf_error or "")[:200],
-                "node_id": b.node_id,
-                "payload_sha256": b.payload_sha256,
-                "created_at": b.created_at.isoformat() if b.created_at else "",
-                "superseded_at": b.superseded_at.isoformat() if b.superseded_at else "",
-            })
-        return Response(rows)
+        qs = Report.objects.select_related("patient", "patient__user").order_by("-updated_at")[:500]
+        return Response([_report_row(r) for r in qs])
+
+    @transaction.atomic
+    def post(self, request):
+        self._require_admin(request)
+        data = request.data if isinstance(request.data, dict) else {}
+        patient_no = str(data.get("patient_no") or "").strip().upper()
+        report_number = str(data.get("report_number") or "").strip().upper()
+        if not patient_no or not report_number:
+            return Response({"detail": "patient_no and report_number are required"}, status=400)
+        patient = Patient.objects.filter(patient_no=patient_no).first()
+        if not patient:
+            return Response({"detail": "patient_no not found"}, status=400)
+        if Report.objects.filter(report_number=report_number).exists():
+            return Response({"detail": "report_number already exists"}, status=400)
+        sample_id = str(data.get("sample_id") or "").strip().upper()
+        wes_id = str(data.get("wes_report_id") or sample_id).strip()
+        status_val = str(data.get("status") or ReportStatus.DRAFT).strip()
+        if status_val not in {c.value for c in ReportStatus}:
+            return Response({"detail": "invalid status"}, status=400)
+        report = Report.objects.create(
+            patient=patient,
+            report_number=report_number,
+            title=str(data.get("title") or "")[:255],
+            product_code=str(data.get("product_code") or "")[:64],
+            report_type=str(data.get("report_type") or "mutation")[:32],
+            sample_id=sample_id[:128],
+            tumor_sample_id=str(data.get("tumor_sample_id") or sample_id)[:128],
+            normal_sample_id=str(data.get("normal_sample_id") or "")[:128],
+            genome_build=str(data.get("genome_build") or "GRCh38")[:32],
+            status=status_val,
+            analysis_data={"wes_report_id": wes_id} if wes_id else {},
+        )
+        rd = data.get("report_date")
+        if rd:
+            report.report_date = parse_date(str(rd)) if isinstance(rd, str) else rd
+            report.save(update_fields=["report_date"])
+        return Response(_report_row(report), status=201)
+
+    def patch(self, request):
+        self._require_admin(request)
+        data = request.data if isinstance(request.data, dict) else {}
+        pk = data.get("id")
+        if not pk:
+            return Response({"detail": "id is required"}, status=400)
+        return self._update(int(pk), data)
+
+    def _update(self, pk: int, data: dict):
+        report = Report.objects.select_related("patient", "patient__user").filter(pk=pk).first()
+        if not report:
+            return Response({"detail": "not found"}, status=404)
+        fields = []
+        if "patient_no" in data:
+            patient_no = str(data.get("patient_no") or "").strip().upper()
+            patient = Patient.objects.filter(patient_no=patient_no).first()
+            if not patient:
+                return Response({"detail": "patient_no not found"}, status=400)
+            report.patient = patient
+            fields.append("patient")
+        if "report_number" in data:
+            new_no = str(data.get("report_number") or "").strip().upper()
+            if not new_no:
+                return Response({"detail": "report_number cannot be empty"}, status=400)
+            if Report.objects.filter(report_number=new_no).exclude(pk=pk).exists():
+                return Response({"detail": "report_number already exists"}, status=400)
+            report.report_number = new_no
+            fields.append("report_number")
+        if "status" in data:
+            status_val = str(data.get("status") or "").strip()
+            if status_val not in {c.value for c in ReportStatus}:
+                return Response({"detail": "invalid status"}, status=400)
+            report.status = status_val
+            fields.append("status")
+        for key in (
+            "title", "product_code", "report_type", "sample_id",
+            "tumor_sample_id", "normal_sample_id", "genome_build", "summary", "conclusion",
+        ):
+            if key in data:
+                setattr(report, key, str(data.get(key) or ""))
+                fields.append(key)
+        if "report_date" in data:
+            raw = data.get("report_date")
+            report.report_date = parse_date(str(raw)) if raw else None
+            fields.append("report_date")
+        if "wes_report_id" in data:
+            analysis = dict(report.analysis_data or {})
+            analysis["wes_report_id"] = str(data.get("wes_report_id") or "").strip()
+            report.analysis_data = analysis
+            fields.append("analysis_data")
+        if fields:
+            report.save(update_fields=list(dict.fromkeys(fields + ["updated_at"])))
+        report.refresh_from_db()
+        return Response(_report_row(report))
 
 
-class BundleFileDbView(APIView):
-    permission_classes = [IsAuthenticated, IsInternalOperator]
+class ReportDbDetailView(_BrowserGate):
+    def get(self, request, pk: int):
+        report = (
+            Report.objects.select_related("patient", "patient__user")
+            .prefetch_related("assets")
+            .filter(pk=pk)
+            .first()
+        )
+        if not report:
+            return Response({"detail": "not found"}, status=404)
+        return Response(_report_row(report, detail=True))
 
+    def patch(self, request, pk: int):
+        self._require_admin(request)
+        data = request.data if isinstance(request.data, dict) else {}
+        return ReportDbView()._update(pk, data)
+
+    def delete(self, request, pk: int):
+        self._require_admin(request)
+        report = Report.objects.filter(pk=pk).first()
+        if not report:
+            return Response({"detail": "not found"}, status=404)
+        if report.status == ReportStatus.RELEASED:
+            return Response({"detail": "void released reports instead of deleting"}, status=400)
+        report.delete()
+        return Response(status=204)
+
+
+class AssetDbView(_BrowserGate):
     def get(self, request):
-        rows = []
-        qs = BundleFile.objects.select_related("bundle", "bundle__slot").order_by("-id")
-        sample = str(request.query_params.get("sample_id") or "").strip()
-        if sample:
-            qs = qs.filter(bundle__sample_id=sample)
-        for f in qs[: _limit(request)]:
-            rows.append({
-                "id": f.id,
-                "bundle_id": f.bundle_id,
-                "patient_no": f.bundle.slot.patient_no if f.bundle_id and f.bundle.slot_id else "",
-                "sample_id": f.bundle.sample_id if f.bundle_id else "",
-                "upload_id": f.bundle.upload_id if f.bundle_id else "",
-                "role": f.role,
-                "original_name": f.original_name,
-                "rel_path": f.rel_path,
-                "abs_path": f.abs_path,
-                "sha256": f.sha256,
-                "size_bytes": f.size_bytes,
-                "content_type": f.content_type,
-                "created_at": f.created_at.isoformat() if f.created_at else "",
-            })
-        return Response(rows)
+        qs = ReportAsset.objects.select_related("report").order_by("-created_at")[:500]
+        return Response([_asset_row(a) for a in qs])
+
+    def patch(self, request):
+        self._require_admin(request)
+        data = request.data if isinstance(request.data, dict) else {}
+        pk = data.get("id")
+        if not pk:
+            return Response({"detail": "id is required"}, status=400)
+        asset = ReportAsset.objects.select_related("report").filter(pk=pk).first()
+        if not asset:
+            return Response({"detail": "not found"}, status=404)
+        for key in ("name", "file_path", "external_url", "mime_type", "asset_type"):
+            if key in data:
+                setattr(asset, key, str(data.get(key) or ""))
+        asset.save()
+        return Response(_asset_row(asset))
 
 
-class ReportDbView(APIView):
-    permission_classes = [IsAuthenticated, IsInternalOperator]
+class AssetDbDetailView(_BrowserGate):
+    def patch(self, request, pk: int):
+        self._require_admin(request)
+        body = request.data if isinstance(request.data, dict) else {}
+        asset = ReportAsset.objects.select_related("report").filter(pk=pk).first()
+        if not asset:
+            return Response({"detail": "not found"}, status=404)
+        for key in ("name", "file_path", "external_url", "mime_type", "asset_type"):
+            if key in body:
+                setattr(asset, key, str(body.get(key) or ""))
+        asset.save()
+        return Response(_asset_row(asset))
 
+    def delete(self, request, pk: int):
+        self._require_admin(request)
+        asset = ReportAsset.objects.filter(pk=pk).first()
+        if not asset:
+            return Response({"detail": "not found"}, status=404)
+        asset.delete()
+        return Response(status=204)
+
+
+class VariantDbView(_BrowserGate):
     def get(self, request):
-        rows = []
-        for r in Report.objects.select_related("user").order_by("-created_at")[: _limit(request)]:
-            rows.append({
-                "id": r.id,
-                "report_number": r.report_number,
-                "title": r.title,
-                "sample_id": r.sample_id,
-                "status": r.status,
-                "user_id": r.user_id,
-                "username": r.user.username if r.user_id else "",
-                "patient_no": (r.patient_info or {}).get("patient_no", ""),
-                "patient_name": (r.patient_info or {}).get("name", ""),
-                "has_pdf": bool(r.report_pdf_file),
-                "pdf_url": r.report_pdf_file.url if r.report_pdf_file else (r.report_pdf_url or ""),
-                "portal_report_url": f"/reports/{r.id}/",
-                "portal_igv_url": f"/browser?report={r.id}",
-                "reviewed_by": r.reviewed_by,
-                "released_at": r.released_at.isoformat() if r.released_at else "",
-                "created_at": r.created_at.isoformat() if r.created_at else "",
-            })
-        return Response(rows)
+        qs = ReportVariant.objects.select_related("report").order_by("report_id", "chromosome", "position")[:1000]
+        return Response([
+            {
+                "id": v.id,
+                "report_id": v.report_id,
+                "report_number": v.report.report_number,
+                "gene": v.gene,
+                "chromosome": v.chromosome,
+                "position": v.position,
+                "ref": v.ref,
+                "alt": v.alt,
+                "variant_type": v.variant_type,
+                "allele_frequency": v.allele_frequency,
+                "consequence": v.consequence,
+            }
+            for v in qs
+        ])
+
+
+class IngestEventDbView(_BrowserGate):
+    def get(self, request):
+        from ingest.models import IngestEvent
+        qs = IngestEvent.objects.select_related("api_key", "report").order_by("-created_at")[:500]
+        return Response([
+            {
+                "id": e.id,
+                "status": e.status,
+                "external_source": e.external_source,
+                "external_id": e.external_id,
+                "report_id": e.report_id or "",
+                "report_number": e.report.report_number if e.report_id else "",
+                "api_key": e.api_key.name if e.api_key_id else "",
+                "error_detail": e.error_detail,
+                "created_at": e.created_at.isoformat() if e.created_at else "",
+            }
+            for e in qs
+        ])
+
+
+class AccessLogDbView(_BrowserGate):
+    def get(self, request):
+        from .models import ReportAccessLog
+        qs = ReportAccessLog.objects.select_related("report", "user").order_by("-created_at")[:500]
+        return Response([
+            {
+                "id": e.id,
+                "report_id": e.report_id,
+                "report_number": e.report.report_number if e.report_id else "",
+                "username": e.user.username if e.user_id else "",
+                "action": e.action,
+                "ip_address": e.ip_address or "",
+                "user_agent": (e.user_agent or "")[:120],
+                "created_at": e.created_at.isoformat() if e.created_at else "",
+            }
+            for e in qs
+        ])
+
+
+class ApiKeyDbView(_BrowserGate):
+    def get(self, request):
+        from ingest.models import IngestApiKey
+        qs = IngestApiKey.objects.order_by("-created_at")[:200]
+        return Response([
+            {
+                "id": k.id,
+                "name": k.name,
+                "key_prefix": k.key_prefix,
+                "scope": k.scope,
+                "is_active": k.is_active,
+                "last_used_at": k.last_used_at.isoformat() if k.last_used_at else "",
+                "expires_at": k.expires_at.isoformat() if k.expires_at else "",
+                "created_at": k.created_at.isoformat() if k.created_at else "",
+            }
+            for k in qs
+        ])
+
+    @transaction.atomic
+    def post(self, request):
+        """Create API key; returns raw_key once."""
+        self._require_admin(request)
+        from ingest.models import IngestApiKey, generate_api_key
+        data = request.data if isinstance(request.data, dict) else {}
+        name = str(data.get("name") or "").strip()
+        if not name:
+            return Response({"detail": "name is required"}, status=400)
+        if IngestApiKey.objects.filter(name=name).exists():
+            return Response({"detail": "name already exists"}, status=400)
+        raw, prefix, key_hash = generate_api_key()
+        key = IngestApiKey.objects.create(
+            name=name,
+            key_prefix=prefix,
+            key_hash=key_hash,
+            scope=str(data.get("scope") or "wes_package")[:64],
+            is_active=bool(data.get("is_active", True)),
+            created_by=request.user,
+        )
+        return Response({
+            "id": key.id,
+            "name": key.name,
+            "key_prefix": key.key_prefix,
+            "scope": key.scope,
+            "is_active": key.is_active,
+            "raw_key": raw,
+            "notice": "Save raw_key now; it will not be shown again.",
+        }, status=201)
+
+    def patch(self, request):
+        self._require_admin(request)
+        from ingest.models import IngestApiKey
+        data = request.data if isinstance(request.data, dict) else {}
+        pk = data.get("id")
+        if not pk:
+            return Response({"detail": "id is required"}, status=400)
+        key = IngestApiKey.objects.filter(pk=pk).first()
+        if not key:
+            return Response({"detail": "not found"}, status=404)
+        if "is_active" in data:
+            key.is_active = bool(data.get("is_active"))
+        if "scope" in data:
+            key.scope = str(data.get("scope") or "")[:64]
+        if "name" in data:
+            name = str(data.get("name") or "").strip()
+            if name and name != key.name:
+                if IngestApiKey.objects.filter(name=name).exclude(pk=pk).exists():
+                    return Response({"detail": "name already exists"}, status=400)
+                key.name = name
+        key.save()
+        return Response({
+            "id": key.id,
+            "name": key.name,
+            "key_prefix": key.key_prefix,
+            "scope": key.scope,
+            "is_active": key.is_active,
+            "last_used_at": key.last_used_at.isoformat() if key.last_used_at else "",
+            "expires_at": key.expires_at.isoformat() if key.expires_at else "",
+            "created_at": key.created_at.isoformat() if key.created_at else "",
+        })

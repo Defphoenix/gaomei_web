@@ -308,7 +308,7 @@ const GenomeBrowser: React.FC = () => {
     setTracksReady(false);
     setLoadError("");
     setBamStatus("正在读取报告 BAM 路径…");
-    api.get(`/reports/${reportId}/`)
+    api.get(`/v1/reports/${reportId}/`)
       .then(async (res) => {
         setReportTitle(res.data.title || `报告 #${reportId}`);
         const patient = res.data.patient_info || {};

@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class BridgeConfig(AppConfig):
+class IngestConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "bridge"
-    verbose_name = "WES Bridge"
+    name = "ingest"
+    verbose_name = "报告导入"

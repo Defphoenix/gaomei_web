@@ -32,7 +32,7 @@
       <details class="editor-section"><summary>高级 · 完整报告JSON</summary><div class="section-body"><textarea id="jsonEditor" class="json-editor" spellcheck="false"></textarea><button type="button" id="applyJson" class="minor-button">应用完整JSON</button></div></details>
     </div></aside>
   </main>
-  <footer class="editor-actions"><div class="action-row"><button id="renderButton" class="render-button">重新生成 HTML</button><button id="saveButton" class="save-button">保存 JSON</button><button id="exportButton" class="export-button">导出 JSON</button></div><div id="statusLine" class="status-line">尚未修改</div></footer>
+  <footer class="editor-actions"><div class="action-row"><button id="renderButton" class="render-button">重新生成 HTML</button><button id="saveButton" class="save-button">保存 JSON</button><button id="exportButton" class="export-button">导出 JSON</button></div><div class="action-row pdf-actions"><button type="button" id="regenPdfButton" class="regen-pdf-button">重新生成 PDF</button><button type="button" id="uploadPdfButton" class="upload-pdf-button">手动替换 PDF</button><input type="file" id="uploadPdfInput" accept="application/pdf,.pdf" hidden></div><div id="statusLine" class="status-line">尚未修改</div></footer>
   <script>
     const csrfToken={{ csrf_token | tojson }};
     const endpointUrls={{ urls | tojson }};
@@ -144,10 +144,29 @@
     }
     function refreshJson(){document.getElementById("jsonEditor").value=JSON.stringify(reportState,null,2);}
     async function postJson(url){const response=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","X-CSRFToken":csrfToken},body:JSON.stringify(reportState)});const result=await response.json();if(!response.ok||!result.ok)throw new Error((result.errors||[]).map(x=>x.msg||JSON.stringify(x)).join("；")||"请求失败");return result;}
+    async function postEmpty(url){const response=await fetch(url,{method:"POST",headers:{"X-CSRFToken":csrfToken}});const result=await response.json().catch(()=>({ok:false,errors:[{msg:"服务器返回非 JSON"}]}));if(!response.ok||!result.ok)throw new Error((result.errors||[]).map(x=>x.msg||JSON.stringify(x)).join("；")||result.message||"请求失败");return result;}
+    async function uploadPdfFile(file){const body=new FormData();body.append("file",file);const response=await fetch(endpointUrls.pdf_upload,{method:"POST",headers:{"X-CSRFToken":csrfToken},body});const result=await response.json().catch(()=>({ok:false,errors:[{msg:"服务器返回非 JSON"}]}));if(!response.ok||!result.ok)throw new Error((result.errors||[]).map(x=>x.msg||JSON.stringify(x)).join("；")||result.message||"上传失败");return result;}
     async function run(action){document.querySelectorAll(".action-row button").forEach(x=>x.disabled=true);statusLine.textContent="正在处理…";try{await action();}catch(error){statusLine.className="status-line error";statusLine.textContent=error.message;}finally{document.querySelectorAll(".action-row button").forEach(x=>x.disabled=false);}}
     document.getElementById("renderButton").addEventListener("click",()=>run(async()=>{const result=await postJson(endpointUrls.render);previewFrame.srcdoc=result.html;statusLine.className="status-line success";statusLine.textContent="左侧HTML已按当前数据重新生成，尚未保存。";}));
     document.getElementById("saveButton").addEventListener("click",()=>run(async()=>{const result=await postJson(endpointUrls.save);reportState=result.data;renderFields();renderModules();syncFontControls(false);refreshJson();previewFrame.srcdoc=(await postJson(endpointUrls.render)).html;statusLine.className="status-line success";statusLine.textContent=result.message;}));
     document.getElementById("exportButton").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(reportState,null,2)],{type:"application/json;charset=utf-8"});const link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download="{{ report_id }}.json";link.click();URL.revokeObjectURL(link.href);});
+    document.getElementById("regenPdfButton").addEventListener("click",()=>run(async()=>{
+      if(!window.confirm("将按「已保存」的 current.json 重新生成正式 PDF。\n未保存的编辑不会进入 PDF。\n若当前是手动上传的 PDF，将被覆盖。是否继续？"))return;
+      const result=await postEmpty(endpointUrls.pdf_regenerate);
+      statusLine.className="status-line success";
+      statusLine.textContent=`${result.message}（${Math.round((result.file_size||0)/1024)} KB）`;
+    }));
+    document.getElementById("uploadPdfButton").addEventListener("click",()=>document.getElementById("uploadPdfInput").click());
+    document.getElementById("uploadPdfInput").addEventListener("change",()=>run(async()=>{
+      const input=document.getElementById("uploadPdfInput");
+      const file=input.files&&input.files[0];
+      input.value="";
+      if(!file)return;
+      if(!window.confirm(`用本地文件「${file.name}」替换当前正式 PDF？\n替换后保存 JSON 不会自动覆盖，直到点「重新生成 PDF」。`))return;
+      const result=await uploadPdfFile(file);
+      statusLine.className="status-line success";
+      statusLine.textContent=`${result.message}（${Math.round((result.file_size||0)/1024)} KB）`;
+    }));
     document.getElementById("applyJson").addEventListener("click",()=>{try{reportState=JSON.parse(document.getElementById("jsonEditor").value);renderFields();renderModules();syncFontControls(false);refreshJson();changed("完整JSON已应用，尚未保存");}catch(error){statusLine.className="status-line error";statusLine.textContent=`JSON格式错误：${error.message}`;}});
     fontScaleRange.addEventListener("input",()=>syncFontControls(true,fontScaleRange.value));
     fontScaleNumber.addEventListener("change",()=>syncFontControls(true,fontScaleNumber.value));

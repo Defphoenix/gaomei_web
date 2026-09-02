@@ -14,7 +14,7 @@ const Dashboard: React.FC = () => {
   const [rolePreview, setRolePreview] = useState<PortalRole | null>(null);
 
   useEffect(() => {
-    api.get("/reports/").then((res) => setReports(res.data)).catch(() => undefined).finally(() => setLoading(false));
+    api.get("/v1/me/reports/").then((res) => setReports(res.data)).catch(() => undefined).finally(() => setLoading(false));
   }, []);
 
   const actualRole: PortalRole = user?.role === "customer" ? "client" : (user?.role as PortalRole) || (user?.is_staff ? "admin" : user?.is_bioinfo ? "analyst" : "client");
@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
             <div>
               <span className="eyebrow">CLINICAL GENOMICS WORKSPACE</span>
               <h2>{role === "client" ? "您的检测进度与报告" : "患者报告与审核工作台"}</h2>
-              <p>{role === "client" ? "查看已发布报告与变异证据。" : "管理患者报告包，预览 HTML、编辑并审核发布。"}</p>
+              <p>{role === "client" ? "查看已发布报告与变异证据。" : "管理患者与报告、审核发布；数据由 API Key 导入。"}</p>
             </div>
             {canOperate && <Link className="button button-primary" to="/patient-reports"><i className="fas fa-file-medical" /> 打开患者报告</Link>}
           </div>
@@ -89,15 +89,15 @@ const Dashboard: React.FC = () => {
               <div className="panel-head">
                 <div>
                   <h2>{role === "client" ? "访问提示" : "审核发布"}</h2>
-                  <p>{role === "client" ? "报告发布后可在个人报告中心下载 PDF" : "在患者报告页编辑排版，确认后发布给患者"}</p>
+                  <p>{role === "client" ? "报告发布后可在个人报告中心查看与下载" : "在患者报告页审核，确认后发布给患者"}</p>
                 </div>
               </div>
               {canOperate ? (
                 <div className="empty-state">
-                  请前往 <Link to="/patient-reports">患者报告</Link> 查看 HTML / 编辑 / 确认 PDF。
+                  请前往 <Link to="/patient-reports">患者报告</Link> 审核并发布；导入请用 API Key。
                 </div>
               ) : (
-                <div className="empty-state">登录后可在「个人报告」下载正式 PDF。</div>
+                <div className="empty-state">登录后可在「个人报告」查看已发布报告。</div>
               )}
             </section>
           </div>

@@ -15,7 +15,6 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     is_bioinfo = models.BooleanField("生信组成员", default=False, help_text="勾选后该用户可访问生信博客")
     role = models.CharField("用户角色", max_length=20, choices=ROLE_CHOICES, default="customer")
-    patient_no = models.CharField("患者编号", max_length=80, null=True, blank=True, unique=True, db_index=True)
 
     class Meta:
         verbose_name = "用户扩展"

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ReactECharts from "echarts-for-react";
 import api from "../api/client";
+import { downloadAuthenticatedPdf } from "../api/downloadPdf";
 import type { ReportDetail as ReportDetailType, ReportItem } from "../types";
 import {
   flattenModuleSections,
@@ -189,7 +190,7 @@ const ReportDetail: React.FC = () => {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    api.get(`/reports/${id}/`)
+    api.get(`/v1/reports/${id}/`)
       .then((response) => {
         setReport(response.data);
         setSelected(response.data.items?.[0] || null);
@@ -477,7 +478,16 @@ const ReportDetail: React.FC = () => {
 
   const downloadPdf = () => {
     const url = report.report_pdf_download_url || report.report_pdf_url;
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    if (!url) {
+      window.alert("PDF 尚未生成");
+      return;
+    }
+    void downloadAuthenticatedPdf(
+      url,
+      `${report.report_number || report.sample_id || "report"}.pdf`,
+    ).catch((err: any) => {
+      window.alert(err?.message || "PDF 下载失败（可能尚未生成或无权限）");
+    });
   };
 
   return (

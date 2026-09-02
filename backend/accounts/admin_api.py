@@ -10,8 +10,6 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import UserProfile
-
 ROLE_CHOICES = {"customer", "analyst", "reviewer", "admin"}
 
 
@@ -25,6 +23,11 @@ class IsPortalAdmin(BasePermission):
         return role == "admin"
 
 
+def _linked_patient_no(user: User) -> str:
+    patient = getattr(user, "patient_profile", None)
+    return patient.patient_no if patient else ""
+
+
 def _serialize_user(user: User) -> dict:
     profile = getattr(user, "profile", None)
     role = "admin" if user.is_staff else getattr(profile, "role", "customer")
@@ -35,7 +38,7 @@ def _serialize_user(user: User) -> dict:
         "is_active": user.is_active,
         "is_staff": user.is_staff,
         "role": role,
-        "patient_no": getattr(profile, "patient_no", None) or "",
+        "patient_no": _linked_patient_no(user),
         "is_bioinfo": bool(getattr(profile, "is_bioinfo", False)),
         "date_joined": user.date_joined.isoformat() if user.date_joined else "",
         "last_login": user.last_login.isoformat() if user.last_login else "",
@@ -47,7 +50,7 @@ class AdminUserListCreateView(APIView):
 
     def get(self, request):
         q = str(request.query_params.get("q") or "").strip().lower()
-        users = User.objects.select_related("profile").order_by("-date_joined")
+        users = User.objects.select_related("profile", "patient_profile").order_by("-date_joined")
         rows = [_serialize_user(u) for u in users]
         if q:
             rows = [
@@ -66,7 +69,6 @@ class AdminUserListCreateView(APIView):
         password = str(data.get("password") or "")
         email = str(data.get("email") or "").strip()
         role = str(data.get("role") or "customer").strip()
-        patient_no = str(data.get("patient_no") or "").strip().upper() or None
         is_active = bool(data.get("is_active", True))
         is_bioinfo = bool(data.get("is_bioinfo", False))
 
@@ -78,8 +80,6 @@ class AdminUserListCreateView(APIView):
             return Response({"detail": f"role must be one of {sorted(ROLE_CHOICES)}"}, status=400)
         if User.objects.filter(username=username).exists():
             return Response({"detail": "username already exists"}, status=400)
-        if patient_no and UserProfile.objects.filter(patient_no=patient_no).exists():
-            return Response({"detail": "patient_no already linked to another user"}, status=400)
 
         user = User.objects.create_user(username=username, email=email, password=password)
         user.is_active = is_active
@@ -87,9 +87,21 @@ class AdminUserListCreateView(APIView):
         user.save(update_fields=["is_active", "is_staff", "email"])
         profile = user.profile
         profile.role = role
-        profile.patient_no = patient_no
         profile.is_bioinfo = is_bioinfo or role in {"admin", "analyst", "reviewer"}
-        profile.save(update_fields=["role", "patient_no", "is_bioinfo"])
+        profile.save(update_fields=["role", "is_bioinfo"])
+
+        # Optional bind existing Patient by patient_no (does not create Patient here)
+        patient_no = str(data.get("patient_no") or "").strip().upper()
+        if patient_no:
+            from reports.models import Patient
+            patient = Patient.objects.filter(patient_no=patient_no).first()
+            if not patient:
+                return Response({"detail": "patient_no not found; create Patient in Admin first"}, status=400)
+            if patient.user_id and patient.user_id != user.id:
+                return Response({"detail": "patient_no already linked to another user"}, status=400)
+            patient.user = user
+            patient.save(update_fields=["user", "updated_at"])
+
         return Response(_serialize_user(user), status=status.HTTP_201_CREATED)
 
 
@@ -97,7 +109,7 @@ class AdminUserDetailView(APIView):
     permission_classes = [IsAuthenticated, IsPortalAdmin]
 
     def get_object(self, pk: int) -> Optional[User]:
-        return User.objects.select_related("profile").filter(pk=pk).first()
+        return User.objects.select_related("profile", "patient_profile").filter(pk=pk).first()
 
     def get(self, request, pk: int):
         user = self.get_object(pk)
@@ -114,7 +126,6 @@ class AdminUserDetailView(APIView):
             request.data.get("is_active") is False
             or str(request.data.get("role") or "") not in {"", "admin"}
         ):
-            # allow self email/password; block demoting/disabling self accidentally via role=customer
             if request.data.get("is_active") is False:
                 return Response({"detail": "cannot deactivate yourself"}, status=400)
             if "role" in request.data and str(request.data.get("role")) != "admin":
@@ -144,16 +155,28 @@ class AdminUserDetailView(APIView):
             changed_user.append("is_staff")
             profile.save(update_fields=["role"])
         if "patient_no" in data:
-            patient_no = str(data.get("patient_no") or "").strip().upper() or None
-            if patient_no and UserProfile.objects.filter(patient_no=patient_no).exclude(user=user).exists():
-                return Response({"detail": "patient_no already linked to another user"}, status=400)
-            profile.patient_no = patient_no
-            profile.save(update_fields=["patient_no"])
+            from reports.models import Patient
+            patient_no = str(data.get("patient_no") or "").strip().upper()
+            current = getattr(user, "patient_profile", None)
+            if not patient_no:
+                if current:
+                    current.user = None
+                    current.save(update_fields=["user", "updated_at"])
+            else:
+                patient = Patient.objects.filter(patient_no=patient_no).first()
+                if not patient:
+                    return Response({"detail": "patient_no not found; create Patient in Admin first"}, status=400)
+                if patient.user_id and patient.user_id != user.id:
+                    return Response({"detail": "patient_no already linked to another user"}, status=400)
+                if current and current.id != patient.id:
+                    current.user = None
+                    current.save(update_fields=["user", "updated_at"])
+                patient.user = user
+                patient.save(update_fields=["user", "updated_at"])
         if "is_bioinfo" in data:
             profile.is_bioinfo = bool(data.get("is_bioinfo"))
             profile.save(update_fields=["is_bioinfo"])
         if changed_user:
-            # password is saved via set_password already
             fields = [f for f in changed_user if f != "password"]
             if fields:
                 user.save(update_fields=fields)
@@ -161,15 +184,11 @@ class AdminUserDetailView(APIView):
                 user.save()
         return Response(_serialize_user(user))
 
-    @transaction.atomic
     def delete(self, request, pk: int):
         user = self.get_object(pk)
         if not user:
             return Response({"detail": "not found"}, status=404)
         if user.id == request.user.id:
             return Response({"detail": "cannot delete yourself"}, status=400)
-        if user.is_superuser:
-            return Response({"detail": "cannot delete superuser"}, status=400)
-        username = user.username
         user.delete()
-        return Response({"detail": "deleted", "username": username})
+        return Response(status=status.HTTP_204_NO_CONTENT)

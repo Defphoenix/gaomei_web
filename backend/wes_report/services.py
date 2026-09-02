@@ -286,8 +286,11 @@ def write_pdf(
     temporary = target.with_name(f"{target.stem}.tmp.pdf")
     temporary.unlink(missing_ok=True)
     html = render_report_html(report_data, pdf_mode=True)
+    force_weasy = os.environ.get("WES_REPORT_FORCE_WEASYPRINT") == "1"
     try:
-        if os.name == "nt" and os.environ.get("WES_REPORT_FORCE_WEASYPRINT") != "1":
+        # Prefer Chrome/Chromium headless on every OS so Linux matches the
+        # Windows HTML-preview fidelity (gradients, CJK, JS charts).
+        if not force_weasy and _browser_available():
             _write_pdf_with_browser(html, temporary)
         else:
             try:
@@ -299,13 +302,24 @@ def write_pdf(
                     custom_metadata=True,
                 )
             except OSError as error:
-                if os.name != "nt":
-                    raise RuntimeError("WeasyPrint 原生依赖不可用") from error
+                if force_weasy or not _browser_available():
+                    raise RuntimeError(
+                        "WeasyPrint 原生依赖不可用，且未找到可用的 Chrome/Chromium。"
+                        "请安装 google-chrome-stable/chromium，或设置 WES_REPORT_BROWSER。"
+                    ) from error
                 _write_pdf_with_browser(html, temporary)
         os.replace(temporary, target)
     finally:
         temporary.unlink(missing_ok=True)
     return target
+
+
+def _browser_available() -> bool:
+    try:
+        _find_browser()
+        return True
+    except RuntimeError:
+        return False
 
 
 def _find_browser() -> Path:
@@ -317,15 +331,22 @@ def _find_browser() -> Path:
         Path(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
         Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
         Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+        # Linux / cloud server
+        Path("/usr/bin/google-chrome-stable"),
+        Path("/usr/bin/google-chrome"),
+        Path("/usr/bin/chromium-browser"),
+        Path("/usr/bin/chromium"),
+        Path("/snap/bin/chromium"),
     ]
     for candidate in candidates:
         if str(candidate) and candidate.is_file():
             return candidate
-    discovered = shutil.which("msedge") or shutil.which("chrome")
-    if discovered:
-        return Path(discovered)
+    for name in ("google-chrome-stable", "google-chrome", "chromium-browser", "chromium", "chrome", "msedge"):
+        discovered = shutil.which(name)
+        if discovered:
+            return Path(discovered)
     raise RuntimeError(
-        "未找到 WeasyPrint 原生依赖，也未找到 Edge/Chrome。"
+        "未找到可用的 Edge/Chrome/Chromium。"
         "可通过 WES_REPORT_BROWSER 指定浏览器路径。"
     )
 
@@ -343,10 +364,12 @@ def _write_pdf_with_browser(html: str, target: Path) -> None:
             str(browser),
             "--headless=new",
             "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
             "--disable-extensions",
             "--allow-file-access-from-files",
             "--run-all-compositor-stages-before-draw",
-            "--virtual-time-budget=4000",
+            "--virtual-time-budget=8000",
             "--no-pdf-header-footer",
             f"--user-data-dir={profile_path}",
             f"--print-to-pdf={target.resolve()}",
@@ -359,7 +382,7 @@ def _write_pdf_with_browser(html: str, target: Path) -> None:
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=120,
+            timeout=180,
         )
         if completed.returncode != 0 or not target.exists():
             details = (completed.stderr or completed.stdout).strip()
