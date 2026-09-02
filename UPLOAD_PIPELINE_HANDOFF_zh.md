@@ -262,3 +262,17 @@ GAOMEI_INGEST_API_KEY=gm_...
 - 患者报告工作流：送审 / 发布 / 作废  
 - Bridge / SampleBundle / CloudJobs / 旧 seed / Bridge Token 脚本已清理  
 - 生产部署走 `deploy/tencent/deploy.sh`（`git archive` 当前 commit）
+
+---
+
+## 12. 生产切库与部署记录（2026-09-03）
+
+- Release：`20260903_010753`（commit `9fb1fe5`）
+- 站点：`https://gomics.icu`（健康检查通过）
+- V2 库备份：`/home/ubuntu/apps/gaomei_web/shared/db.pre_v2_20260903_010528.sqlite3`
+- 旧库旁路：`.../db.v1_aside_20260903_010528.sqlite3`
+- 保留：用户 / 角色 / company / blog / bioblog
+- 业务报告绿场（patients=0 / reports=0），靠上传写入
+- 上传：`POST /api/v1/ingest/reports/package/` + `X-API-Key`
+- Bridge：`/api/bridge/` → 404
+- 生产 Key 名：`node9-production`（明文只创建时可见；请运维安全保存，勿进 Git）
