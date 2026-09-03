@@ -154,3 +154,29 @@ class ReportPackageIngestTests(TestCase):
         bam = next(a for a in assets.json() if a["asset_type"] == "bam")
         dl = self.client.get(bam["download_url"])
         self.assertEqual(dl.status_code, 200)
+
+    def test_asset_download_accepts_query_token(self):
+        first = self._post_package("pkg-upload-v2-qtok", sample_id="GM95", patient_no="GM-P-095")
+        self.assertIn(first.status_code, {200, 201}, first.content)
+        report = Report.objects.get(id=first.json()["report_id"])
+        report.status = ReportStatus.RELEASED
+        report.save(update_fields=["status"])
+        user = User.objects.create_user(username="qtok_customer", password="admin123")
+        report.patient.user = user
+        report.patient.save(update_fields=["user"])
+        asset = report.assets.filter(asset_type=ReportAsset.AssetType.BAM).first()
+        self.assertIsNotNone(asset)
+        self.client.force_authenticate(user=None)
+        # Obtain JWT
+        tok = self.client.post("/api/auth/login/", {"username": "qtok_customer", "password": "admin123"}, format="json")
+        self.assertEqual(tok.status_code, 200, tok.content)
+        access = tok.data["access"]
+        bare = self.client.get(f"/api/v1/reports/{report.id}/assets/{asset.id}/download/")
+        self.assertIn(bare.status_code, {401, 403})
+        ok = self.client.get(
+            f"/api/v1/reports/{report.id}/assets/{asset.id}/download/?access_token={access}"
+        )
+        self.assertEqual(ok.status_code, 200)
+        body = b"".join(ok.streaming_content)
+        self.assertGreater(len(body), 0)
+

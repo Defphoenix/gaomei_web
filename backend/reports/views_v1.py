@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .access import build_patient_snapshot, is_internal_operator, user_role, visible_reports_for_user
+from .jwt_query_auth import BearerOrQueryJWTAuthentication
 from .models import Patient, Report, ReportAccessLog, ReportAsset, ReportStatus
 from .serializers import (
     PatientSerializer,
@@ -91,6 +92,7 @@ class ReportAssetDownloadView(APIView):
     """ACL-gated asset download; supports HTTP Range for BAM/BAI (IGV)."""
 
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [BearerOrQueryJWTAuthentication]
 
     def get(self, request, pk, asset_id):
         report = visible_reports_for_user(request.user).filter(pk=pk).first()
@@ -108,6 +110,11 @@ class ReportAssetDownloadView(APIView):
         path = Path(asset.file_path)
         if not path.is_absolute():
             path = root / path
+        # Prefer canonical data/<report_id>/<name> if DB path is stale after layout migration
+        if not path.is_file():
+            fallback = root / "data" / str(report.id) / (asset.name or Path(asset.file_path).name)
+            if fallback.is_file():
+                path = fallback
         path = path.resolve()
         try:
             path.relative_to(root.resolve())

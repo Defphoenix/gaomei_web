@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../api/client";
+import { downloadAuthenticatedAsset } from "../api/downloadAsset";
 import { useAuth } from "../context/AuthContext";
 import PortalSidebar from "../components/PortalSidebar";
 
@@ -612,7 +613,9 @@ const PortalDbBrowser: React.FC = () => {
                         <small>{String(a.asset_type || "")} · {formatSize(a.file_size)}</small>
                       </div>
                       <div className="admin-text-actions">
-                        {a.download_url ? <a href={String(a.download_url)} target="_blank" rel="noreferrer">下载</a> : null}
+                        {a.download_url ? (
+                          <button type="button" onClick={() => downloadAuthenticatedAsset(String(a.download_url))}>下载</button>
+                        ) : null}
                         {editable ? <button type="button" onClick={() => { void deleteAsset(a.id); }}>删除</button> : null}
                       </div>
                     </li>
@@ -798,7 +801,7 @@ const PortalDbBrowser: React.FC = () => {
                                   <button type="button" onClick={() => { setAssetFolderId(String(row.report_id || row.id)); setPage(1); }}>打开</button>
                                 )}
                                 {tableKey === "assets" && assetFolderId && row.download_url ? (
-                                  <a href={String(row.download_url)} target="_blank" rel="noreferrer">下载</a>
+                                  <button type="button" onClick={() => downloadAuthenticatedAsset(String(row.download_url))}>下载</button>
                                 ) : null}
                                 {editable && tableKey !== "assets" && (
                                   <button type="button" onClick={() => goEdit(String(row.id))}>编辑</button>
