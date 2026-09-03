@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/client";
 import type { Report } from "../types";
@@ -10,21 +10,43 @@ type PortalRole = "admin" | "analyst" | "reviewer" | "client";
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [msgNew, setMsgNew] = useState(0);
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const loadDashboard = useCallback(() => {
+    setLoading(true);
     api.get("/v1/me/reports/")
       .then((res) => setReports(Array.isArray(res.data) ? res.data : []))
-      .catch(() => undefined)
+      .catch(() => setReports([]))
       .finally(() => setLoading(false));
     api.get("/company/messages/stats/")
       .then((res) => setMsgNew(Number(res.data?.new || 0)))
       .catch(() => setMsgNew(0));
   }, []);
+
+  // Reload whenever we land on / enter the dashboard (incl. sidebar re-click via location.state).
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard, location.key, location.pathname, location.state]);
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") loadDashboard();
+    }
+    function onFocus() {
+      loadDashboard();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [loadDashboard]);
 
   useEffect(() => {
     function onDoc(ev: MouseEvent) {

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const ADMIN_MODULES = [
@@ -14,6 +14,7 @@ const ADMIN_MODULES = [
 const PortalSidebar: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const role = user?.role || (user?.is_staff ? "admin" : "customer");
   const canOperate = ["admin", "analyst", "reviewer"].includes(role) || !!user?.is_staff;
   const isAdmin = role === "admin" || !!user?.is_staff;
@@ -24,6 +25,14 @@ const PortalSidebar: React.FC = () => {
   const onDbBrowser = path === "/db-browser";
   const activeTable = onDbBrowser ? (new URLSearchParams(location.search).get("table") || "assets") : "";
 
+  function goDashboard(ev: React.MouseEvent) {
+    // Force a fresh dashboard load even when already on /dashboard.
+    if (onDashboard) {
+      ev.preventDefault();
+      navigate("/dashboard", { replace: true, state: { refreshAt: Date.now() } });
+    }
+  }
+
   return (
     <aside className="portal-sidebar">
       <Link to="/" className="portal-logo">
@@ -31,7 +40,12 @@ const PortalSidebar: React.FC = () => {
         <span><b>Gomics</b><small>后台管理系统</small></span>
       </Link>
       <nav>
-        <Link className={onDashboard ? "active" : undefined} to="/dashboard" title="仪表盘">
+        <Link
+          className={onDashboard ? "active" : undefined}
+          to="/dashboard"
+          title="仪表盘"
+          onClick={goDashboard}
+        >
           <i className="fas fa-th-large" />仪表盘
         </Link>
         {canOperate && (
