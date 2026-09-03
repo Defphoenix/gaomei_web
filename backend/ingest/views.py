@@ -68,6 +68,7 @@ class ReportPackageIngestView(APIView):
         sample_id = str(request.data.get("sample_id") or "").strip()
         patient_name = str(request.data.get("patient_name") or "").strip()
         report_number = str(request.data.get("report_number") or "").strip()
+        product_code = str(request.data.get("product_code") or "").strip()
         node_id = str(request.data.get("node_id") or "").strip()
         force = str(request.data.get("force") or "").strip().lower() in {"1", "true", "yes"}
 
@@ -112,6 +113,7 @@ class ReportPackageIngestView(APIView):
                 uploaded_files=uploaded_files,
                 patient_name=patient_name,
                 report_number=report_number,
+                product_code=product_code,
                 node_id=node_id,
                 api_key=api_key,
                 force=force,

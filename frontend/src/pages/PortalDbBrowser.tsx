@@ -219,7 +219,6 @@ const PortalDbBrowser: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [roleGroup, setRoleGroup] = useState("");
   const [geneFilter, setGeneFilter] = useState("");
-  const [assetFolderId, setAssetFolderId] = useState<string>("");
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [formAssets, setFormAssets] = useState<Record<string, unknown>[]>([]);
   const [saving, setSaving] = useState(false);
@@ -233,6 +232,14 @@ const PortalDbBrowser: React.FC = () => {
   const editable = Boolean(isAdmin && (currentMeta.editable ?? true) && !["variants", "access_logs", "ingest_events"].includes(tableKey));
   const onForm = mode === "create" || mode === "edit" || mode === "view";
   const readOnlyForm = mode === "view" || !editable;
+
+  const assetFolderId = tableKey === "assets" ? (params.get("report_id") || "") : "";
+  const setAssetFolderId = useCallback((id: string) => {
+    if (id) setParams({ table: "assets", report_id: String(id) });
+    else setParams({ table: "assets" });
+    setPage(1);
+    setQuery("");
+  }, [setParams]);
 
   const goList = useCallback((table = tableKey) => {
     setParams({ table });
@@ -302,7 +309,6 @@ const PortalDbBrowser: React.FC = () => {
     setStatusFilter("");
     setRoleGroup("");
     setGeneFilter("");
-    setAssetFolderId("");
   }, [tableKey, onForm]);
 
   useEffect(() => {

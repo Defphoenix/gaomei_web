@@ -262,6 +262,10 @@ class ReportData(StrictModel):
             ]
             if any(item is None for item in required):
                 raise ValueError("clinical_v2 报告缺少必要模块")
+        elif self.layout.document_type == "panel_v1":
+            # Panel v1: cover + sample are enough; findings optional during rollout.
+            if not self.sample or not getattr(self.sample, "sample_id", None):
+                raise ValueError("panel_v1 报告缺少 sample.sample_id")
         elif not self.quality_metrics:
             raise ValueError("legacy 报告的 quality_metrics 至少需要一项")
         return self

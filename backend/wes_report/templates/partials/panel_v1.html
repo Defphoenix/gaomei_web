@@ -1,0 +1,44 @@
+<section id="panel-overview" class="content-section clinical-v2-section section-start">
+  <header class="section-heading clinical-module-heading">
+    <div>
+      <h2>靶向基因 Panel 检测报告</h2>
+      <small>{{ data.report.subtitle or "GENE PANEL REPORT" }}</small>
+    </div>
+  </header>
+  <p class="section-paragraph">
+    本报告为第二产品线（Panel）模板。样本
+    <b>{{ data.sample.sample_id }}</b>，
+    检测机构 {{ data.report.laboratory or "高美基因" }}。
+  </p>
+  <div class="extended-table-block">
+    <h3>样本信息</h3>
+    <table class="compact-table">
+      <tbody>
+        <tr><th>样本编号</th><td>{{ data.sample.sample_id }}</td><th>姓名</th><td>{{ data.sample.name or "—" }}</td></tr>
+        <tr><th>性别</th><td>{{ data.sample.sex or "—" }}</td><th>年龄</th><td>{{ data.sample.age or "—" }}</td></tr>
+        <tr><th>样本类型</th><td>{{ data.sample.specimen_type or "—" }}</td><th>临床诊断</th><td>{{ data.sample.clinical_diagnosis or "—" }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if data.somatic_variants %}
+{% from "partials/clinical_module_macros.html" import render_module with context %}
+{{ render_module(data.somatic_variants, "panel-variants") }}
+{% elif data.results %}
+<section id="panel-results" class="content-section section-start">
+  <header class="section-heading"><h2>检测结果</h2></header>
+  {% for item in data.results %}
+  <div class="extended-table-block">
+    <h3>{{ item.gene or item.title or "位点" }}</h3>
+    <p class="section-paragraph">{{ item.summary or item.classification or item.clinical_significance or "—" }}</p>
+  </div>
+  {% endfor %}
+</section>
+{% else %}
+<section id="panel-empty" class="content-section section-start">
+  <p class="section-paragraph">暂无变异明细。上传 Panel 数据包后将在此展示靶向检出结果。</p>
+</section>
+{% endif %}
+
+{% include "partials/back_cover.html" %}

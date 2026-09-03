@@ -40,6 +40,18 @@ const STATUS_LABEL: Record<string, string> = {
   void: "已作废",
 };
 
+const PRODUCT_LABEL: Record<string, string> = {
+  WES_TN: "WES 肿瘤-正常",
+  GENE_PANEL: "靶向基因 Panel",
+  LUNG_PANEL: "肺癌 Panel",
+};
+
+function productLabel(code?: string) {
+  const raw = String(code || "").trim();
+  if (!raw) return "未指定";
+  return PRODUCT_LABEL[raw] || PRODUCT_LABEL[raw.toUpperCase()] || raw;
+}
+
 function openWes(path: string) {
   if (!path) return;
   const token = localStorage.getItem("access_token") || "";
@@ -228,7 +240,8 @@ const PatientReportsAdmin: React.FC = () => {
                       <th>报告 ID</th>
                       <th>报告编号</th>
                       <th>归属 GM</th>
-                      <th>样本 / WES</th>
+                      <th>产品</th>
+                      <th>样本 / data</th>
                       <th>状态</th>
                       <th>PDF</th>
                       <th>日期</th>
@@ -240,6 +253,8 @@ const PatientReportsAdmin: React.FC = () => {
                       const preview = row.preview_url || (row.wes_report_id ? `/wes/reports/${row.wes_report_id}/` : "");
                       const edit = row.edit_url || (row.wes_report_id ? `/wes/reports/${row.wes_report_id}/edit/` : "");
                       const pdfReady = !!(row.pdf_ready || row.pdf_available);
+                      const dataLabel = row.sample_id || `data/${row.id}`;
+                      const dataPath = `/db-browser?table=assets&report_id=${row.id}`;
                       return (
                         <tr key={row.id}>
                           <td>
@@ -247,7 +262,6 @@ const PatientReportsAdmin: React.FC = () => {
                           </td>
                           <td>
                             <b>{row.report_number}</b>
-                            <small>{row.title || "—"}</small>
                           </td>
                           <td>
                             <div className="bind-cell">
@@ -260,9 +274,15 @@ const PatientReportsAdmin: React.FC = () => {
                               ) : null}
                             </div>
                           </td>
+                          <td>{productLabel(row.product_code)}</td>
                           <td>
-                            <span>{row.sample_id || "—"}</span>
-                            <small>{row.wes_report_id || "未绑定 WES JSON"}</small>
+                            {isAdmin ? (
+                              <Link className="admin-folder-path" to={dataPath} title={`打开 data/${row.id}`}>
+                                {dataLabel}
+                              </Link>
+                            ) : (
+                              <span>{dataLabel}</span>
+                            )}
                           </td>
                           <td>
                             <span className={`status-pill ${row.status === "released" ? "green" : row.status === "review" ? "orange" : "blue"}`}>
@@ -347,9 +367,9 @@ const PatientReportsAdmin: React.FC = () => {
                     })}
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={8}>
+                        <td colSpan={9}>
                           <div className="empty-state">
-                            暂无报告。上传时带 patient_no（GM-P）与 sample_id；系统自动分配独立报告编号 GM-R。
+                            暂无报告。上传时带 patient_no（GM-P）、sample_id 与可选 product_code；系统自动分配独立报告编号 GM-R。
                           </div>
                         </td>
                       </tr>

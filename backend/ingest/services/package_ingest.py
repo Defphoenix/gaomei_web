@@ -23,6 +23,7 @@ from reports.id_format import (
     normalize_report_number,
     normalize_sample_id,
 )
+from reports.products import DEFAULT_PRODUCT_CODE, normalize_product_code, product_label
 from reports.models import Patient, Report, ReportAsset, ReportStatus, SexChoices
 from reports.wes_portal_sync import sync_portal_from_wes_payload
 from wes_report.schemas import ReportData
@@ -200,6 +201,7 @@ class PackageIngestService:
         uploaded_files: dict[str, Any],
         patient_name: str = "",
         report_number: str = "",
+        product_code: str = "",
         node_id: str = "",
         api_key=None,
         force: bool = False,
@@ -209,6 +211,9 @@ class PackageIngestService:
         sample_id = normalize_sample_id(sample_id)
         report_number = normalize_report_number(report_number)
         patient_name = str(patient_name or manifest.get("patient_name") or "").strip()
+        product_code = normalize_product_code(
+            product_code or manifest.get("product_code") or DEFAULT_PRODUCT_CODE
+        )
         node_id = str(node_id or "").strip()
 
         if not SAFE_ID.fullmatch(upload_id):
@@ -352,7 +357,7 @@ class PackageIngestService:
                     report_number=report_number,
                     external_source=external_source,
                     external_id=external_id,
-                    product_code="WES_TN",
+                    product_code=product_code,
                     report_type="mutation",
                     title=title,
                     sample_id=sample_id,
@@ -371,7 +376,7 @@ class PackageIngestService:
                 report.title = title
                 report.sample_id = sample_id
                 report.tumor_sample_id = sample_id
-                report.product_code = report.product_code or "WES_TN"
+                report.product_code = product_code or report.product_code or DEFAULT_PRODUCT_CODE
                 if report.status == ReportStatus.DRAFT:
                     report.status = ReportStatus.REVIEW
                 report.analysis_data = {
@@ -646,6 +651,8 @@ class PackageIngestService:
             "patient_bound_user": bool(report.patient.user_id),
             "report_id": report.id,
             "report_number": report.report_number,
+            "product_code": report.product_code,
+            "product_label": product_label(report.product_code),
             "sample_id": report.sample_id,
             "wes_report_id": wes_report_id,
             "report_status": report.status,

@@ -245,9 +245,11 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .admin-group-tabs button.active {
   border-color: #2f6fed; background: #eef4ff; color: #1d4f8c; font-weight: 600;
 }
-.admin-folder-path {
-  font-size: 12px; color: #3d5470; background: #f4f7fb; padding: 2px 8px; border-radius: 6px;
+  .admin-folder-path {
+  font-size: 12px; color: #2f6fed; background: #f4f7fb; padding: 2px 8px; border-radius: 6px;
+  text-decoration: none;
 }
+a.admin-folder-path:hover { color: #1d4f8c; text-decoration: underline; }
 .admin-search {
   min-width: 260px; padding: 8px 12px; display: flex; align-items: center; gap: 8px;
   border: 1px solid var(--line); border-radius: 8px; background: #fff;

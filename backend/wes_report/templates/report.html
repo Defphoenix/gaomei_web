@@ -44,6 +44,8 @@
     {% if data.layout.show_toc %}{% include "partials/toc.html" %}{% endif %}
     {% include "partials/clinical_v2.html" %}
     {% include "partials/back_cover.html" %}
+    {% elif data.layout.document_type == "panel_v1" %}
+    {% include "partials/panel_v1.html" %}
     {% else %}
     {% include "partials/toc.html" %}
 
