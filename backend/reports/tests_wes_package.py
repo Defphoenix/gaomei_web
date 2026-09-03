@@ -19,6 +19,7 @@ DEMO_DIR = Path(__file__).resolve().parents[1] / "wes_report_examples" / "clinic
 
 @override_settings(
     MEDIA_ROOT="/tmp/gaomei_package_test_media",
+    DATA_ROOT=Path("/tmp/gaomei_package_test_media/data"),
     WES_BUNDLE_ROOT=Path("/tmp/gaomei_package_test_media/wes_bundles"),
     WES_REPORT_DATA_DIR=Path("/tmp/gaomei_package_test_media/wes_reports"),
     WES_REPORT_OUTPUT_DIR=Path("/tmp/gaomei_package_test_media/wes_output"),
@@ -97,6 +98,9 @@ class ReportPackageIngestTests(TestCase):
         bam_count = report.assets.filter(asset_type=ReportAsset.AssetType.BAM).count()
         self.assertGreaterEqual(bam_count, 2)
         self.assertTrue((Path(settings.WES_REPORT_DATA_DIR) / "GM99" / "current.json").exists())
+        data_dir = Path(settings.DATA_ROOT) / str(report.id)
+        self.assertTrue((data_dir / "report.json").exists())
+        self.assertTrue((data_dir / "tumor.report.bam").exists())
         self.assertTrue(IngestEvent.objects.filter(report=report).exists())
 
     def test_idempotent_same_upload_id(self):

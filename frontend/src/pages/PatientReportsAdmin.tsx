@@ -15,8 +15,10 @@ type ReportRow = {
   status: string;
   report_date: string | null;
   released_at: string | null;
+  patient_id: number;
   patient_no: string;
   patient_name: string;
+  patient_username?: string;
   pdf_available: boolean;
   pdf_ready?: boolean;
   wes_report_id?: string;
@@ -28,6 +30,8 @@ type ReportRow = {
   portal_report_url?: string;
   genome_build?: string;
 };
+
+type UserOption = { id: number; username: string; role: string };
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "分析中",
@@ -51,6 +55,12 @@ const PatientReportsAdmin: React.FC = () => {
   const [error, setError] = useState("");
   const [releasing, setReleasing] = useState<number | null>(null);
   const [workflowBusy, setWorkflowBusy] = useState<number | null>(null);
+  const [customerUsers, setCustomerUsers] = useState<UserOption[]>([]);
+  const [bindRow, setBindRow] = useState<ReportRow | null>(null);
+  const [bindUsername, setBindUsername] = useState("");
+  const [bindSaving, setBindSaving] = useState(false);
+
+  const isAdmin = user?.role === "admin" || !!user?.is_staff;
 
   const load = useCallback(() => {
     setLoading(true);
@@ -63,15 +73,48 @@ const PatientReportsAdmin: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    api.get("/auth/admin/users/")
+      .then((res) => {
+        const list = (Array.isArray(res.data) ? res.data : [])
+          .filter((u: UserOption) => u.role === "customer")
+          .map((u: UserOption) => ({ id: u.id, username: u.username, role: u.role }));
+        setCustomerUsers(list);
+      })
+      .catch(() => setCustomerUsers([]));
+  }, [isAdmin]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((row) =>
-      `${row.patient_no} ${row.patient_name} ${row.sample_id} ${row.report_number} ${row.title} ${row.product_code} ${row.wes_report_id || ""}`
+      `${row.patient_no} ${row.patient_name} ${row.patient_username || ""} ${row.sample_id} ${row.report_number} ${row.title} ${row.product_code} ${row.wes_report_id || ""}`
         .toLowerCase()
         .includes(q),
     );
   }, [rows, query]);
+
+  function openBind(row: ReportRow) {
+    setBindRow(row);
+    setBindUsername(row.patient_username || "");
+  }
+
+  async function saveBind() {
+    if (!bindRow?.patient_id) return;
+    setBindSaving(true);
+    try {
+      await api.patch(`/v1/db-browser/patients/${bindRow.patient_id}/`, {
+        username: bindUsername,
+      });
+      setBindRow(null);
+      await load();
+    } catch (err: any) {
+      window.alert(err.response?.data?.detail || "绑定失败");
+    } finally {
+      setBindSaving(false);
+    }
+  }
 
   async function releaseReport(id: number) {
     if (!window.confirm("确认发布该报告？发布后客户可见，且导入流水线默认不可再改内容。")) return;
@@ -112,7 +155,6 @@ const PatientReportsAdmin: React.FC = () => {
   }
 
   async function downloadPdf(row: ReportRow) {
-    // Always prefer WES HTML→PDF endpoint (wes_auth + write_pdf), never asset static file first.
     const wesId = row.wes_report_id || "";
     const url =
       (wesId ? `/wes/reports/${wesId}/pdf/` : "")
@@ -145,13 +187,10 @@ const PatientReportsAdmin: React.FC = () => {
         <header className="portal-topbar">
           <div>
             <h1>患者报告</h1>
-            <p>V2 台账 · HTML 预览 / 编辑 / PDF · {user?.username || "内部用户"}</p>
+            <p>报告台账 · 审核发布 · 门户账号绑定 · {user?.username || "内部用户"}</p>
           </div>
           <div className="portal-top-actions">
             <button type="button" className="button button-outline" onClick={load}>刷新</button>
-            <a className="button button-primary" href="http://127.0.0.1:8001/admin/reports/report/" target="_blank" rel="noreferrer">
-              Django Admin
-            </a>
           </div>
         </header>
 
@@ -160,14 +199,14 @@ const PatientReportsAdmin: React.FC = () => {
             <div className="panel-head">
               <div>
                 <h2>报告台账</h2>
-                <p>HTML / 编辑 / PDF 走 WES 报告引擎；3D 报告与 IGV 走门户页</p>
+                <p>患者编号永久保留；用「管理绑定」关联客户登录账号，勿删患者</p>
               </div>
               <div className="project-search">
                 <i className="fas fa-search" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="搜索患者编号 / 姓名 / 样本 / 报告号"
+                  placeholder="搜索患者编号 / 姓名 / 绑定账号 / 样本 / 报告号"
                 />
               </div>
             </div>
@@ -180,6 +219,7 @@ const PatientReportsAdmin: React.FC = () => {
                   <thead>
                     <tr>
                       <th>患者</th>
+                      <th>绑定账号</th>
                       <th>报告编号</th>
                       <th>样本 / WES</th>
                       <th>状态</th>
@@ -198,6 +238,16 @@ const PatientReportsAdmin: React.FC = () => {
                           <td>
                             <b>{row.patient_no || "—"}</b>
                             <small>{row.patient_name || "—"}</small>
+                          </td>
+                          <td>
+                            <div className="bind-cell">
+                              <span>{row.patient_username || "未绑定"}</span>
+                              {isAdmin ? (
+                                <button type="button" className="button button-small button-outline" onClick={() => openBind(row)}>
+                                  管理绑定
+                                </button>
+                              ) : null}
+                            </div>
                           </td>
                           <td>
                             <b>{row.report_number}</b>
@@ -292,9 +342,9 @@ const PatientReportsAdmin: React.FC = () => {
                     })}
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           <div className="empty-state">
-                            暂无报告。请用 Django Admin 新建患者/报告，或 API Key 调用 /api/v1/ingest/reports/ 导入。
+                            暂无报告。请用 API Key 调用 /api/v1/ingest/reports/package/ 导入。
                           </div>
                         </td>
                       </tr>
@@ -306,6 +356,36 @@ const PatientReportsAdmin: React.FC = () => {
           </div>
         </section>
       </main>
+
+      {bindRow && (
+        <div className="bind-modal-backdrop" role="presentation" onClick={() => setBindRow(null)}>
+          <div className="bind-modal" role="dialog" aria-labelledby="bind-title" onClick={(e) => e.stopPropagation()}>
+            <h3 id="bind-title">管理绑定</h3>
+            <p>
+              患者 <b>{bindRow.patient_no}</b>（{bindRow.patient_name || "—"}）永久保留编号；
+              仅更换门户登录账号，不会改报告归属。
+            </p>
+            <label>
+              客户登录账号
+              <select value={bindUsername} onChange={(e) => setBindUsername(e.target.value)}>
+                <option value="">（未绑定）</option>
+                {customerUsers.map((u) => (
+                  <option key={u.id} value={u.username}>{u.username}</option>
+                ))}
+                {bindUsername && !customerUsers.some((u) => u.username === bindUsername) ? (
+                  <option value={bindUsername}>{bindUsername}（当前）</option>
+                ) : null}
+              </select>
+            </label>
+            <div className="bind-modal-actions">
+              <button type="button" className="button button-outline" onClick={() => setBindRow(null)}>取消</button>
+              <button type="button" className="button button-primary" disabled={bindSaving} onClick={() => { void saveBind(); }}>
+                {bindSaving ? "保存中…" : "保存绑定"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

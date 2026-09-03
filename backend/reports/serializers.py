@@ -99,9 +99,11 @@ class ReportAssetSerializer(serializers.ModelSerializer):
 
 
 class ReportListSerializer(serializers.ModelSerializer):
+    patient_id = serializers.IntegerField(source="patient.id", read_only=True)
     patient_no = serializers.CharField(source="patient.patient_no", read_only=True)
     patient_name = serializers.CharField(source="patient.name", read_only=True)
     patient_email = serializers.CharField(source="patient.email", read_only=True)
+    patient_username = serializers.SerializerMethodField()
     pdf_available = serializers.SerializerMethodField()
     report_type_display = serializers.SerializerMethodField()
     item_count = serializers.SerializerMethodField()
@@ -118,11 +120,16 @@ class ReportListSerializer(serializers.ModelSerializer):
         fields = [
             "id", "report_number", "title", "product_code", "report_type", "report_type_display",
             "sample_id", "status", "report_date", "released_at", "summary",
-            "patient_no", "patient_name", "patient_email",
+            "patient_id", "patient_no", "patient_name", "patient_email", "patient_username",
             "pdf_available", "pdf_ready", "report_pdf_url", "report_pdf_download_url",
             "wes_report_id", "preview_url", "edit_url", "download_url",
             "genome_build", "item_count", "created_at",
         ]
+
+    def get_patient_username(self, obj):
+        if obj.patient_id and obj.patient.user_id:
+            return obj.patient.user.username
+        return ""
 
     def get_report_type_display(self, obj):
         return REPORT_TYPE_LABELS.get(obj.report_type, obj.report_type)

@@ -3,10 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const ADMIN_MODULES = [
-  { key: "patients", label: "患者管理", icon: "fa-user-injured" },
-  { key: "reports", label: "报告管理", icon: "fa-file-medical" },
   { key: "assets", label: "文件管理", icon: "fa-folder-open" },
-  { key: "variants", label: "变异管理", icon: "fa-dna" },
   { key: "access_logs", label: "访问日志", icon: "fa-history" },
   { key: "ingest_events", label: "导入管理", icon: "fa-cloud-upload-alt" },
   { key: "users", label: "用户与权限", icon: "fa-users-cog" },
@@ -25,7 +22,7 @@ const PortalSidebar: React.FC = () => {
   const onPatientReports = path === "/patient-reports";
   const onContactMessages = path === "/contact-messages";
   const onDbBrowser = path === "/db-browser";
-  const activeTable = onDbBrowser ? (new URLSearchParams(location.search).get("table") || "patients") : "";
+  const activeTable = onDbBrowser ? (new URLSearchParams(location.search).get("table") || "assets") : "";
 
   return (
     <aside className="portal-sidebar">

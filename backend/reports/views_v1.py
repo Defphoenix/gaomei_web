@@ -33,7 +33,11 @@ class MeReportListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        qs = visible_reports_for_user(request.user).prefetch_related("assets")
+        qs = (
+            visible_reports_for_user(request.user)
+            .select_related("patient", "patient__user")
+            .prefetch_related("assets")
+        )
         # Customers already filtered to released; internal sees all unless ?mine=1
         mine = str(request.query_params.get("mine") or "").lower() in {"1", "true", "yes"}
         if mine or not is_internal_operator(request.user):

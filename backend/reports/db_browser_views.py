@@ -87,6 +87,7 @@ def _report_row(r: Report, *, detail: bool = False) -> dict:
 
 
 def _asset_row(a: ReportAsset) -> dict:
+    meta = a.metadata if isinstance(a.metadata, dict) else {}
     return {
         "id": a.id,
         "report_id": a.report_id,
@@ -95,6 +96,7 @@ def _asset_row(a: ReportAsset) -> dict:
         "asset_type": a.asset_type,
         "name": a.name,
         "file_path": a.file_path or "",
+        "data_dir": str(meta.get("data_dir") or f"data/{a.report_id}"),
         "external_url": a.external_url or "",
         "sha256": a.sha256 or "",
         "file_size": a.file_size,
@@ -104,44 +106,35 @@ def _asset_row(a: ReportAsset) -> dict:
     }
 
 
+def _folder_row(r: Report) -> dict:
+    assets = list(r.assets.all())
+    analysis = r.analysis_data if isinstance(r.analysis_data, dict) else {}
+    return {
+        "id": r.id,
+        "report_id": r.id,
+        "folder": f"data/{r.id}",
+        "report_number": r.report_number,
+        "patient_no": r.patient.patient_no,
+        "patient_name": r.patient.name,
+        "sample_id": r.sample_id or "",
+        "status": r.status,
+        "file_count": len(assets),
+        "types": sorted({a.asset_type for a in assets}),
+        "updated_at": r.updated_at.isoformat() if r.updated_at else "",
+        "data_dir": str(analysis.get("data_dir") or f"data/{r.id}"),
+    }
+
+
 class DbBrowserCatalogView(_BrowserGate):
     def get(self, request):
         return Response({
             "tables": [
                 {
-                    "key": "users",
-                    "label": "用户与权限",
-                    "model": "auth.User",
-                    "editable": True,
-                    "description": "登录账号；可通过 patient_no 绑定受检者",
-                },
-                {
-                    "key": "patients",
-                    "label": "患者管理",
-                    "model": "reports.Patient",
-                    "editable": True,
-                    "description": "Patient 台账；可绑定登录用户",
-                },
-                {
-                    "key": "reports",
-                    "label": "报告管理",
-                    "model": "reports.Report",
-                    "editable": True,
-                    "description": "报告状态、样本、摘要结论与附件",
-                },
-                {
                     "key": "assets",
                     "label": "文件管理",
                     "model": "reports.ReportAsset",
                     "editable": True,
-                    "description": "PDF/BAM/BAI 等报告附件元数据",
-                },
-                {
-                    "key": "variants",
-                    "label": "变异管理",
-                    "model": "reports.ReportVariant",
-                    "editable": False,
-                    "description": "位点索引（只读；完整编辑请走 WES JSON）",
+                    "description": "按报告文件夹（data/<报告ID>/）查看 JSON/BAM/PDF",
                 },
                 {
                     "key": "access_logs",
@@ -158,6 +151,13 @@ class DbBrowserCatalogView(_BrowserGate):
                     "description": "API Key / 报告包导入审计",
                 },
                 {
+                    "key": "users",
+                    "label": "用户与权限",
+                    "model": "auth.User",
+                    "editable": True,
+                    "description": "登录账号；患者门户绑定请在「患者报告」里管理",
+                },
+                {
                     "key": "api_keys",
                     "label": "导入 API Key",
                     "model": "ingest.IngestApiKey",
@@ -165,7 +165,7 @@ class DbBrowserCatalogView(_BrowserGate):
                     "description": "启停 Key；明文仅创建时可见",
                 },
             ],
-            "notice": "Gomics 后台管理（V2）。admin 可写；analyst/reviewer 只读。",
+            "notice": "患者台账与账号绑定在「患者报告」；此处为文件/导入/权限工具。",
         })
 
 
@@ -301,16 +301,11 @@ class PatientDbDetailView(_BrowserGate):
 
     def delete(self, request, pk: int):
         self._require_admin(request)
-        patient = Patient.objects.filter(pk=pk).first()
-        if not patient:
-            return Response({"detail": "not found"}, status=404)
-        if patient.reports.exists():
-            return Response(
-                {"detail": "patient has reports; reassign or void reports first"},
-                status=400,
-            )
-        patient.delete()
-        return Response(status=204)
+        # Patient IDs / patient_no are permanent ledger keys; new reports only append.
+        return Response(
+            {"detail": "患者不可删除：编号持续递增，请用「管理绑定」改登录账号，勿删患者记录"},
+            status=400,
+        )
 
 
 class ReportDbView(_BrowserGate):
@@ -441,8 +436,20 @@ class ReportDbDetailView(_BrowserGate):
 
 class AssetDbView(_BrowserGate):
     def get(self, request):
-        qs = ReportAsset.objects.select_related("report").order_by("-created_at")[:500]
-        return Response([_asset_row(a) for a in qs])
+        """List assets; ?view=folders → one row per report; ?report_id=N → files in folder."""
+        view = str(request.query_params.get("view") or "").strip()
+        report_id = request.query_params.get("report_id")
+        if view == "folders":
+            qs = (
+                Report.objects.select_related("patient")
+                .prefetch_related("assets")
+                .order_by("-updated_at")[:500]
+            )
+            return Response([_folder_row(r) for r in qs])
+        qs = ReportAsset.objects.select_related("report", "report__patient").order_by("-created_at")
+        if report_id:
+            qs = qs.filter(report_id=report_id)
+        return Response([_asset_row(a) for a in qs[:500]])
 
     def patch(self, request):
         self._require_admin(request)

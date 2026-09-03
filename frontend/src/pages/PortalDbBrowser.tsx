@@ -57,15 +57,24 @@ const SEX_OPTIONS = [
 ];
 
 const PAGE_TIPS: Record<TableKey, string> = {
-  users: "创建登录账号、分配角色，并通过患者编号绑定受检者。",
-  patients: "维护受检者主数据；可用登录用户名绑定门户账号。",
+  users: "创建登录账号、分配角色。患者门户绑定请到「患者报告」→ 管理绑定。",
+  patients: "患者编号永久保留，不可删除；请到「患者报告」管理账号绑定。",
   reports: "管理报告状态与内容；附件在报告编辑页中统一维护。",
-  assets: "查看与维护报告附件元数据（PDF / BAM / BAI 等）。",
+  assets: "每个报告一个 data/<报告ID>/ 文件夹；点开查看 JSON / BAM / PDF。",
   variants: "只读浏览报告位点索引；完整变异请走 WES JSON 导入。",
   access_logs: "审计报告查看与下载行为。",
   ingest_events: "查看节点机报告包导入结果与错误详情。",
   api_keys: "管理导入鉴权 Key；明文仅在创建时显示一次。",
 };
+
+
+const ASSET_FILE_COLUMNS = [
+  { key: "name", label: "文件名" },
+  { key: "asset_type", label: "类型" },
+  { key: "file_path", label: "路径" },
+  { key: "file_size", label: "大小" },
+  { key: "created_at", label: "上传时间" },
+];
 
 const LIST_COLUMNS: Record<TableKey, { key: string; label: string }[]> = {
   users: [
@@ -94,12 +103,13 @@ const LIST_COLUMNS: Record<TableKey, { key: string; label: string }[]> = {
     { key: "report_date", label: "报告日期" },
   ],
   assets: [
-    { key: "name", label: "文件名" },
-    { key: "asset_type", label: "类型" },
+    { key: "folder", label: "文件夹" },
     { key: "report_number", label: "报告编号" },
+    { key: "patient_name", label: "患者" },
     { key: "sample_id", label: "样本" },
-    { key: "file_size", label: "大小" },
-    { key: "created_at", label: "上传时间" },
+    { key: "file_count", label: "文件数" },
+    { key: "status", label: "状态" },
+    { key: "updated_at", label: "更新时间" },
   ],
   variants: [
     { key: "gene", label: "基因" },
@@ -194,7 +204,7 @@ const emptyKey = { name: "", scope: "wes_package", is_active: true };
 const PortalDbBrowser: React.FC = () => {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
-  const tableKey = (params.get("table") || "patients") as TableKey;
+  const tableKey = (params.get("table") || "assets") as TableKey;
   const mode = (params.get("mode") || "list") as Mode;
   const editId = params.get("id");
 
@@ -206,7 +216,9 @@ const PortalDbBrowser: React.FC = () => {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [roleGroup, setRoleGroup] = useState("");
   const [geneFilter, setGeneFilter] = useState("");
+  const [assetFolderId, setAssetFolderId] = useState<string>("");
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [formAssets, setFormAssets] = useState<Record<string, unknown>[]>([]);
   const [saving, setSaving] = useState(false);
@@ -258,9 +270,16 @@ const PortalDbBrowser: React.FC = () => {
   const loadRows = useCallback(() => {
     setLoading(true);
     setError("");
-    const req = tableKey === "users"
-      ? api.get("/auth/admin/users/")
-      : api.get(ENDPOINTS[tableKey as Exclude<TableKey, "users">]);
+    let req;
+    if (tableKey === "users") {
+      req = api.get("/auth/admin/users/");
+    } else if (tableKey === "assets") {
+      req = assetFolderId
+        ? api.get(`/v1/db-browser/assets/?report_id=${assetFolderId}`)
+        : api.get("/v1/db-browser/assets/?view=folders");
+    } else {
+      req = api.get(ENDPOINTS[tableKey as Exclude<TableKey, "users">]);
+    }
     req
       .then((res) => setRows(Array.isArray(res.data) ? res.data : []))
       .catch((err) => {
@@ -268,18 +287,22 @@ const PortalDbBrowser: React.FC = () => {
         setError(err.response?.data?.detail || "加载失败");
       })
       .finally(() => setLoading(false));
-  }, [tableKey]);
+  }, [tableKey, assetFolderId]);
 
   useEffect(() => { loadCatalog(); loadOptions(); }, [loadCatalog, loadOptions]);
   useEffect(() => {
-    if (!onForm) {
-      loadRows();
-      setPage(1);
-      setQuery("");
-      setStatusFilter("");
-      setGeneFilter("");
-    }
+    if (onForm) return;
+    loadRows();
   }, [loadRows, onForm]);
+  useEffect(() => {
+    if (onForm) return;
+    setPage(1);
+    setQuery("");
+    setStatusFilter("");
+    setRoleGroup("");
+    setGeneFilter("");
+    setAssetFolderId("");
+  }, [tableKey, onForm]);
 
   useEffect(() => {
     if (!onForm) return;
@@ -332,6 +355,9 @@ const PortalDbBrowser: React.FC = () => {
 
   const filtered = useMemo(() => {
     let list = rows;
+    if (tableKey === "users" && roleGroup) {
+      list = list.filter((r) => String(r.role || "") === roleGroup);
+    }
     if (statusFilter && (tableKey === "reports" || tableKey === "ingest_events" || tableKey === "api_keys" || tableKey === "users")) {
       if (tableKey === "api_keys" || tableKey === "users") {
         list = list.filter((r) => String(!!r.is_active) === (statusFilter === "active" ? "true" : "false"));
@@ -346,7 +372,7 @@ const PortalDbBrowser: React.FC = () => {
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter((row) => Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q)));
-  }, [rows, query, statusFilter, geneFilter, tableKey]);
+  }, [rows, query, statusFilter, roleGroup, geneFilter, tableKey]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -425,8 +451,17 @@ const PortalDbBrowser: React.FC = () => {
     }
   }
 
-  const canCreate = editable && ["users", "patients", "reports", "api_keys"].includes(tableKey);
-  const title = currentMeta.label || "管理";
+  const listColumns = tableKey === "assets" && assetFolderId
+    ? ASSET_FILE_COLUMNS
+    : (LIST_COLUMNS[tableKey] || []);
+  const canCreate = editable && ["users", "api_keys"].includes(tableKey) && !(tableKey === "assets" && !assetFolderId);
+
+  const title = tableKey === "assets" && assetFolderId
+    ? `文件管理 · data/${assetFolderId}`
+    : (currentMeta.label || "管理");
+  const listTip = tableKey === "assets" && assetFolderId
+    ? `正在查看报告文件夹 data/${assetFolderId} 下的 JSON / BAM / PDF。`
+    : PAGE_TIPS[tableKey];
   const formTitle = mode === "create" ? `新增${title.replace(/管理$/, "")}` : mode === "view" ? `查看${title.replace(/管理$/, "")}` : `编辑${title.replace(/管理$/, "")}`;
 
   function setField(key: string, value: unknown) {
@@ -434,7 +469,13 @@ const PortalDbBrowser: React.FC = () => {
   }
 
   function renderListCell(col: string, row: Record<string, unknown>) {
-    if (col === "status" && tableKey === "reports") {
+    if (col === "folder" || col === "data_dir") {
+      return <code className="admin-folder-path">{String(row.folder || row.data_dir || `data/${row.report_id || row.id}`)}</code>;
+    }
+    if (col === "types" && Array.isArray(row.types)) {
+      return String(row.types.join(", ") || "—");
+    }
+    if (col === "status" && (tableKey === "reports" || tableKey === "assets")) {
       const st = String(row.status || "");
       return <span className={`admin-tag ${statusClass(st)}`}>{statusLabel(st)}</span>;
     }
@@ -708,11 +749,13 @@ const PortalDbBrowser: React.FC = () => {
                     <i className="fas fa-search" />
                     <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="搜索…" />
                   </label>
-                  {tableKey === "reports" && (
-                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-                      <option value="">全部状态</option>
-                      {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
+                  {tableKey === "users" && (
+                    <div className="admin-group-tabs">
+                      <button type="button" className={!roleGroup ? "active" : undefined} onClick={() => { setRoleGroup(""); setPage(1); }}>全部</button>
+                      {ROLE_OPTIONS.map((o) => (
+                        <button key={o.value} type="button" className={roleGroup === o.value ? "active" : undefined} onClick={() => { setRoleGroup(o.value); setPage(1); }}>{o.label}</button>
+                      ))}
+                    </div>
                   )}
                   {(tableKey === "users" || tableKey === "api_keys") && (
                     <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
@@ -721,8 +764,10 @@ const PortalDbBrowser: React.FC = () => {
                       <option value="inactive">停用</option>
                     </select>
                   )}
-                  {tableKey === "variants" && (
-                    <input className="admin-mini-input" value={geneFilter} onChange={(e) => { setGeneFilter(e.target.value); setPage(1); }} placeholder="基因筛选" />
+                  {tableKey === "assets" && assetFolderId && (
+                    <button type="button" className="button button-outline button-small" onClick={() => { setAssetFolderId(""); setPage(1); }}>
+                      ← 返回文件夹列表
+                    </button>
                   )}
                 </div>
               </div>
@@ -737,36 +782,37 @@ const PortalDbBrowser: React.FC = () => {
                     <table className="project-table admin-table">
                       <thead>
                         <tr>
-                          {LIST_COLUMNS[tableKey].map((c) => <th key={c.key}>{c.label}</th>)}
+                          {listColumns.map((c) => <th key={c.key}>{c.label}</th>)}
                           <th className="admin-ops-col">操作</th>
                         </tr>
                       </thead>
                       <tbody>
                         {pageRows.map((row, idx) => (
                           <tr key={String(row.id ?? idx)}>
-                            {LIST_COLUMNS[tableKey].map((c) => (
+                            {listColumns.map((c) => (
                               <td key={c.key}>{renderListCell(c.key, row)}</td>
                             ))}
                             <td className="admin-ops-col">
                               <div className="admin-text-actions">
-                                {editable && (
-                                  <button type="button" onClick={() => goEdit(String(row.id))}>编辑</button>
+                                {tableKey === "assets" && !assetFolderId && (
+                                  <button type="button" onClick={() => { setAssetFolderId(String(row.report_id || row.id)); setPage(1); }}>打开</button>
                                 )}
-                                {tableKey === "reports" && (
-                                  <>
-                                    {!editable && (
-                                      <button type="button" onClick={() => goEdit(String(row.id), true)}>查看</button>
-                                    )}
-                                    <Link to={String(row.portal_report_url || `/reports/${row.id}`)}>打开报告</Link>
-                                  </>
-                                )}
-                                {tableKey === "assets" && row.download_url ? (
+                                {tableKey === "assets" && assetFolderId && row.download_url ? (
                                   <a href={String(row.download_url)} target="_blank" rel="noreferrer">下载</a>
                                 ) : null}
-                                {editable && ["users", "patients", "reports", "assets"].includes(tableKey) && (
+                                {editable && tableKey !== "assets" && (
+                                  <button type="button" onClick={() => goEdit(String(row.id))}>编辑</button>
+                                )}
+                                {editable && tableKey === "assets" && assetFolderId && (
+                                  <button type="button" onClick={() => goEdit(String(row.id))}>编辑</button>
+                                )}
+                                {editable && ["users"].includes(tableKey) && (
                                   <button type="button" className="danger" onClick={() => { void deleteRow(row); }}>删除</button>
                                 )}
-                                {!editable && tableKey !== "reports" && tableKey !== "assets" && (
+                                {editable && tableKey === "assets" && assetFolderId && (
+                                  <button type="button" className="danger" onClick={() => { void deleteRow(row); }}>删除</button>
+                                )}
+                                {!editable && tableKey !== "assets" && (
                                   <span style={{ color: "#9aa8b8" }}>—</span>
                                 )}
                               </div>
@@ -789,7 +835,7 @@ const PortalDbBrowser: React.FC = () => {
 
               <div className="admin-tip-box">
                 <b>本页能做什么</b>
-                <p>{PAGE_TIPS[tableKey]}</p>
+                <p>{listTip}</p>
               </div>
             </>
           )}

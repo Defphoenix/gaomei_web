@@ -234,6 +234,20 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .admin-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.admin-group-tabs {
+  display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.admin-group-tabs button {
+  min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; color: #4f5b70; font-size: 13px; cursor: pointer;
+}
+.admin-group-tabs button:hover { border-color: #b8c7de; color: #2f4054; }
+.admin-group-tabs button.active {
+  border-color: #2f6fed; background: #eef4ff; color: #1d4f8c; font-weight: 600;
+}
+.admin-folder-path {
+  font-size: 12px; color: #3d5470; background: #f4f7fb; padding: 2px 8px; border-radius: 6px;
+}
 .admin-search {
   min-width: 260px; padding: 8px 12px; display: flex; align-items: center; gap: 8px;
   border: 1px solid var(--line); border-radius: 8px; background: #fff;
@@ -361,8 +375,37 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .portal-topbar p { margin:5px 0 0; color:var(--muted); font-size:11px; }
 .portal-top-actions { display:flex; align-items:center; gap:12px; }
 .portal-top-actions select { padding:9px 12px; border:1px solid var(--line); border-radius:9px; color:#4f5b70; background:#fff; font-size:11px; }
-.portal-top-actions button { position:relative; width:38px; height:38px; border:1px solid var(--line); border-radius:10px; color:#607088; background:#fff; }
-.portal-top-actions button b { position:absolute; top:-5px; right:-4px; min-width:16px; height:16px; padding:0 4px; display:grid; place-items:center; color:#fff; border-radius:9px; background:#e56a55; font-size:8px; }
+.portal-bell { position:relative; }
+.portal-bell > button {
+  position:relative; width:38px; height:38px; border:1px solid var(--line); border-radius:10px;
+  color:#607088; background:#fff; cursor:pointer;
+}
+.portal-bell > button:hover { color:#2f4054; border-color:#b8c7de; }
+.portal-bell > button b {
+  position:absolute; top:-5px; right:-4px; min-width:16px; height:16px; padding:0 4px;
+  display:grid; place-items:center; color:#fff; border-radius:9px; background:#e56a55; font-size:8px;
+}
+.portal-bell-menu {
+  position:absolute; top:calc(100% + 8px); right:0; z-index:40; width:260px;
+  border:1px solid var(--line); border-radius:12px; background:#fff;
+  box-shadow:0 12px 32px rgba(31, 48, 72, 0.12);
+  overflow:hidden;
+}
+.portal-bell-head {
+  padding:12px 14px; font-size:12px; font-weight:700; color:#2f4054;
+  border-bottom:1px solid #eef1f5; background:#f8fafc;
+}
+.portal-bell-item {
+  width:100% !important; height:auto !important; min-height:44px; padding:12px 14px !important;
+  display:flex !important; align-items:center; justify-content:space-between; gap:12px;
+  border:0 !important; border-radius:0 !important; background:#fff !important;
+  color:#2f4054 !important; font-size:13px; cursor:pointer; text-align:left;
+}
+.portal-bell-item:hover { background:#f5f8ff !important; }
+.portal-bell-item em {
+  min-width:22px; height:22px; padding:0 7px; display:inline-grid; place-items:center;
+  border-radius:999px; background:#eef4ff; color:#1d4f8c; font-style:normal; font-weight:700; font-size:12px;
+}
 .portal-avatar { width:38px; height:38px; display:grid; place-items:center; color:#fff; border-radius:11px; background:var(--logo); font-weight:700; }
 .portal-content { padding:30px 34px 50px; }
 .portal-welcome { padding:28px 30px; display:flex; align-items:center; justify-content:space-between; gap:30px; border-radius:16px; background:linear-gradient(100deg,#eaf2ff,#f5f8ff); border:1px solid #dce8fa; }
@@ -392,6 +435,22 @@ h1, h2, h3, .brand, .footer-brand { font-family: Manrope, "PingFang SC", sans-se
 .project-table td { padding:15px 18px; border-top:1px solid #eef1f5; white-space:nowrap; }
 .project-table td:first-child b, .project-table td:first-child small { display:block; }
 .project-table td:first-child small { margin-top:4px; color:#8995a7; }
+.bind-cell { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.bind-modal-backdrop {
+  position:fixed; inset:0; z-index:80; display:grid; place-items:center;
+  background:rgba(20, 32, 48, 0.45); padding:20px;
+}
+.bind-modal {
+  width:min(420px, 100%); padding:22px 24px; border-radius:14px; background:#fff;
+  border:1px solid var(--line); box-shadow:0 18px 40px rgba(20,32,48,.18);
+}
+.bind-modal h3 { margin:0 0 8px; font-size:18px; }
+.bind-modal p { margin:0 0 16px; color:var(--muted); font-size:13px; line-height:1.5; }
+.bind-modal label { display:flex; flex-direction:column; gap:8px; font-size:13px; color:#2f4054; }
+.bind-modal select {
+  min-height:40px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:#fff;
+}
+.bind-modal-actions { margin-top:18px; display:flex; justify-content:flex-end; gap:10px; }
 .row-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }.row-actions button:disabled { opacity:.35; cursor:not-allowed; }
 .report-slot-actions .button-small { white-space:nowrap; padding:6px 10px; font-size:11px; }
 .report-slot-actions .button-small i { margin-right:4px; }

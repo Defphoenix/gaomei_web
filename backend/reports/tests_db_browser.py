@@ -58,6 +58,20 @@ class DbBrowserApiTests(TestCase):
         response = self.client.get("/api/v1/db-browser/")
         self.assertEqual(response.status_code, 200)
         keys = {t["key"] for t in response.data["tables"]}
-        self.assertTrue({"users", "patients", "reports", "assets", "api_keys", "access_logs"} <= keys)
-        patients = next(t for t in response.data["tables"] if t["key"] == "patients")
-        self.assertTrue(patients["editable"])
+        self.assertTrue({"users", "assets", "api_keys", "access_logs", "ingest_events"} <= keys)
+        self.assertNotIn("patients", keys)
+        self.assertNotIn("reports", keys)
+        assets = next(t for t in response.data["tables"] if t["key"] == "assets")
+        self.assertTrue(assets["editable"])
+
+    def test_patient_cannot_be_deleted(self):
+        self.client.force_authenticate(self.admin)
+        created = self.client.post("/api/v1/db-browser/patients/", {
+            "patient_no": "GM-P-801",
+            "name": "不可删患者",
+        }, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        pk = created.data["id"]
+        deleted = self.client.delete(f"/api/v1/db-browser/patients/{pk}/")
+        self.assertEqual(deleted.status_code, 400)
+        self.assertTrue(Patient.objects.filter(pk=pk).exists())

@@ -181,6 +181,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("GAOMEI_WEB_MEDIA_ROOT", BASE_DIR / "media"))
 
+# Per-report folders: <DATA_ROOT>/<report.id>/{report.json,*.bam,*.bai,...}
+# Prefer under MEDIA_ROOT so ACL downloads keep working.
+DATA_ROOT = Path(os.environ.get("GAOMEI_DATA_ROOT", MEDIA_ROOT / "data"))
+
 # CORS
 CORS_ALLOWED_ORIGINS = [
     item for item in os.environ.get(

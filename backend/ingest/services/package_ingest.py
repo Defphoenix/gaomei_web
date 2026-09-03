@@ -43,7 +43,17 @@ def to_wes_report_id(sample_id: str) -> str:
 
 
 def bundle_root() -> Path:
+    """Legacy sample_id bundle tree (kept for history / compat)."""
     return Path(settings.WES_BUNDLE_ROOT)
+
+
+def data_root() -> Path:
+    """Canonical per-report data tree: DATA_ROOT/<report.id>/."""
+    return Path(settings.DATA_ROOT)
+
+
+def report_data_dir(report_id: int) -> Path:
+    return data_root() / str(int(report_id))
 
 
 def report_data_root() -> Path:
@@ -323,60 +333,6 @@ class PackageIngestService:
 
             action = IngestEvent.Status.CREATED
             wes_report_id = to_wes_report_id(sample_id)
-            root = bundle_root() / sample_id / upload_id
-            if root.exists():
-                shutil.rmtree(root)
-            root.mkdir(parents=True, exist_ok=True)
-
-            # Write package files
-            written: list[Path] = []
-            file_specs = manifest.get("files") if isinstance(manifest.get("files"), list) else []
-            declared = {
-                str(item.get("name") or ""): item
-                for item in file_specs
-                if isinstance(item, dict) and item.get("name")
-            }
-
-            for name, uploaded in uploaded_files.items():
-                fname = Path(name).name
-                if not SAFE_FILENAME.fullmatch(fname):
-                    raise IngestError("unsafe_filename", f"unsafe filename: {fname}")
-                if uploaded.size and uploaded.size > MAX_FILE_BYTES:
-                    raise IngestError("file_too_large", f"{fname} exceeds {MAX_FILE_BYTES} bytes")
-                target = root / fname
-                with target.open("wb") as handle:
-                    for chunk in uploaded.chunks():
-                        handle.write(chunk)
-                expected = str((declared.get(name) or declared.get(fname) or {}).get("sha256") or "").strip().lower()
-                actual = _sha256_file(target)
-                if expected and expected != actual:
-                    raise IngestError("sha256_mismatch", f"sha256 mismatch for {fname}")
-                written.append(target)
-
-            # Persist validated JSON to wes workspace (keep portal_* extras)
-            report_data_aligned = ReportData.model_validate(storage_payload)
-            from wes_report.services import report_storage_payload as _compact
-
-            compact = _compact(report_data_aligned)
-            for key in ("portal_variants", "portal_organ_risks", "igv_tracks"):
-                if key in storage_payload:
-                    compact[key] = storage_payload[key]
-            # Manual write with history (same as save_report_data)
-            target = report_data_root() / wes_report_id / "current.json"
-            target.parent.mkdir(parents=True, exist_ok=True)
-            history_dir = target.parent / "history"
-            if target.exists():
-                history_dir.mkdir(parents=True, exist_ok=True)
-                stamp = timezone.now().strftime("%Y%m%d-%H%M%S-%f")
-                shutil.copy2(target, history_dir / f"{stamp}.json")
-            temporary = target.with_suffix(".json.tmp")
-            temporary.write_text(
-                json.dumps(compact, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
-            import os as _os
-            _os.replace(temporary, target)
-
 
             title = str(
                 (payload.get("report") or {}).get("title")
@@ -426,6 +382,91 @@ class PackageIngestService:
                 report.save()
                 action = IngestEvent.Status.UPDATED
 
+            # Canonical package dir: DATA_ROOT/<report.id>/
+            root = report_data_dir(report.id)
+            if root.exists():
+                # Keep history/ and prior outputs; clear only package files we will replace
+                for child in root.iterdir():
+                    if child.name in {"history", "output"}:
+                        continue
+                    if child.is_file():
+                        child.unlink()
+                    elif child.is_dir() and child.name.startswith("upload_"):
+                        shutil.rmtree(child)
+            root.mkdir(parents=True, exist_ok=True)
+
+            # Write package files (json/bam/bai…)
+            written: list[Path] = []
+            file_specs = manifest.get("files") if isinstance(manifest.get("files"), list) else []
+            declared = {
+                str(item.get("name") or ""): item
+                for item in file_specs
+                if isinstance(item, dict) and item.get("name")
+            }
+
+            for name, uploaded in uploaded_files.items():
+                fname = Path(name).name
+                if not SAFE_FILENAME.fullmatch(fname):
+                    raise IngestError("unsafe_filename", f"unsafe filename: {fname}")
+                if uploaded.size and uploaded.size > MAX_FILE_BYTES:
+                    raise IngestError("file_too_large", f"{fname} exceeds {MAX_FILE_BYTES} bytes")
+                target = root / fname
+                with target.open("wb") as handle:
+                    for chunk in uploaded.chunks():
+                        handle.write(chunk)
+                expected = str((declared.get(name) or declared.get(fname) or {}).get("sha256") or "").strip().lower()
+                actual = _sha256_file(target)
+                if expected and expected != actual:
+                    raise IngestError("sha256_mismatch", f"sha256 mismatch for {fname}")
+                written.append(target)
+
+            # Also mirror validated JSON into wes_reports for HTML/PDF renderer / editor
+            report_data_aligned = ReportData.model_validate(storage_payload)
+            from wes_report.services import report_storage_payload as _compact
+
+            compact = _compact(report_data_aligned)
+            for key in ("portal_variants", "portal_organ_risks", "igv_tracks"):
+                if key in storage_payload:
+                    compact[key] = storage_payload[key]
+            # Ensure report.json exists under data/<id>/ even if upload used another name
+            report_json_path = root / "report.json"
+            report_json_path.write_text(
+                json.dumps(compact, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            if report_json_path not in written and not any(p.name == "report.json" for p in written):
+                written.append(report_json_path)
+
+            target = report_data_root() / wes_report_id / "current.json"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            history_dir = target.parent / "history"
+            if target.exists():
+                history_dir.mkdir(parents=True, exist_ok=True)
+                stamp = timezone.now().strftime("%Y%m%d-%H%M%S-%f")
+                shutil.copy2(target, history_dir / f"{stamp}.json")
+            temporary = target.with_suffix(".json.tmp")
+            temporary.write_text(
+                json.dumps(compact, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            import os as _os
+            _os.replace(temporary, target)
+
+            # Also keep a copy under data/<id>/history when overwriting report.json
+            data_history = root / "history"
+            if action == IngestEvent.Status.UPDATED:
+                data_history.mkdir(parents=True, exist_ok=True)
+                stamp = timezone.now().strftime("%Y%m%d-%H%M%S-%f")
+                shutil.copy2(report_json_path, data_history / f"{stamp}.json")
+
+            # Store folder hint on report analysis_data
+            analysis_stub["data_dir"] = f"data/{report.id}"
+            report.analysis_data = {
+                **(report.analysis_data or {}),
+                **analysis_stub,
+            }
+            report.save(update_fields=["analysis_data", "updated_at"])
+
             # Replace package file assets by filename
             names = {p.name for p in written}
             report.assets.filter(name__in=names).delete()
@@ -433,6 +474,7 @@ class PackageIngestService:
                 asset_type__in=[
                     ReportAsset.AssetType.BAM,
                     ReportAsset.AssetType.BAI,
+                    ReportAsset.AssetType.JSON,
                 ],
             ).exclude(name__in=names).delete()
 
@@ -446,10 +488,14 @@ class PackageIngestService:
                     sha256=_sha256_file(path),
                     file_size=path.stat().st_size,
                     mime_type="application/octet-stream",
-                    metadata={"upload_id": upload_id, "role": "package"},
+                    metadata={
+                        "upload_id": upload_id,
+                        "role": "package",
+                        "data_dir": f"data/{report.id}",
+                    },
                 )
 
-            # Sync portal analysis + variants (uses BAM paths under bundle root)
+            # Sync portal analysis + variants (uses BAM paths under report data dir)
             sync_portal_from_wes_payload(
                 report,
                 storage_payload,
@@ -460,6 +506,7 @@ class PackageIngestService:
             analysis = dict(report.analysis_data or {})
             analysis["last_upload_id"] = upload_id
             analysis["wes_report_id"] = wes_report_id
+            analysis["data_dir"] = f"data/{report.id}"
             if node_id:
                 analysis["node_id"] = node_id
             report.analysis_data = analysis
@@ -480,6 +527,7 @@ class PackageIngestService:
                 error_detail={
                     "upload_id": upload_id,
                     "sample_id": sample_id,
+                    "data_dir": f"data/{report.id}",
                     "files": [p.name for p in written],
                     "pdf_ready": outputs.get("pdf_ready"),
                 },
@@ -532,17 +580,29 @@ class PackageIngestService:
             pdf_error = str(exc)
 
         if pdf_path.is_file() and not pdf_error:
+            # Also place PDF inside the report data folder
+            data_pdf = report_data_dir(report.id) / pdf_path.name
+            data_pdf.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.copy2(pdf_path, data_pdf)
+                asset_path = data_pdf
+            except OSError:
+                asset_path = pdf_path
             ReportAsset.objects.update_or_create(
                 report=report,
                 asset_type=ReportAsset.AssetType.PDF,
                 name=pdf_path.name,
                 defaults={
                     "storage_backend": "local",
-                    "file_path": _rel_to_media(pdf_path),
-                    "sha256": _sha256_file(pdf_path),
-                    "file_size": pdf_path.stat().st_size,
+                    "file_path": _rel_to_media(asset_path),
+                    "sha256": _sha256_file(asset_path),
+                    "file_size": asset_path.stat().st_size,
                     "mime_type": "application/pdf",
-                    "metadata": {"generated": True, "wes_report_id": wes_report_id},
+                    "metadata": {
+                        "generated": True,
+                        "wes_report_id": wes_report_id,
+                        "data_dir": f"data/{report.id}",
+                    },
                 },
             )
         return {
