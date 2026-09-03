@@ -7,6 +7,13 @@ import PortalSidebar from "../components/PortalSidebar";
 
 type PortalRole = "admin" | "analyst" | "reviewer" | "client";
 
+const STATUS_LABEL: Record<string, string> = {
+  draft: "分析中",
+  review: "待审核",
+  released: "已发布",
+  void: "已作废",
+};
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -155,18 +162,27 @@ const Dashboard: React.FC = () => {
               </div>
               {reports.length ? (
                 <div className="activity-list">
-                  {reports.slice(0, 5).map((report) => (
-                    <div key={report.id}>
-                      <span className={`activity-icon ${report.status === "released" ? "green" : "orange"}`}>
-                        <i className="fas fa-circle" />
-                      </span>
-                      <div>
-                        <b>{report.title}</b>
-                        <small>{report.report_number || report.sample_id} · {report.status}</small>
+                  {reports.slice(0, 5).map((report) => {
+                    const status = report.status || "";
+                    const statusText = STATUS_LABEL[status] || status || "—";
+                    const headline = report.report_number
+                      || report.sample_id
+                      || report.title
+                      || `报告 #${report.id}`;
+                    const who = [report.patient_no, report.patient_name].filter(Boolean).join(" · ") || "未命名患者";
+                    return (
+                      <div key={report.id}>
+                        <span className={`activity-icon ${status === "released" ? "green" : status === "void" ? "gray" : "orange"}`}>
+                          <i className="fas fa-circle" />
+                        </span>
+                        <div>
+                          <b>{headline}</b>
+                          <small>{who} · {statusText}</small>
+                        </div>
+                        <Link className="button button-small button-outline" to={`/reports/${report.id}`}>查看</Link>
                       </div>
-                      <Link className="button button-small button-outline" to={`/reports/${report.id}`}>查看</Link>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="empty-state">{role === "client" ? "尚无已发布报告" : "暂无报告"}</div>

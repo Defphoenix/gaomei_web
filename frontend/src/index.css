@@ -477,6 +477,7 @@ a.admin-folder-path:hover { color: #1d4f8c; text-decoration: underline; }
 .activity-icon.orange { color:var(--orange); background:var(--orange-bg); }
 .activity-icon.blue { color:var(--logo); background:var(--blue-bg); }
 .activity-icon.green { color:var(--green); background:var(--green-bg); }
+.activity-icon.gray { color:#7a8699; background:#eef1f5; }
 .activity-icon.purple { color:var(--purple); background:var(--purple-bg); }
 .activity-list b, .activity-list small { display:block; font-size:10px; }
 .activity-list small { margin-top:4px; color:var(--muted); }
