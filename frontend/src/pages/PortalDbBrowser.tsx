@@ -58,7 +58,7 @@ const SEX_OPTIONS = [
 ];
 
 const PAGE_TIPS: Record<TableKey, string> = {
-  users: "创建登录账号、分配角色。患者门户绑定请到「患者报告」→ 管理绑定。",
+  users: "创建登录账号、分配角色；客户账号通过「绑定患者」关联 GM-P（一个账号对应一个患者，该患者下可有多份报告）。",
   patients: "患者编号永久保留，不可删除；请到「患者报告」管理账号绑定。",
   reports: "管理报告状态与内容；附件在报告编辑页中统一维护。",
   assets: "每个报告一个 data/<报告ID>/ 文件夹；点开查看 JSON / BAM / PDF。",
@@ -81,7 +81,7 @@ const LIST_COLUMNS: Record<TableKey, { key: string; label: string }[]> = {
   users: [
     { key: "username", label: "用户名" },
     { key: "role", label: "角色" },
-    { key: "patient_no", label: "绑定患者" },
+    { key: "patient_no", label: "绑定 GM-P" },
     { key: "email", label: "邮箱" },
     { key: "is_active", label: "状态" },
   ],
@@ -654,7 +654,7 @@ const PortalDbBrowser: React.FC = () => {
                 {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </label>
-            <label>绑定患者编号
+            <label>绑定患者编号（GM-P）
               <select disabled={readOnlyForm} value={String(form.patient_no || "")} onChange={(e) => setField("patient_no", e.target.value)}>
                 <option value="">（未绑定）</option>
                 {patientOptions.map((o) => <option key={o.value} value={o.value}>{o.value} · {o.label}</option>)}

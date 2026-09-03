@@ -31,7 +31,7 @@ type ReportRow = {
   genome_build?: string;
 };
 
-type UserOption = { id: number; username: string; role: string };
+type PatientOption = { patient_no: string; name: string };
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "分析中",
@@ -55,10 +55,10 @@ const PatientReportsAdmin: React.FC = () => {
   const [error, setError] = useState("");
   const [releasing, setReleasing] = useState<number | null>(null);
   const [workflowBusy, setWorkflowBusy] = useState<number | null>(null);
-  const [customerUsers, setCustomerUsers] = useState<UserOption[]>([]);
-  const [bindRow, setBindRow] = useState<ReportRow | null>(null);
-  const [bindUsername, setBindUsername] = useState("");
-  const [bindSaving, setBindSaving] = useState(false);
+  const [patients, setPatients] = useState<PatientOption[]>([]);
+  const [gmRow, setGmRow] = useState<ReportRow | null>(null);
+  const [gmPatientNo, setGmPatientNo] = useState("");
+  const [gmSaving, setGmSaving] = useState(false);
 
   const isAdmin = user?.role === "admin" || !!user?.is_staff;
 
@@ -75,44 +75,45 @@ const PatientReportsAdmin: React.FC = () => {
 
   useEffect(() => {
     if (!isAdmin) return;
-    api.get("/auth/admin/users/")
+    api.get("/v1/db-browser/patients/")
       .then((res) => {
-        const list = (Array.isArray(res.data) ? res.data : [])
-          .filter((u: UserOption) => u.role === "customer")
-          .map((u: UserOption) => ({ id: u.id, username: u.username, role: u.role }));
-        setCustomerUsers(list);
+        const list = (Array.isArray(res.data) ? res.data : []).map((p: Record<string, unknown>) => ({
+          patient_no: String(p.patient_no || ""),
+          name: String(p.name || ""),
+        })).filter((p: PatientOption) => p.patient_no);
+        setPatients(list);
       })
-      .catch(() => setCustomerUsers([]));
+      .catch(() => setPatients([]));
   }, [isAdmin]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((row) =>
-      `${row.patient_no} ${row.patient_name} ${row.patient_username || ""} ${row.sample_id} ${row.report_number} ${row.title} ${row.product_code} ${row.wes_report_id || ""}`
+      `${row.id} ${row.patient_no} ${row.patient_name} ${row.sample_id} ${row.report_number} ${row.title} ${row.product_code} ${row.wes_report_id || ""}`
         .toLowerCase()
         .includes(q),
     );
   }, [rows, query]);
 
-  function openBind(row: ReportRow) {
-    setBindRow(row);
-    setBindUsername(row.patient_username || "");
+  function openGmBind(row: ReportRow) {
+    setGmRow(row);
+    setGmPatientNo(row.patient_no || "");
   }
 
-  async function saveBind() {
-    if (!bindRow?.patient_id) return;
-    setBindSaving(true);
+  async function saveGmBind() {
+    if (!gmRow?.id || !gmPatientNo) return;
+    setGmSaving(true);
     try {
-      await api.patch(`/v1/db-browser/patients/${bindRow.patient_id}/`, {
-        username: bindUsername,
+      await api.patch(`/v1/db-browser/reports/${gmRow.id}/`, {
+        patient_no: gmPatientNo,
       });
-      setBindRow(null);
+      setGmRow(null);
       await load();
     } catch (err: any) {
-      window.alert(err.response?.data?.detail || "绑定失败");
+      window.alert(err.response?.data?.detail || "归属患者更新失败");
     } finally {
-      setBindSaving(false);
+      setGmSaving(false);
     }
   }
 
@@ -187,10 +188,16 @@ const PatientReportsAdmin: React.FC = () => {
         <header className="portal-topbar">
           <div>
             <h1>患者报告</h1>
-            <p>报告台账 · 审核发布 · 门户账号绑定 · {user?.username || "内部用户"}</p>
+            <p>
+              每份报告有独立编号 GM-R；归属患者编号 GM-P（一患者可多报告）。
+              登录账号请在「用户与权限」绑定 GM-P。
+            </p>
           </div>
           <div className="portal-top-actions">
             <button type="button" className="button button-outline" onClick={load}>刷新</button>
+            {isAdmin ? (
+              <Link className="button button-outline" to="/db-browser?table=users">用户与权限</Link>
+            ) : null}
           </div>
         </header>
 
@@ -199,14 +206,14 @@ const PatientReportsAdmin: React.FC = () => {
             <div className="panel-head">
               <div>
                 <h2>报告台账</h2>
-                <p>患者编号永久保留；用「管理绑定」关联客户登录账号，勿删患者</p>
+                <p>按报告 ID / GM-R 管理；「归属 GM」只改患者编号，不绑登录账号</p>
               </div>
               <div className="project-search">
                 <i className="fas fa-search" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="搜索患者编号 / 姓名 / 绑定账号 / 样本 / 报告号"
+                  placeholder="搜索报告ID / GM-R / GM-P / 样本 / 姓名"
                 />
               </div>
             </div>
@@ -218,9 +225,9 @@ const PatientReportsAdmin: React.FC = () => {
                 <table className="project-table">
                   <thead>
                     <tr>
-                      <th>患者</th>
-                      <th>绑定账号</th>
+                      <th>报告 ID</th>
                       <th>报告编号</th>
+                      <th>归属 GM</th>
                       <th>样本 / WES</th>
                       <th>状态</th>
                       <th>PDF</th>
@@ -236,22 +243,22 @@ const PatientReportsAdmin: React.FC = () => {
                       return (
                         <tr key={row.id}>
                           <td>
-                            <b>{row.patient_no || "—"}</b>
-                            <small>{row.patient_name || "—"}</small>
-                          </td>
-                          <td>
-                            <div className="bind-cell">
-                              <span>{row.patient_username || "未绑定"}</span>
-                              {isAdmin ? (
-                                <button type="button" className="button button-small button-outline" onClick={() => openBind(row)}>
-                                  管理绑定
-                                </button>
-                              ) : null}
-                            </div>
+                            <b>#{row.id}</b>
                           </td>
                           <td>
                             <b>{row.report_number}</b>
                             <small>{row.title || "—"}</small>
+                          </td>
+                          <td>
+                            <div className="bind-cell">
+                              <b>{row.patient_no || "—"}</b>
+                              <small>{row.patient_name || "—"}</small>
+                              {isAdmin ? (
+                                <button type="button" className="button button-small button-outline" onClick={() => openGmBind(row)}>
+                                  归属 GM
+                                </button>
+                              ) : null}
+                            </div>
                           </td>
                           <td>
                             <span>{row.sample_id || "—"}</span>
@@ -282,7 +289,7 @@ const PatientReportsAdmin: React.FC = () => {
                                 type="button"
                                 className="button button-small button-outline"
                                 disabled={!preview}
-                                title={preview || "暂无 HTML 预览（需 analysis_data.wes_report_id 或样本 JSON）"}
+                                title={preview || "暂无 HTML 预览"}
                                 onClick={() => openWes(preview)}
                               >
                                 <i className="fas fa-eye" /> HTML
@@ -291,7 +298,6 @@ const PatientReportsAdmin: React.FC = () => {
                                 type="button"
                                 className="button button-small button-outline"
                                 disabled={!edit}
-                                title={edit || "暂无编辑页"}
                                 onClick={() => openWes(edit)}
                               >
                                 <i className="fas fa-edit" /> 编辑
@@ -300,7 +306,6 @@ const PatientReportsAdmin: React.FC = () => {
                                 type="button"
                                 className="button button-small button-outline"
                                 disabled={!pdfReady && !row.download_url}
-                                title={pdfReady || row.download_url ? "下载正式 PDF" : "PDF 尚未生成"}
                                 onClick={() => { void downloadPdf(row); }}
                               >
                                 <i className="fas fa-file-pdf" /> PDF
@@ -344,7 +349,7 @@ const PatientReportsAdmin: React.FC = () => {
                       <tr>
                         <td colSpan={8}>
                           <div className="empty-state">
-                            暂无报告。请用 API Key 调用 /api/v1/ingest/reports/package/ 导入。
+                            暂无报告。上传时带 patient_no（GM-P）与 sample_id；系统自动分配独立报告编号 GM-R。
                           </div>
                         </td>
                       </tr>
@@ -357,30 +362,37 @@ const PatientReportsAdmin: React.FC = () => {
         </section>
       </main>
 
-      {bindRow && (
-        <div className="bind-modal-backdrop" role="presentation" onClick={() => setBindRow(null)}>
-          <div className="bind-modal" role="dialog" aria-labelledby="bind-title" onClick={(e) => e.stopPropagation()}>
-            <h3 id="bind-title">管理绑定</h3>
+      {gmRow && (
+        <div className="bind-modal-backdrop" role="presentation" onClick={() => setGmRow(null)}>
+          <div className="bind-modal" role="dialog" aria-labelledby="gm-title" onClick={(e) => e.stopPropagation()}>
+            <h3 id="gm-title">归属 GM 编号</h3>
             <p>
-              患者 <b>{bindRow.patient_no}</b>（{bindRow.patient_name || "—"}）永久保留编号；
-              仅更换门户登录账号，不会改报告归属。
+              报告 <b>#{gmRow.id}</b>（{gmRow.report_number}）归属于哪个患者编号。
+              同一 GM-P 可挂多份 GM-R；登录账号请到「用户与权限」绑定 GM-P。
             </p>
             <label>
-              客户登录账号
-              <select value={bindUsername} onChange={(e) => setBindUsername(e.target.value)}>
-                <option value="">（未绑定）</option>
-                {customerUsers.map((u) => (
-                  <option key={u.id} value={u.username}>{u.username}</option>
+              患者编号（GM-P）
+              <select value={gmPatientNo} onChange={(e) => setGmPatientNo(e.target.value)}>
+                <option value="">请选择</option>
+                {patients.map((p) => (
+                  <option key={p.patient_no} value={p.patient_no}>
+                    {p.patient_no} · {p.name || "未命名"}
+                  </option>
                 ))}
-                {bindUsername && !customerUsers.some((u) => u.username === bindUsername) ? (
-                  <option value={bindUsername}>{bindUsername}（当前）</option>
+                {gmPatientNo && !patients.some((p) => p.patient_no === gmPatientNo) ? (
+                  <option value={gmPatientNo}>{gmPatientNo}（当前）</option>
                 ) : null}
               </select>
             </label>
             <div className="bind-modal-actions">
-              <button type="button" className="button button-outline" onClick={() => setBindRow(null)}>取消</button>
-              <button type="button" className="button button-primary" disabled={bindSaving} onClick={() => { void saveBind(); }}>
-                {bindSaving ? "保存中…" : "保存绑定"}
+              <button type="button" className="button button-outline" onClick={() => setGmRow(null)}>取消</button>
+              <button
+                type="button"
+                className="button button-primary"
+                disabled={gmSaving || !gmPatientNo}
+                onClick={() => { void saveGmBind(); }}
+              >
+                {gmSaving ? "保存中…" : "保存归属"}
               </button>
             </div>
           </div>
